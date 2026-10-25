@@ -1,0 +1,9 @@
+[submodule "3rdparty/AnyPS5"]
+	path = 3rdparty/AnyPS5
+	url = https://github.com/boykopovar/AnyPS5.git
+[submodule "3rdparty/glslang"]
+	path = 3rdparty/glslang
+	url = https://github.com/KhronosGroup/glslang.git
+[submodule "3rdparty/opengnm-psbc"]
+	path = 3rdparty/opengnm-psbc
+	url = https://github.com/mpereiraesaa/opengnm-psbc.git
