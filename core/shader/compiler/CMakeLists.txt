@@ -3,6 +3,7 @@ add_library(AnyDevKitShaderCompiler STATIC
     src/Frontend/GlslCompiler.cpp
     src/Frontend/ShaderIncluder.cpp
     src/Backend/PsbcCompiler.cpp
+    src/Validator/ShaderLayoutValidator.cpp
 )
 add_library(AnyDevKit::ShaderCompiler ALIAS AnyDevKitShaderCompiler)
 target_compile_features(AnyDevKitShaderCompiler PUBLIC cxx_std_20)

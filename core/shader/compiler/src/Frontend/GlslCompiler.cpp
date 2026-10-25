@@ -1,6 +1,7 @@
 #include "Frontend/GlslCompiler.hpp"
 
 #include "Frontend/ShaderIncluder.hpp"
+#include "Validator/ShaderLayoutValidator.hpp"
 #include <limits>
 #include <mutex>
 #include <stdexcept>
@@ -24,7 +25,8 @@ public:
 
 }
 
-std::vector<std::uint32_t> GlslCompiler::Compile(std::string_view source, std::string_view sourceName, PsbcStage stage, std::span<const std::filesystem::path> includeDirectories) {
+std::vector<std::uint32_t> GlslCompiler::Compile(std::string_view source, std::string_view sourceName, const PsbcCompileOptions& compileOptions, std::span<const std::filesystem::path> includeDirectories) {
+    const auto stage = compileOptions.stage;
     if (source.empty() || source.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()) || source.find('\0') != std::string_view::npos) throw std::invalid_argument("GLSL: empty, oversized or null-containing source");
     if (sourceName.empty() || sourceName.find('\0') != std::string_view::npos) throw std::invalid_argument("GLSL: invalid source name");
     if (stage != PSBC_STAGE_VERTEX && stage != PSBC_STAGE_FRAGMENT) throw std::invalid_argument("GLSL: unsupported AGC stage");
@@ -50,6 +52,7 @@ std::vector<std::uint32_t> GlslCompiler::Compile(std::string_view source, std::s
     glslang::TProgram program;
     program.addShader(&shader);
     if (!program.link(messages)) throw std::runtime_error("GLSL link: " + name + "\n" + program.getInfoLog() + program.getInfoDebugLog());
+    ShaderLayoutValidator::Validate(program, compileOptions);
     const auto* intermediate = program.getIntermediate(language);
     if (!intermediate) throw std::runtime_error("GLSL: linker produced no intermediate representation");
     glslang::SpvOptions options;

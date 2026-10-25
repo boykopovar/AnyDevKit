@@ -26,7 +26,7 @@ PsbcCompileOptions ShaderCompiler::CreateOptions(PsbcStage stage) {
 
 AgcShaderPackage ShaderCompiler::Compile(std::string_view source, std::string_view sourceName, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories) {
     PsbcCompiler::ValidateOptions(options);
-    const auto spirv = GlslCompiler::Compile(source, sourceName, options.stage, includeDirectories);
+    const auto spirv = GlslCompiler::Compile(source, sourceName, options, includeDirectories);
     return PsbcCompiler::Compile(spirv, options);
 }
 

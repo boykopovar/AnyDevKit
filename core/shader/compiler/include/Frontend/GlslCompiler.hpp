@@ -11,7 +11,7 @@ namespace AnyDevKit {
 
 class GlslCompiler {
 public:
-    static std::vector<std::uint32_t> Compile(std::string_view source, std::string_view sourceName, PsbcStage stage, std::span<const std::filesystem::path> includeDirectories);
+    static std::vector<std::uint32_t> Compile(std::string_view source, std::string_view sourceName, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories);
 };
 
 }
