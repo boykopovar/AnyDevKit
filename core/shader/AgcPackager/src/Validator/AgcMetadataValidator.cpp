@@ -28,7 +28,7 @@ void AgcMetadataValidator::Validate(const PsbcShaderOutput& compiled) {
     const bool vertex = metadata.source_stage == PSBC_STAGE_VERTEX && metadata.hardware_stage == PSBC_HW_STAGE_NGG;
     const bool fragment = metadata.source_stage == PSBC_STAGE_FRAGMENT && metadata.hardware_stage == PSBC_HW_STAGE_PIXEL;
     if (!vertex && !fragment) throw std::invalid_argument("AGC: only NGG vertex and pixel fragment stages are supported");
-    const std::uint32_t permitted = PSBC_UNRESOLVED_PROGRAM_CHECKSUM | (vertex ? PSBC_UNRESOLVED_NGG_ESGS_RING_ITEMSIZE : 0u);
+    const std::uint32_t permitted = PSBC_UNRESOLVED_PROGRAM_CHECKSUM | (vertex ? static_cast<std::uint32_t>(PSBC_UNRESOLVED_NGG_ESGS_RING_ITEMSIZE) : 0u);
     if (metadata.unresolved_fields & ~permitted) throw std::invalid_argument("AGC: unresolved compiler metadata");
     if (metadata.scratch_valid || metadata.scratch_bytes_per_wave || metadata.scratch_size_per_thread || metadata.scratch_buffer_table_user_data_dword) throw std::invalid_argument("AGC: scratch storage is unsupported");
     if (metadata.merged_geometry || metadata.merged_es_source_stage != PSBC_STAGE_NONE || metadata.merged_es_itemsize || metadata.merged_esgs_ring_itemsize) throw std::invalid_argument("AGC: merged geometry is unsupported");

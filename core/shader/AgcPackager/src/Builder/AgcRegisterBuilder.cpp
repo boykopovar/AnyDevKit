@@ -48,6 +48,7 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     const std::uint32_t resourceOffset = vertex ? 0x8au : 0xau;
     requireRegister(shader, resourceOffset);
     const auto& resources = requireRegister(shader, resourceOffset + 1);
+    if (resources.value & 1u) throw std::invalid_argument("AGC: scratch-enabled shader registers are unsupported");
     if (((resources.value >> 1) & 31u) != metadata.user_sgpr_count) throw std::invalid_argument("AGC: register and metadata user SGPR counts disagree");
     if (vertex) {
         for (const auto offset : std::array<std::uint32_t, 10>{0x1b1u, 0x1c2u, 0x1c3u, 0x207u, 0x2d3u, 0x2e4u, 0x291u, 0x1ffu, 0x2abu, 0x2ceu}) requireRegister(context, offset);
@@ -65,8 +66,8 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
             if (entry.offset || entry.padding || entry.value) throw std::invalid_argument("AGC: unexpected fragment linkage register");
         }
     }
-    const auto contextOffset = writer.Reserve(context.size_bytes(), alignof(ShaderRegister));
-    const auto shaderOffset = writer.Reserve(shader.size_bytes(), alignof(ShaderRegister));
+    const auto contextOffset = writer.Reserve(context.size() * sizeof(ShaderRegister), alignof(ShaderRegister));
+    const auto shaderOffset = writer.Reserve(shader.size() * sizeof(ShaderRegister), alignof(ShaderRegister));
     for (std::size_t index = 0; index < context.size(); ++index) {
         auto entry = context[index];
         if (vertex && entry.offset == 0x2abu) entry.value = 1;
