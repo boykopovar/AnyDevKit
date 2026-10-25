@@ -8,7 +8,7 @@ SDK for developing cross-platform games and applications for PS5, Windows and Li
 
 ## Status
 
-Under planning.
+Under development.
 
 ## License
 
