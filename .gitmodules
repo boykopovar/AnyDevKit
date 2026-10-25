@@ -7,3 +7,12 @@
 [submodule "3rdparty/opengnm-psbc"]
 	path = 3rdparty/opengnm-psbc
 	url = https://github.com/mpereiraesaa/opengnm-psbc.git
+[submodule "3rdparty/opengnm"]
+	path = 3rdparty/opengnm
+	url = https://github.com/PS4-OpenGNM/opengnm.git
+[submodule "3rdparty/Vulkan-Headers"]
+	path = 3rdparty/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git
+[submodule "3rdparty/SPIRV-Headers"]
+	path = 3rdparty/SPIRV-Headers
+	url = https://github.com/KhronosGroup/SPIRV-Headers.git
