@@ -55,7 +55,7 @@ file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTE
 
 get_filename_component(compilerDirectory "${CMAKE_CXX_COMPILER}" DIRECTORY)
 if(WIN32)
-    set(runtimeEnvironment "set(ENV{PATH} \"${ANYDEVKIT_RUNTIME_DIRECTORY};${compilerDirectory};\$ENV{PATH}\")")
+    set(runtimeEnvironment "set(ENV{PATH} \"${ANYDEVKIT_RUNTIME_DIRECTORY};${CMAKE_SYSROOT}/bin;${compilerDirectory};\$ENV{PATH}\")")
 elseif(APPLE)
     set(runtimeEnvironment "set(ENV{DYLD_LIBRARY_PATH} \"${ANYDEVKIT_RUNTIME_DIRECTORY}:\$ENV{DYLD_LIBRARY_PATH}\")")
 else()
