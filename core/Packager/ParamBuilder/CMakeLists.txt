@@ -1,0 +1,5 @@
+add_library(AnyDevKitParamBuilder STATIC src/ParamBuilder.cpp src/Validator/ParamValidator.cpp src/Writer/ParamWriter.cpp)
+add_library(AnyDevKit::ParamBuilder ALIAS AnyDevKitParamBuilder)
+target_include_directories(AnyDevKitParamBuilder PUBLIC include)
+target_compile_features(AnyDevKitParamBuilder PUBLIC cxx_std_20)
+set_target_properties(AnyDevKitParamBuilder PROPERTIES CXX_EXTENSIONS OFF)
