@@ -1,4 +1,4 @@
-add_library(AnyDevKitPkgPackager STATIC src/Writer/InstallArchiveWriter.cpp src/Builder/OuterImageBuilder.cpp)
+add_library(AnyDevKitPkgPackager STATIC src/Writer/InstallArchiveWriter.cpp src/Builder/OuterImageBuilder.cpp src/Builder/InnerImageBuilder.cpp src/Writer/NapsWriter.cpp src/Builder/KeyBuilder.cpp src/Writer/FihWriter.cpp)
 add_library(AnyDevKit::PkgPackager ALIAS AnyDevKitPkgPackager)
 target_include_directories(AnyDevKitPkgPackager PUBLIC include)
 target_link_libraries(AnyDevKitPkgPackager PRIVATE AnyDevKit::PfsBuilder AnyDevKit::Crypto)
