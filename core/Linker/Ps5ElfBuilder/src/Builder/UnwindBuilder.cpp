@@ -58,7 +58,7 @@ UnwindImage UnwindBuilder::Build(const ElfImage& image, const StartupImage& star
     BinaryWriter::Append(result.Bytes, 20, 4);
     BinaryWriter::Append(result.Bytes, 0, 4);
     for (unsigned value : {1u, 0x7au, 0x52u, 0u, 1u, 0x78u, 16u, 1u, 0x1bu, 0x0cu, 7u, 8u, 0x90u, 1u, 0u, 0u}) byte(value);
-    auto fde = [&](std::uint64_t start, std::uint64_t size, std::initializer_list<unsigned> instructions) {
+    auto fde = [&](std::uint64_t start, std::uint64_t size, std::initializer_list<unsigned> instructions, bool returns) {
         const auto offset = result.Bytes.size();
         entries.emplace_back(start, address + offset);
         BinaryWriter::Append(result.Bytes, 0, 4);
@@ -67,11 +67,17 @@ UnwindImage UnwindBuilder::Build(const ElfImage& image, const StartupImage& star
         BinaryWriter::Append(result.Bytes, size, 4);
         byte(0);
         for (auto value : instructions) byte(value);
+        if (returns) {
+            byte(0x04);
+            BinaryWriter::Append(result.Bytes, size - 5, 4);
+            byte(0x0e);
+            byte(8);
+        }
         while (result.Bytes.size() % 8 != 0) byte(0);
         BinaryWriter::Set(result.Bytes, offset, result.Bytes.size() - offset - 4, 4);
     };
-    fde(codeAddress, startup.Entry - codeAddress, {0x44, 0x0e, 16});
-    fde(startup.Entry, startup.Bytes.size() - (startup.Entry - codeAddress), {0x41, 0x0e, 16, 0x86, 2, 0x43, 0x0d, 6, 0x42, 0x8c, 3, 0x42, 0x8d, 4, 0x42, 0x8e, 5});
+    fde(codeAddress, startup.Entry - codeAddress, {0x44, 0x0e, 16}, true);
+    fde(startup.Entry, startup.Bytes.size() - (startup.Entry - codeAddress), {0x41, 0x0e, 16, 0x86, 2, 0x43, 0x0d, 6, 0x42, 0x8c, 3, 0x42, 0x8d, 4, 0x42, 0x8e, 5}, false);
     BinaryWriter::Append(result.Bytes, 0, 4);
     result.HeaderOffset = result.Bytes.size();
     const auto headerAddress = address + result.HeaderOffset;
@@ -80,6 +86,7 @@ UnwindImage UnwindBuilder::Build(const ElfImage& image, const StartupImage& star
     if (entries.size() > 0xffffffff) throw std::length_error("Too many unwind entries");
     BinaryWriter::Append(result.Bytes, entries.size(), 4);
     std::ranges::sort(entries);
+    if (std::adjacent_find(entries.begin(), entries.end(), [](const auto& left, const auto& right) { return left.first == right.first; }) != entries.end()) throw std::invalid_argument("Duplicate unwind function address");
     for (const auto& [start, fdeAddress] : entries) {
         relative(result.Bytes, start, headerAddress);
         relative(result.Bytes, fdeAddress, headerAddress);

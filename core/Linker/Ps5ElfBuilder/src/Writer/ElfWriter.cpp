@@ -131,12 +131,16 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
             if (moduleIds.size() >= 65535) throw std::length_error("Too many PS5 import modules");
             moduleIds.emplace(imported.Module, static_cast<std::uint16_t>(moduleIds.size() + 1));
             modules.emplace(imported.Module, imported);
+        } else if (modules.at(imported.Module).FileName != imported.FileName || modules.at(imported.Module).ModuleVersion != imported.ModuleVersion) {
+            throw std::invalid_argument("Conflicting PS5 module versions or filenames");
         }
         const auto key = std::pair{imported.Module, imported.Library};
         if (!libraryIds.contains(key)) {
             if (libraryIds.size() >= 65535) throw std::length_error("Too many PS5 import libraries");
             libraryIds.emplace(key, static_cast<std::uint16_t>(libraryIds.size()));
             libraries.emplace(key, imported);
+        } else if (libraries.at(key).LibraryVersion != imported.LibraryVersion) {
+            throw std::invalid_argument("Conflicting PS5 library versions");
         }
         symbol.Name = imported.Nid + "#" + identifier(libraryIds.at(key)) + "#" + identifier(moduleIds.at(imported.Module));
         symbol.Info = static_cast<std::uint8_t>(0x10 | imported.Type);
