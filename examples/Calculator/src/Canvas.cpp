@@ -1,7 +1,7 @@
 #include "Canvas.hpp"
+#include "CalculatorError.hpp"
 
 #include <array>
-#include <stdexcept>
 
 namespace {
 
@@ -38,25 +38,25 @@ std::array<unsigned, 7> glyph(char character) {
     case '=': return {0, 0, 31, 0, 31, 0, 0};
     case '.': return {0, 0, 0, 0, 0, 6, 6};
     case ' ': return {};
-    default: throw std::invalid_argument("Unsupported glyph");
+    default: throw CalculatorError{"Unsupported glyph"};
     }
 }
 
 }
 
 Canvas::Canvas(std::span<std::uint32_t> pixels, int width, int height) : pixels(pixels), width(width), height(height) {
-    if (width <= 0 || height <= 0 || pixels.size() != static_cast<std::size_t>(width) * static_cast<std::size_t>(height)) throw std::invalid_argument("Invalid canvas extent");
+    if (width <= 0 || height <= 0 || pixels.size() != static_cast<std::size_t>(width) * static_cast<std::size_t>(height)) throw CalculatorError{"Invalid canvas extent"};
 }
 
 void Canvas::Rectangle(int x, int y, int rectangleWidth, int rectangleHeight, std::uint32_t color) {
-    if (x < 0 || y < 0 || rectangleWidth < 0 || rectangleHeight < 0 || x > width || y > height || rectangleWidth > width - x || rectangleHeight > height - y) throw std::out_of_range("Rectangle outside canvas");
+    if (x < 0 || y < 0 || rectangleWidth < 0 || rectangleHeight < 0 || x > width || y > height || rectangleWidth > width - x || rectangleHeight > height - y) throw CalculatorError{"Rectangle outside canvas"};
     for (int row = y; row < y + rectangleHeight; ++row) {
         for (int column = x; column < x + rectangleWidth; ++column) pixels[static_cast<std::size_t>(row) * width + column] = color;
     }
 }
 
 void Canvas::Text(int x, int y, std::string_view text, int scale, std::uint32_t color) {
-    if (scale <= 0 || scale > 16) throw std::invalid_argument("Invalid text scale");
+    if (scale <= 0 || scale > 16) throw CalculatorError{"Invalid text scale"};
     for (char character : text) {
         const auto rows = glyph(character);
         for (int row = 0; row < 7; ++row) {

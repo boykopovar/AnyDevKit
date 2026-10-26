@@ -1,25 +1,45 @@
-set(ANYDEVKIT_NID_PATCHER "" CACHE FILEPATH "AnyPS5 nid_patcher executable")
-set(ANYDEVKIT_VIDEOOUT_IMPORT_LIBRARY "" CACHE FILEPATH "Unpatched AnyPS5 VideoOut import library")
 set(ANYDEVKIT_RUNTIME_DIRECTORY "" CACHE PATH "Directory containing patched AnyPS5 runtime libraries")
 
-foreach(requiredPath IN ITEMS ANYDEVKIT_NID_PATCHER ANYDEVKIT_VIDEOOUT_IMPORT_LIBRARY)
-    if(NOT EXISTS "${${requiredPath}}")
-        message(FATAL_ERROR "${requiredPath} must name an existing file")
-    endif()
-endforeach()
+if(NOT MINGW OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(FATAL_ERROR "Calculator currently requires Clang targeting MinGW with DWARF exceptions")
+endif()
+find_program(ANYDEVKIT_DLLTOOL NAMES llvm-dlltool REQUIRED)
+find_program(ANYDEVKIT_OBJCOPY NAMES objcopy HINTS "${CMAKE_SYSROOT}/bin" REQUIRED)
+
 
 if(NOT EXISTS "${ANYDEVKIT_RUNTIME_DIRECTORY}/libSceVideoOut.prx")
     message(FATAL_ERROR "ANYDEVKIT_RUNTIME_DIRECTORY must contain libSceVideoOut.prx")
 endif()
 
-add_executable(Calculator src/Main.cpp src/Canvas.cpp)
+set(CMAKE_CXX_STANDARD_LIBRARIES "")
+add_executable(Calculator src/Main.cpp src/Canvas.cpp src/PeRelocations.cpp)
 target_compile_features(Calculator PRIVATE cxx_std_20)
 set_target_properties(Calculator PROPERTIES CXX_EXTENSIONS OFF)
-set_property(TARGET Calculator APPEND PROPERTY LINK_DEPENDS "${ANYDEVKIT_NID_PATCHER}")
-target_include_directories(Calculator PRIVATE include "${PROJECT_SOURCE_DIR}/3rdparty/AnyPS5/core/libs")
-target_link_libraries(Calculator PRIVATE "${ANYDEVKIT_VIDEOOUT_IMPORT_LIBRARY}")
+add_dependencies(Calculator AnyDevKitNidPatcher)
+set_property(TARGET Calculator APPEND PROPERTY LINK_DEPENDS "$<TARGET_FILE:AnyDevKitNidPatcher>")
+target_include_directories(Calculator PRIVATE include)
+target_include_directories(Calculator SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/3rdparty/AnyPS5/core/libs")
+target_compile_options(Calculator PRIVATE -fdwarf-exceptions -fno-stack-protector -fno-stack-check -mno-stack-arg-probe)
+target_link_options(Calculator PRIVATE -nostdlib -fuse-ld=lld -Wl,--entry,CalculatorEntry -Wl,--subsystem,windows)
+
+set(nativeExceptionSymbols __cxa_allocate_exception __cxa_free_exception __cxa_throw __cxa_begin_catch __cxa_end_catch __cxa_rethrow __cxa_call_terminate __gxx_personality_v0 _Unwind_Resume _ZSt9terminatev)
+string(JOIN "\n" preservedExceptions ${nativeExceptionSymbols})
+file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/native-exceptions.txt" CONTENT "${preservedExceptions}\n" NEWLINE_STYLE UNIX)
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/libc.def" "LIBRARY libc.prx\nEXPORTS\n${preservedExceptions}\nmalloc_nid_postfix\nfree_nid_postfix\nprintf_nid_postfix\nexit_nid_postfix\n_ZTVN10__cxxabiv117__class_type_infoE DATA\n")
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/libSceVideoOut.def" "LIBRARY libSceVideoOut.prx\nEXPORTS\nsceVideoOutOpen\nsceVideoOutSetBufferAttribute2\nsceVideoOutRegisterBuffers2\nsceVideoOutSubmitFlip\nsceVideoOutWaitVblank\n")
+foreach(library IN ITEMS libc libSceVideoOut)
+    set(importLibrary "${CMAKE_CURRENT_BINARY_DIR}/${library}.a")
+    add_custom_command(OUTPUT "${importLibrary}"
+        COMMAND "${ANYDEVKIT_DLLTOOL}" -m i386:x86-64 -d "${CMAKE_CURRENT_BINARY_DIR}/${library}.def" -l "${importLibrary}"
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${library}.def"
+        VERBATIM)
+    add_custom_target(CalculatorImport_${library} DEPENDS "${importLibrary}")
+    add_dependencies(Calculator CalculatorImport_${library})
+    target_link_libraries(Calculator PRIVATE "${importLibrary}")
+endforeach()
 add_custom_command(TARGET Calculator POST_BUILD
-    COMMAND "${ANYDEVKIT_NID_PATCHER}" --exec --only-sce "$<TARGET_FILE:Calculator>"
+    COMMAND "${ANYDEVKIT_OBJCOPY}" --rename-section .eh_frame=.ehfram --set-section-flags .rdata=alloc,load,data,contents "$<TARGET_FILE:Calculator>"
+    COMMAND "$<TARGET_FILE:AnyDevKitNidPatcher>" --exec --preserve-export-list "${CMAKE_CURRENT_BINARY_DIR}/native-exceptions.txt" "$<TARGET_FILE:Calculator>"
     VERBATIM)
 
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTENT [=[
