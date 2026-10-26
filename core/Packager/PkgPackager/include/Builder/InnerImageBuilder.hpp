@@ -14,6 +14,7 @@ struct InnerFileInfo {
     std::uint64_t Offset = 0;
     std::uint64_t Size = 0;
     std::uint32_t Inode = 0;
+    bool Executable = false;
 };
 
 struct InnerImageInfo {

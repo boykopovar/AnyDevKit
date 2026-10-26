@@ -1,6 +1,6 @@
-add_library(AnyDevKitPkgPackager STATIC src/Writer/InstallArchiveWriter.cpp src/Builder/OuterImageBuilder.cpp src/Builder/InnerImageBuilder.cpp src/Writer/NapsWriter.cpp src/Builder/KeyBuilder.cpp src/Writer/FihWriter.cpp src/Builder/CntBuilder.cpp src/Builder/PlayGoBuilder.cpp)
+add_library(AnyDevKitPkgPackager STATIC src/PkgPackager.cpp src/Writer/InstallXmlWriter.cpp src/Writer/InstallArchiveWriter.cpp src/Builder/OuterImageBuilder.cpp src/Builder/InnerImageBuilder.cpp src/Writer/NapsWriter.cpp src/Builder/KeyBuilder.cpp src/Writer/FihWriter.cpp src/Builder/CntBuilder.cpp src/Builder/PlayGoBuilder.cpp src/Builder/InstallMetadataBuilder.cpp)
 add_library(AnyDevKit::PkgPackager ALIAS AnyDevKitPkgPackager)
 target_include_directories(AnyDevKitPkgPackager PUBLIC include)
-target_link_libraries(AnyDevKitPkgPackager PRIVATE AnyDevKit::PfsBuilder AnyDevKit::Crypto)
+target_link_libraries(AnyDevKitPkgPackager PUBLIC AnyDevKit::ParamBuilder PRIVATE AnyDevKit::PfsBuilder AnyDevKit::Crypto)
 target_compile_features(AnyDevKitPkgPackager PUBLIC cxx_std_20)
 set_target_properties(AnyDevKitPkgPackager PROPERTIES CXX_EXTENSIONS OFF)

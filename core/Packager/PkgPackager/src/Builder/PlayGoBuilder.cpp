@@ -10,7 +10,7 @@ namespace AnyDevKit::Pkg {
 
 PlayGoData PlayGoBuilder::Build(std::string_view contentId, const InnerImageInfo& inner, const OuterImageInfo& outer) {
     using Pfs::ImageWriter;
-    if (contentId.size() != 36 || inner.Files.empty() || inner.Files.size() > 0x1fffffff || !inner.Size || inner.Size >= outer.Size + 0x10000) throw std::invalid_argument("Invalid PlayGo inputs");
+    if (contentId.size() != 36 || inner.Files.empty() || inner.Files.size() > 0x1fffffff || !inner.Size || inner.Size >= ImageWriter::Add(outer.Size, 0x10000)) throw std::invalid_argument("Invalid PlayGo inputs");
     PlayGoData result;
     result.Chunks.resize(0x1a0);
     auto& chunks = result.Chunks;

@@ -85,7 +85,7 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
     Put(data, 0x28, data.size() - 0x2000, 8);
     Put(data, 0x30, get(0x40a).Offset, 8);
     for (std::size_t i = 0; i < contentId.size(); ++i) data[0x40 + i] = data[0x200 + i] = static_cast<std::byte>(contentId[i]);
-    Put(data, 0x74, 20, 4);
+    Put(data, 0x74, 0x20, 4);
     Put(data, 0x78, 0x02020000, 4);
     Put(data, 0x7c, data.size(), 4);
     Put(data, 0x80, 0x20200722, 4);

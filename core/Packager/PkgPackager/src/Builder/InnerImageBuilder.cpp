@@ -124,7 +124,7 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
         node.Afid = static_cast<std::uint32_t>(i);
         node.Offset = cursor;
         cursor = ImageWriter::Align(ImageWriter::Add(cursor, std::max<std::uint64_t>(1, node.Size)), 0x40000);
-        result.Files.push_back({node.Entry.Path, node.Offset, node.Size, files[i]});
+        result.Files.push_back({node.Entry.Path, node.Offset, node.Size, files[i], (node.Flags & 0x40) != 0});
         if (!SystemPath(node.Entry.Path)) ++result.ApplicationFiles;
         ImageWriter::Put(nodes[3].Data, 4 + i * 4, files[i], 4);
     }
