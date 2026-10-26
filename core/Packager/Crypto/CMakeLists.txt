@@ -1,0 +1,5 @@
+add_library(AnyDevKitPackageCrypto STATIC src/Sha3.cpp src/Aes.cpp src/Rsa3072.cpp)
+add_library(AnyDevKit::PackageCrypto ALIAS AnyDevKitPackageCrypto)
+target_include_directories(AnyDevKitPackageCrypto PUBLIC include)
+target_compile_features(AnyDevKitPackageCrypto PUBLIC cxx_std_20)
+set_target_properties(AnyDevKitPackageCrypto PROPERTIES CXX_EXTENSIONS OFF)
