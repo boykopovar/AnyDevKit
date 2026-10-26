@@ -1,5 +1,5 @@
 #include "Writer/InstallArchiveWriter.hpp"
-#include "Hash/Crc32.hpp"
+#include "Crc32.hpp"
 #include "Writer/ImageWriter.hpp"
 
 #include <array>
@@ -37,7 +37,7 @@ std::vector<std::byte> InstallArchiveWriter::Build(std::span<const InstallArchiv
         for (std::size_t i = 0; i < name.size(); ++i) result[offset + i] = static_cast<std::byte>(name[i]);
     };
     for (const auto& entry : entries) {
-        const auto crc = Crc32::Zip(entry.Content);
+        const auto crc = Crypto::Crc32::Zip(entry.Content);
         records.push_back({static_cast<std::uint32_t>(cursor), crc});
         put(cursor, 0x04034b50, 4);
         put(cursor + 4, 20, 2);

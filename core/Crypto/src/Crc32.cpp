@@ -1,6 +1,6 @@
-#include "Hash/Crc32.hpp"
+#include "Crc32.hpp"
 
-namespace AnyDevKit::Pkg {
+namespace AnyDevKit::Crypto {
 
 std::uint32_t Crc32::compute(std::span<const std::byte> bytes, std::uint32_t polynomial) {
     std::uint32_t result = 0xffffffff;

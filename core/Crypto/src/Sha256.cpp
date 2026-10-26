@@ -1,11 +1,13 @@
-#include "Hash/Sha256.hpp"
+#include "Sha256.hpp"
 
 #include <bit>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <algorithm>
+#include <vector>
 
-namespace AnyDevKit::Self {
+namespace AnyDevKit::Crypto {
 namespace {
 
 constexpr std::array<std::uint32_t, 64> Constants{
@@ -46,6 +48,22 @@ void compress(std::array<std::uint32_t, 8>& state, std::span<const std::byte, 64
     for (std::size_t i = 0; i < state.size(); ++i) state[i] += updated[i];
 }
 
+}
+
+std::array<std::byte, 32> Sha256::Hmac(std::span<const std::byte> key, std::span<const std::byte> bytes) {
+    std::vector<std::byte> block(64);
+    if (bytes.size() > block.max_size() - 64) throw std::length_error("HMAC input is too large");
+    if (key.size() > 64) {
+        const auto reduced = Compute(key);
+        std::copy(reduced.begin(), reduced.end(), block.begin());
+    } else std::copy(key.begin(), key.end(), block.begin());
+    for (auto& byte : block) byte ^= std::byte{0x36};
+    block.insert(block.end(), bytes.begin(), bytes.end());
+    const auto inner = Compute(block);
+    block.resize(64);
+    for (auto& byte : block) byte ^= std::byte{0x36 ^ 0x5c};
+    block.insert(block.end(), inner.begin(), inner.end());
+    return Compute(block);
 }
 
 std::array<std::byte, 32> Sha256::Compute(std::span<const std::byte> bytes) {

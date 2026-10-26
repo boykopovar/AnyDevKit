@@ -1,5 +1,5 @@
 #include "Writer/SelfWriter.hpp"
-#include "Hash/Sha256.hpp"
+#include "Sha256.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -44,7 +44,7 @@ std::vector<std::byte> SelfWriter::Write(const ElfImage& image, const EbootPacka
     write(output, layout.InfoOffset + 8, 1, 8);
     write(output, layout.InfoOffset + 16, options.ApplicationVersion, 8);
     write(output, layout.InfoOffset + 24, options.FirmwareVersion, 8);
-    copy(output, layout.InfoOffset + 32, Sha256::Compute(image.Source));
+    copy(output, layout.InfoOffset + 32, Crypto::Sha256::Compute(image.Source));
     write(output, layout.InfoOffset + 64, 3, 2);
     write(output, layout.HeaderSize + layout.Entries.size() * 80 + 48, 0x10000, 4);
     for (std::size_t i = 0; i < image.Segments.size(); ++i) copy(output, layout.Entries[i * 2 + 1].Offset, image.Segments[i].Data);

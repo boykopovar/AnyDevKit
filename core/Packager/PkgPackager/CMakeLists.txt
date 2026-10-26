@@ -1,6 +1,6 @@
-add_library(AnyDevKitPkgPackager STATIC src/Writer/InstallArchiveWriter.cpp src/Hash/Crc32.cpp)
+add_library(AnyDevKitPkgPackager STATIC src/Writer/InstallArchiveWriter.cpp)
 add_library(AnyDevKit::PkgPackager ALIAS AnyDevKitPkgPackager)
 target_include_directories(AnyDevKitPkgPackager PUBLIC include)
-target_link_libraries(AnyDevKitPkgPackager PRIVATE AnyDevKit::PfsBuilder)
+target_link_libraries(AnyDevKitPkgPackager PRIVATE AnyDevKit::PfsBuilder AnyDevKit::Crypto)
 target_compile_features(AnyDevKitPkgPackager PUBLIC cxx_std_20)
 set_target_properties(AnyDevKitPkgPackager PROPERTIES CXX_EXTENSIONS OFF)

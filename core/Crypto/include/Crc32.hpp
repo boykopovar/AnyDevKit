@@ -1,11 +1,11 @@
-#ifndef ANYDEVKIT_PACKAGER_PKG_CRC32_HPP
-#define ANYDEVKIT_PACKAGER_PKG_CRC32_HPP
+#ifndef ANYDEVKIT_CORE_CRYPTO_CRC32_HPP
+#define ANYDEVKIT_CORE_CRYPTO_CRC32_HPP
 
 #include <cstddef>
 #include <cstdint>
 #include <span>
 
-namespace AnyDevKit::Pkg {
+namespace AnyDevKit::Crypto {
 
 class Crc32 final {
 public:
