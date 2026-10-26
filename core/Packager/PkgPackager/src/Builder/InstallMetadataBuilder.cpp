@@ -33,7 +33,7 @@ InstallMetadata InstallMetadataBuilder::Build(const std::filesystem::path& image
         const auto end = ImageWriter::Add(ImageWriter::Add(start, 16), content.size());
         if (end > 0x1000000) throw std::length_error("Install metadata exceeds AES-XTS data-unit limit");
         result.Metrics.resize(static_cast<std::size_t>(end));
-        for (std::size_t i = 0; i < tag.size(); ++i) result.Metrics[start + i] = static_cast<std::byte>(tag[i]);
+        for (std::size_t i = 0; i < tag.size(); ++i) result.Metrics[start + i] = static_cast<std::byte>(tag[tag.size() - 1 - i]);
         ImageWriter::Put(result.Metrics, start + 4, version, 1);
         ImageWriter::Put(result.Metrics, start + 8, content.size(), 8);
         std::copy(content.begin(), content.end(), result.Metrics.begin() + static_cast<std::ptrdiff_t>(start + 16));
