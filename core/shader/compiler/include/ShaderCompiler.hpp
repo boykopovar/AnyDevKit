@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_SHADER_COMPILER_INCLUDE_SHADERCOMPILER_HPP
+#define ANYDEVKIT_CORE_SHADER_COMPILER_INCLUDE_SHADERCOMPILER_HPP
 
 #include <AgcPackager.hpp>
 #include <filesystem>
@@ -15,3 +16,5 @@ public:
 };
 
 }
+
+#endif

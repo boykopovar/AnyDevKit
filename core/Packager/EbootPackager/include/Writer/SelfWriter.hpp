@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_PACKAGER_EBOOTPACKAGER_INCLUDE_WRITER_SELFWRITER_HPP
+#define ANYDEVKIT_CORE_PACKAGER_EBOOTPACKAGER_INCLUDE_WRITER_SELFWRITER_HPP
 
 #include "Builder/SelfLayoutBuilder.hpp"
 #include "EbootPackager.hpp"
@@ -11,3 +12,5 @@ public:
 };
 
 }
+
+#endif

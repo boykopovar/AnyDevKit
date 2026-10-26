@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_SHADER_COMPILER_INCLUDE_FRONTEND_SHADERINCLUDER_HPP
+#define ANYDEVKIT_CORE_SHADER_COMPILER_INCLUDE_FRONTEND_SHADERINCLUDER_HPP
 
 #include <filesystem>
 #include <map>
@@ -26,3 +27,5 @@ private:
 };
 
 }
+
+#endif

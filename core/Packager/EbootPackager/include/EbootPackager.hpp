@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_PACKAGER_EBOOTPACKAGER_INCLUDE_EBOOTPACKAGER_HPP
+#define ANYDEVKIT_CORE_PACKAGER_EBOOTPACKAGER_INCLUDE_EBOOTPACKAGER_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -21,3 +22,5 @@ public:
 };
 
 }
+
+#endif

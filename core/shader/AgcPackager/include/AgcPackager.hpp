@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_SHADER_AGCPACKAGER_INCLUDE_AGCPACKAGER_HPP
+#define ANYDEVKIT_CORE_SHADER_AGCPACKAGER_INCLUDE_AGCPACKAGER_HPP
 
 #include <cstddef>
 #include <span>
@@ -30,3 +31,5 @@ public:
 };
 
 }
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_SHADER_COMPILER_INCLUDE_FRONTEND_GLSLCOMPILER_HPP
+#define ANYDEVKIT_CORE_SHADER_COMPILER_INCLUDE_FRONTEND_GLSLCOMPILER_HPP
 
 #include <cstdint>
 #include <filesystem>
@@ -15,3 +16,5 @@ public:
 };
 
 }
+
+#endif

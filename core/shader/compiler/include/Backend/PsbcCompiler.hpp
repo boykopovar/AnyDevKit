@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_SHADER_COMPILER_INCLUDE_BACKEND_PSBCCOMPILER_HPP
+#define ANYDEVKIT_CORE_SHADER_COMPILER_INCLUDE_BACKEND_PSBCCOMPILER_HPP
 
 #include <AgcPackager.hpp>
 #include <cstdint>
@@ -13,3 +14,5 @@ public:
 };
 
 }
+
+#endif

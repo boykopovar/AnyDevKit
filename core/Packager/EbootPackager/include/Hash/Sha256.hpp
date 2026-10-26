@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_PACKAGER_EBOOTPACKAGER_INCLUDE_HASH_SHA256_HPP
+#define ANYDEVKIT_CORE_PACKAGER_EBOOTPACKAGER_INCLUDE_HASH_SHA256_HPP
 
 #include <array>
 #include <cstddef>
@@ -12,3 +13,5 @@ public:
 };
 
 }
+
+#endif

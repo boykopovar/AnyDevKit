@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_PACKAGER_EBOOTPACKAGER_INCLUDE_READER_ELFREADER_HPP
+#define ANYDEVKIT_CORE_PACKAGER_EBOOTPACKAGER_INCLUDE_READER_ELFREADER_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -25,3 +26,5 @@ public:
 };
 
 }
+
+#endif

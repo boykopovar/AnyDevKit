@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_EXAMPLES_CALCULATOR_INCLUDE_CANVAS_HPP
+#define ANYDEVKIT_EXAMPLES_CALCULATOR_INCLUDE_CANVAS_HPP
 
 #include <cstdint>
 #include <span>
@@ -16,3 +17,5 @@ private:
     int width;
     int height;
 };
+
+#endif

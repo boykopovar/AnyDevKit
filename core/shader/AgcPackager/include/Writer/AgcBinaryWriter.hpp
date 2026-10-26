@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ANYDEVKIT_CORE_SHADER_AGCPACKAGER_INCLUDE_WRITER_AGCBINARYWRITER_HPP
+#define ANYDEVKIT_CORE_SHADER_AGCPACKAGER_INCLUDE_WRITER_AGCBINARYWRITER_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -26,3 +27,5 @@ private:
 };
 
 }
+
+#endif
