@@ -1,0 +1,6 @@
+add_library(AnyDevKitFfpfscPackager STATIC src/FfpfscPackager.cpp)
+add_library(AnyDevKit::FfpfscPackager ALIAS AnyDevKitFfpfscPackager)
+target_include_directories(AnyDevKitFfpfscPackager PUBLIC include)
+target_link_libraries(AnyDevKitFfpfscPackager PUBLIC AnyDevKit::PfsBuilder)
+target_compile_features(AnyDevKitFfpfscPackager PUBLIC cxx_std_20)
+set_target_properties(AnyDevKitFfpfscPackager PROPERTIES CXX_EXTENSIONS OFF)

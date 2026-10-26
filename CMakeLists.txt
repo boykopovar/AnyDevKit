@@ -11,6 +11,8 @@ add_subdirectory(core/shader/AgcPackager)
 add_subdirectory(core/shader/compiler)
 add_subdirectory(core/Packager/EbootPackager)
 add_subdirectory(core/Packager/ParamBuilder)
+add_subdirectory(core/Packager/PfsBuilder)
+add_subdirectory(core/Packager/FfpfscPackager)
 add_subdirectory(core/Linker/Ps5ElfBuilder)
 
 option(ANYDEVKIT_BUILD_EXAMPLES "Build examples" OFF)

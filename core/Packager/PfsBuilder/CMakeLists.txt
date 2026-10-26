@@ -1,0 +1,5 @@
+add_library(AnyDevKitPfsBuilder STATIC src/PfsBuilder.cpp src/Writer/ImageWriter.cpp src/Writer/PfscWriter.cpp)
+add_library(AnyDevKit::PfsBuilder ALIAS AnyDevKitPfsBuilder)
+target_include_directories(AnyDevKitPfsBuilder PUBLIC include)
+target_compile_features(AnyDevKitPfsBuilder PUBLIC cxx_std_20)
+set_target_properties(AnyDevKitPfsBuilder PROPERTIES CXX_EXTENSIONS OFF)
