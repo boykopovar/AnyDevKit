@@ -17,7 +17,7 @@ InstallMetadata InstallMetadataBuilder::Build(const std::filesystem::path& image
     using Pfs::ImageWriter;
     constexpr std::uint64_t blockSize = 0x10000;
     constexpr std::uint64_t unit = 0x40000;
-    if (inner.Size < 0x20000 || inner.Size % blockSize || inner.MetadataOffset % unit || inner.MetadataOffset >= inner.Size || inner.Size - blockSize > 0xffffffff || std::filesystem::file_size(imagePath) != inner.Size) throw std::invalid_argument("Invalid install metadata image geometry");
+    if (inner.Size < 0x20000 || inner.Size % blockSize || inner.MetadataOffset % unit || inner.MetadataOffset >= inner.Size || std::filesystem::file_size(imagePath) != inner.Size) throw std::invalid_argument("Invalid install metadata image geometry");
     const auto physicalCount = static_cast<std::size_t>(inner.Size / blockSize);
     const auto mappingCount = static_cast<std::size_t>((inner.Size + unit - 1) / unit);
     const auto fileCount = inner.Files.size() + 1;
@@ -42,7 +42,7 @@ InstallMetadata InstallMetadataBuilder::Build(const std::filesystem::path& image
     ImageWriter::Put(header, 0, 1, 4);
     ImageWriter::Put(header, 4, 0x50, 4);
     ImageWriter::Put(header, 8, physicalCount, 4);
-    ImageWriter::Put(header, 12, inner.Size - blockSize, 4);
+    ImageWriter::Put(header, 12, static_cast<std::uint32_t>(inner.Size - blockSize), 4);
     ImageWriter::Put(header, 16, 1, 4);
     ImageWriter::Put(header, 20, blockSize, 4);
     append("phdr", 1, header);
