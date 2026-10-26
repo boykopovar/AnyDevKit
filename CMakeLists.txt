@@ -9,3 +9,8 @@ endif()
 
 add_subdirectory(core/shader/AgcPackager)
 add_subdirectory(core/shader/compiler)
+
+option(ANYDEVKIT_BUILD_EXAMPLES "Build examples" OFF)
+if(ANYDEVKIT_BUILD_EXAMPLES)
+    add_subdirectory(examples/Calculator)
+endif()
