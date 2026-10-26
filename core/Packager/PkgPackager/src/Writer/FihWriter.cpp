@@ -25,8 +25,8 @@ std::vector<std::byte> FihWriter::Build(const InnerImageInfo& inner, const Outer
     ImageWriter::Put(data, 0x60, 0x10000, 8);
     ImageWriter::Put(data, 0x68, 0x800000000000, 8);
     ImageWriter::Put(data, 0x90, inner.Size / 0x10000, 4);
-    ImageWriter::Put(data, 0x94, inner.InodeCount - 5, 4);
-    ImageWriter::Put(data, 0x98, inner.InodeCount - 5, 4);
+    ImageWriter::Put(data, 0x94, inner.Files.size() + 1, 4);
+    ImageWriter::Put(data, 0x98, inner.Files.size() + 1, 4);
     ImageWriter::Put(data, 0x9c, contentVersion, 4);
     ImageWriter::Put(data, 0xa0, inner.Size, 8);
     ImageWriter::Put(data, 0xa8, naps.size(), 8);

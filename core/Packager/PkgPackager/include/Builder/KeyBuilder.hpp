@@ -17,7 +17,7 @@ struct PackageKeyData {
 class KeyBuilder final {
 public:
     static PackageKeyData Build(std::string_view contentId, const PackageKeys& keys);
-    static std::array<std::byte, 384> Wrap(std::span<const std::byte> message, std::span<const std::byte, 384> modulus, const PackageKeys& keys);
+    static std::array<std::byte, 384> Wrap(std::span<const std::byte> message, std::span<const std::byte, 384> modulus);
 };
 
 }

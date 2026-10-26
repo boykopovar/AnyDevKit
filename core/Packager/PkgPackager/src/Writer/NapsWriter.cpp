@@ -15,7 +15,7 @@ std::vector<std::byte> NapsWriter::Build(const InnerImageInfo& image) {
     const auto units = (image.Size + unit - 1) / unit;
     const auto recordCount = 2 * (units + 1);
     const auto fileCount = image.Files.size() + 2;
-    if (outerBlocks > 0xffffff || units > 0xffffff || recordCount - 2 > 0xffffff || fileCount > 0x1000000) throw std::length_error("NAPS image exceeds packed field ranges");
+    if (outerBlocks > 0xffffff || units > 0x400000 || recordCount - 2 > 0xffffff || fileCount > 0x800000) throw std::length_error("NAPS image exceeds packed field ranges");
     std::uint64_t previous = 0;
     for (std::size_t i = 0; i < image.Files.size(); ++i) {
         const auto& file = image.Files[i];
@@ -23,11 +23,11 @@ std::vector<std::byte> NapsWriter::Build(const InnerImageInfo& image) {
         previous = file.Offset;
     }
     const auto fileStart = 16 + outerBlocks * 8;
-    const auto indexStart = ImageWriter::Align(fileStart + fileCount * 6, 16);
-    const auto groups = (units + 8) / 8;
+    const auto indexStart = fileStart + fileCount * 6;
+    const auto groups = (units + 7) / 8;
     const auto recordStart = ImageWriter::Align(indexStart + groups * 10, 8);
-    std::vector<std::byte> result(static_cast<std::size_t>(ImageWriter::Align(recordStart + recordCount * 9, 16)));
-    ImageWriter::Put(result, 0, (fileCount - 1) | (std::uint64_t{2} << 24) | (units << 32), 8);
+    std::vector<std::byte> result(static_cast<std::size_t>(ImageWriter::Add(ImageWriter::Align(recordStart + recordCount * 9, 8), 8)));
+    ImageWriter::Put(result, 0, (fileCount - 1) | (std::uint64_t{2} << 24) | ((units - 1) << 32), 8);
     ImageWriter::Put(result, 8, outerBlocks | ((recordCount - 2) << 24), 8);
     for (std::size_t i = 0; i < image.Files.size(); ++i) ImageWriter::Put(result, static_cast<std::size_t>(fileStart + i * 6), image.Files[i].Offset, 5);
     ImageWriter::Put(result, static_cast<std::size_t>(fileStart + image.Files.size() * 6), image.MetadataOffset, 5);
@@ -50,7 +50,7 @@ std::vector<std::byte> NapsWriter::Build(const InnerImageInfo& image) {
         ImageWriter::Put(result, at + 8, runIndex >> 15, 1);
         std::uint64_t standard = offset % unit;
         if (terminal) {
-            standard |= (std::uint64_t{1} << 19) | (std::uint64_t{1} << 37);
+            standard |= (std::uint64_t{1} << 19) | ((offset % unit) << 20);
         } else {
             const auto size = std::min(unit, image.Size - offset);
             const auto half = std::min<std::uint64_t>(0x20000, size);

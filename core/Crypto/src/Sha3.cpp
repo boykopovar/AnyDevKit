@@ -58,6 +58,29 @@ std::array<std::byte, 32> Sha3::Compute(std::span<const std::byte> bytes) {
     return hash.Finish();
 }
 
+void Sha3::Shake128(std::span<const std::byte> bytes, std::span<std::byte> output) {
+    Sha3 sponge;
+    for (const auto byte : bytes) {
+        sponge.state[sponge.position / 8] ^= std::to_integer<std::uint64_t>(byte) << (8 * (sponge.position % 8));
+        if (++sponge.position == 168) {
+            sponge.permute();
+            sponge.position = 0;
+        }
+    }
+    sponge.state[sponge.position / 8] ^= std::uint64_t{0x1f} << (8 * (sponge.position % 8));
+    sponge.state[20] ^= 0x8000000000000000;
+    sponge.permute();
+    sponge.position = 0;
+    for (auto& byte : output) {
+        if (sponge.position == 168) {
+            sponge.permute();
+            sponge.position = 0;
+        }
+        byte = static_cast<std::byte>((sponge.state[sponge.position / 8] >> (8 * (sponge.position % 8))) & 0xff);
+        ++sponge.position;
+    }
+}
+
 std::array<std::byte, 32> Sha3::Hmac(std::span<const std::byte> key, std::span<const std::byte> bytes) {
     std::array<std::byte, 136> block{};
     if (key.size() > block.size()) {
