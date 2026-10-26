@@ -1,5 +1,5 @@
 set(nidRoot "${PROJECT_SOURCE_DIR}/3rdparty/AnyPS5/core/libs/nid")
-add_executable(AnyDevKitNidPatcher
+add_library(AnyDevKitNidCore STATIC
     "${nidRoot}/src/Sha1.cpp"
     "${nidRoot}/src/NidCompute.cpp"
     "${nidRoot}/src/NidResolver.cpp"
@@ -8,9 +8,11 @@ add_executable(AnyDevKitNidPatcher
     "${nidRoot}/src/PeNidPatcher.cpp"
     "${nidRoot}/src/MachONidPatcher.cpp"
     "${nidRoot}/src/BinaryPatcherFactory.cpp"
-    "${nidRoot}/src/main.cpp"
 )
-target_include_directories(AnyDevKitNidPatcher PRIVATE "${nidRoot}/include")
+target_include_directories(AnyDevKitNidCore PUBLIC "${nidRoot}/include")
+target_compile_features(AnyDevKitNidCore PUBLIC cxx_std_20)
+add_executable(AnyDevKitNidPatcher "${nidRoot}/src/main.cpp")
+target_link_libraries(AnyDevKitNidPatcher PRIVATE AnyDevKitNidCore)
 target_compile_features(AnyDevKitNidPatcher PRIVATE cxx_std_20)
 if(MINGW)
     target_link_options(AnyDevKitNidPatcher PRIVATE -municode -static -static-libgcc -static-libstdc++)
