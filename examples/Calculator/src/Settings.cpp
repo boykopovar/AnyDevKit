@@ -41,23 +41,14 @@ void readExact(int file, std::span<std::uint8_t> bytes) {
     }
 }
 
-Settings::Data readFile(const char* path, bool& separateHistory) {
+Settings::Data readFile(const char* path) {
     const int file = check(sceKernelOpen(path, SCE_KERNEL_O_RDONLY, 0), "Open calculator settings");
     Settings::Data values{};
     try {
         std::array<std::uint8_t, 8> header{};
         readExact(file, header);
-        if (header[0] != 'A' || header[1] != 'D' || header[2] != 'K' || header[3] != 'V' || (header[4] != 1 && header[4] != 2 && header[4] != 3)) throw CalculatorError{"Unsupported calculator settings format"};
-        separateHistory = header[4] == 3;
+        if (header[0] != 'A' || header[1] != 'D' || header[2] != 'K' || header[3] != 'V' || header[4] != 3) throw CalculatorError{"Unsupported calculator settings format"};
         values.Vibration = {header[5], header[6], header[7]};
-        if (header[4] == 2) {
-            std::array<std::uint8_t, 161> history{};
-            readExact(file, history);
-            values.History.Count = history[0];
-            for (std::size_t i = 0; i < values.History.Entries.size(); ++i) {
-                for (std::size_t j = 0; j < values.History.Entries[i].size(); ++j) values.History.Entries[i][j] = static_cast<char>(history[1 + i * 80 + j]);
-            }
-        }
         std::uint8_t extra = 0;
         const auto count = sceKernelRead(file, &extra, 1);
         if (count < 0) throw CalculatorError{"Read calculator settings", static_cast<int>(count)};
@@ -189,14 +180,9 @@ Settings::Data Settings::Load() {
         } else {
             char path[64];
             makePath(path, mount.mount_point, "vibration.bin");
-            bool separateHistory = false;
-            values = readFile(path, separateHistory);
-            if (separateHistory) {
-                makePath(path, mount.mount_point, "history.bin");
-                readHistory(path, values);
-            } else {
-                writeSave(mount, resource, values);
-            }
+            values = readFile(path);
+            makePath(path, mount.mount_point, "history.bin");
+            readHistory(path, values);
         }
     } catch (...) {
         check(sceSaveDataUmount2(0, &mount.mount_point), "sceSaveDataUmount2");
