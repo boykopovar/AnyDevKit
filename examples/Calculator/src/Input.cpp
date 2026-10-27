@@ -24,6 +24,12 @@ Input::Input() {
     pad = check(scePadOpen_nid_postfix(user, 0, 0, nullptr), "scePadOpen");
 }
 
+void Input::vibrate(std::uint64_t now, bool activation) {
+    const PadVibrationParam vibration{static_cast<std::uint8_t>(activation ? 18 : 0), static_cast<std::uint8_t>(activation ? 55 : 32)};
+    check(scePadSetVibration(pad, &vibration), "scePadSetVibration");
+    vibrationEnd = now + (activation ? 35000 : 20000);
+}
+
 void Input::Poll(Interface& interface) {
     PadData data{};
     check(scePadReadState(pad, &data), "scePadReadState");
@@ -33,8 +39,15 @@ void Input::Poll(Interface& interface) {
     const int vertical = ((data.buttons & 0x40u) != 0 || data.left_stick_y > 192) - ((data.buttons & 0x10u) != 0 || data.left_stick_y < 64);
     const int nextDirection = horizontal != 0 ? horizontal : vertical * 2;
     const auto now = sceKernelGetProcessTime();
+    if (vibrationEnd != 0 && now >= vibrationEnd) {
+        const PadVibrationParam stopped{};
+        check(scePadSetVibration(pad, &stopped), "scePadSetVibration");
+        vibrationEnd = 0;
+    }
+    bool moved = false;
     if (nextDirection != 0 && (nextDirection != direction || now >= nextRepeat)) {
         interface.Navigate(horizontal, horizontal == 0 ? vertical : 0);
+        moved = true;
         nextRepeat = now + (nextDirection != direction ? 350000 : 110000);
     }
     direction = nextDirection;
@@ -42,5 +55,7 @@ void Input::Poll(Interface& interface) {
     if ((pressed & 0x2000u) != 0) interface.Press(CalculatorKey::Backspace);
     if ((pressed & 0x1000u) != 0) interface.Press(CalculatorKey::Clear);
     if ((pressed & 0x8000u) != 0) interface.Press(CalculatorKey::Equals);
+    const bool activated = (pressed & 0xf000u) != 0;
+    if (activated || moved) vibrate(now, activated);
     padButtons = data.buttons;
 }

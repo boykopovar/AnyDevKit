@@ -10,9 +10,11 @@ public:
     void Poll(Interface& interface);
 
 private:
+    void vibrate(std::uint64_t now, bool activation);
     int pad;
     int direction = 0;
     std::uint64_t nextRepeat = 0;
+    std::uint64_t vibrationEnd = 0;
     std::uint32_t padButtons = 0;
 };
 
