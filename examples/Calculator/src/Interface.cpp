@@ -32,27 +32,8 @@ Interface::Bounds Interface::button(int index) const {
     return {left + index % 4 * (cellWidth + gap), height * 16 / 100 + index / 4 * (cellHeight + gap), cellWidth, cellHeight};
 }
 
-int Interface::hit(int x, int y) const {
-    for (int index = 0; index < 20; ++index) {
-        const auto bounds = button(index);
-        if (x >= bounds.x && y >= bounds.y && x < bounds.x + bounds.width && y < bounds.y + bounds.height) return index;
-    }
-    return -1;
-}
-
 void Interface::Navigate(int horizontal, int vertical) {
     selected = (selected / 4 + vertical + 5) % 5 * 4 + (selected % 4 + horizontal + 4) % 4;
-    pointerVisible = false;
-    dirty = true;
-}
-
-void Interface::Point(int x, int y) {
-    if (pointerVisible && x == pointerX && y == pointerY) return;
-    pointerX = std::clamp(x, 0, width - 20);
-    pointerY = std::clamp(y, 0, height - 24);
-    pointerVisible = true;
-    const auto hovered = hit(pointerX, pointerY);
-    if (hovered >= 0) selected = hovered;
     dirty = true;
 }
 
@@ -64,7 +45,6 @@ void Interface::Press(CalculatorKey key) {
 }
 
 void Interface::Activate() { Press(static_cast<CalculatorKey>(selected)); }
-void Interface::Click() { if (hit(pointerX, pointerY) >= 0) Activate(); }
 bool Interface::NeedsDraw() const { return dirty; }
 
 void Interface::Tick() {
@@ -102,10 +82,7 @@ void Interface::Draw(Canvas& canvas) {
         const int scale = Labels[index].size() > 1 ? 4 : 6;
         canvas.Text(bounds.x + (bounds.width - static_cast<int>(Labels[index].size()) * 6 * scale + scale) / 2, bounds.y + (bounds.height - 7 * scale) / 2, Labels[index], scale, accent || index == pressed ? 0xff102b27 : Ink);
     }
-    canvas.Text(margin, height * 95 / 100, "DPAD / STICK: MOVE   X: SELECT   O: DELETE   TRIANGLE: CLEAR", 2, Muted);
-    if (pointerVisible) {
-        for (int row = 0; row < 22; ++row) canvas.Rectangle(pointerX, pointerY + row, row * 3 / 4 + 2, 1, 0xff07111b);
-        for (int row = 2; row < 18; ++row) canvas.Rectangle(pointerX + 2, pointerY + row, std::max(1, row * 3 / 4 - 2), 1, Ink);
-    }
+    canvas.Text(margin, height * 92 / 100, "DPAD / ARROWS: MOVE   X / ENTER: SELECT   O / C: DELETE", 2, Muted);
+    canvas.Text(margin, height * 96 / 100, "TRIANGLE / I: CLEAR   SQUARE: EQUALS   F11: FULLSCREEN ON WINDOWS", 2, Muted);
     dirty = false;
 }

@@ -50,4 +50,3 @@ void Display::Present() {
     }
     back = 1 - back;
 }
-

@@ -22,7 +22,7 @@ int main() {
         constexpr int Height = 1080;
         Interface interface(Width, Height);
         Display display(Width, Height);
-        Input input(Width, Height);
+        Input input;
         for (;;) {
             interface.Tick();
             input.Poll(interface);
