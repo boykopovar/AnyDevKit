@@ -7,7 +7,7 @@
 class Display final {
 public:
     Display(int width, int height);
-    ~Display();
+    ~Display() noexcept(false);
     Display(const Display&) = delete;
     Display& operator=(const Display&) = delete;
     Canvas BackBuffer();

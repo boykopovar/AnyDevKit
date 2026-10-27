@@ -40,13 +40,13 @@ Display::Display(int width, int height) : width(width), height(height) {
     const auto labelCount = check(sceVideoOutGetBufferLabelAddress(handle, &labelAddress), "sceVideoOutGetBufferLabelAddress");
     if (labelCount < static_cast<int>(buffers.size()) || labelAddress == 0 || labelAddress % std::atomic_ref<std::uint64_t>::required_alignment != 0) throw CalculatorError{"Invalid VideoOut buffer labels"};
     labels = reinterpret_cast<std::uint64_t*>(labelAddress);
-    auto* storage = static_cast<std::uint32_t*>(malloc_nid_postfix(capacity));
-    if (storage == nullptr) throw CalculatorError{"Cannot allocate frame storage"};
-    frame = std::span(storage, capacity / sizeof(std::uint32_t));
+    void* storage = nullptr;
+    check(sceKernelMapFlexibleMemory(&storage, capacity, 3, 0), "sceKernelMapFlexibleMemory");
+    frame = std::span(static_cast<std::uint32_t*>(storage), capacity / sizeof(std::uint32_t));
     memset_nid_postfix(frame.data(), 0, frame.size_bytes());
 }
 
-Display::~Display() { free_nid_postfix(frame.data()); }
+Display::~Display() noexcept(false) { check(sceKernelMunmap(reinterpret_cast<std::uintptr_t>(frame.data()), frame.size_bytes()), "sceKernelMunmap"); }
 Canvas Display::BackBuffer() { return Canvas(frame, width, height); }
 void Display::Wait() { check(sceVideoOutWaitVblank(handle), "sceVideoOutWaitVblank"); }
 
