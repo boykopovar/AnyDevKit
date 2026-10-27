@@ -50,7 +50,7 @@ std::array<int, 3> readFile(const char* path) {
 void writeFile(const char* path, const char* temporaryPath, const std::array<int, 3>& values) {
     validate(values);
     const std::array<std::uint8_t, 8> bytes{'A', 'D', 'K', 'V', 1, static_cast<std::uint8_t>(values[0]), static_cast<std::uint8_t>(values[1]), static_cast<std::uint8_t>(values[2])};
-    const int file = check(sceKernelOpen(temporaryPath, SCE_KERNEL_O_WRONLY | SCE_KERNEL_O_CREAT | SCE_KERNEL_O_TRUNC, 0600), "Create vibration settings");
+    const int file = check(sceKernelOpen(temporaryPath, SCE_KERNEL_O_WRONLY | SCE_KERNEL_O_CREAT | SCE_KERNEL_O_TRUNC, 0666), "Create vibration settings");
     try {
         std::size_t offset = 0;
         while (offset < bytes.size()) {
