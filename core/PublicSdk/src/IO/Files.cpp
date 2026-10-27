@@ -21,6 +21,7 @@ std::vector<std::byte> Files::Read(const std::filesystem::path& path) {
     stream.seekg(0);
     if (!bytes.empty()) stream.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
     if (!stream) throw std::runtime_error("Cannot read " + Text(path));
+    if (stream.rdbuf()->sgetc() != std::char_traits<char>::eof()) throw std::runtime_error("File changed while reading: " + Text(path));
     return bytes;
 }
 void Files::RequireNew(const std::filesystem::path& path) {

@@ -3,8 +3,10 @@
 #include "IO/Files.hpp"
 #include "IconBuilder.hpp"
 #include "WindowsStartupBuilder.hpp"
+#include <stdexcept>
 namespace AnyDevKit::PublicSdk {
 void MetadataCommand::Run(std::string_view command, Arguments& arguments) {
+    if (command != "param" && command != "png" && command != "dds" && command != "windows-startup") throw std::invalid_argument("Unsupported MetadataCommand command");
     const auto output = Files::Path(arguments.Require("output"));
     Files::RequireNew(output);
     if (command == "param") {

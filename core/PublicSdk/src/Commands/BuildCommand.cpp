@@ -4,7 +4,8 @@
 #include "Pipeline/ApplicationBuilder.hpp"
 #include <stdexcept>
 namespace AnyDevKit::PublicSdk {
-void BuildCommand::Run(std::string_view, Arguments& arguments) {
+void BuildCommand::Run(std::string_view command, Arguments& arguments) {
+    if (command != "build") throw std::invalid_argument("Unsupported build command");
     ApplicationBuildOptions options;
     options.InputElf = Files::Path(arguments.Require("input"));
     options.App0 = Files::Path(arguments.Require("app0"));

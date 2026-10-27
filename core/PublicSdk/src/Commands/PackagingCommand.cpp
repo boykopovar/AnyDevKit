@@ -2,8 +2,10 @@
 #include "CommandLine/Options.hpp"
 #include "IO/Files.hpp"
 #include "FfpfscPackager.hpp"
+#include <stdexcept>
 namespace AnyDevKit::PublicSdk {
 void PackagingCommand::Run(std::string_view command, Arguments& arguments) {
+    if (command != "ps5-elf" && command != "eboot" && command != "pfs" && command != "ffpfsc" && command != "pkg") throw std::invalid_argument("Unsupported PackagingCommand command");
     const auto input = Files::Path(arguments.Require("input"));
     const auto output = Files::Path(arguments.Require("output"));
     Files::RequireNew(output);

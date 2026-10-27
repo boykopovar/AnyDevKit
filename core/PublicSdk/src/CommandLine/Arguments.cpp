@@ -3,6 +3,8 @@
 #include <limits>
 #include <set>
 #include <stdexcept>
+#include <string_view>
+#include <utility>
 namespace AnyDevKit::PublicSdk {
 Arguments::Arguments(std::span<const std::string> arguments) {
     const std::set<std::string> flags{"exec", "only-sce", "case-insensitive"};

@@ -6,6 +6,7 @@
 #include <stdexcept>
 namespace AnyDevKit::PublicSdk {
 void NidCommand::Run(std::string_view command, Arguments& arguments) {
+    if (command != "nid" && command != "exports") throw std::invalid_argument("Unsupported NidCommand command");
     const auto input = arguments.Require("input");
     const auto output = arguments.Require("output");
     Files::RequireNew(Files::Path(output));

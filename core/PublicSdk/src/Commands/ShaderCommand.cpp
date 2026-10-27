@@ -6,6 +6,7 @@
 #include <stdexcept>
 namespace AnyDevKit::PublicSdk {
 void ShaderCommand::Run(std::string_view command, Arguments& arguments) {
+    if (command != "shader" && command != "spirv" && command != "agc") throw std::invalid_argument("Unsupported ShaderCommand command");
     const auto input = Files::Path(arguments.Require("input"));
     const auto header = Files::Path(arguments.Require("header"));
     const auto code = Files::Path(arguments.Require("code"));
