@@ -38,10 +38,12 @@ ffpfsc --input directory --output image --workspace new-directory [pfs]
 pkg --input prepared-app0 --output image --workspace new-directory <metadata> <keys>
     [--timestamp seconds]
 shader --input source.glsl --stage vertex|fragment --header header.bin --code code.bin
-       [--include directory]... [shader options]
-agc --input shader.spv --stage vertex|fragment --header header.bin --code code.bin
-    [shader options]
-  shader compiles GLSL; agc compiles SPIR-V. Both use the AGC packager.
+       --metadata bindings.adk [--include directory]... [shader options]
+spirv --input shader.spv --stage vertex|fragment --header header.bin --code code.bin
+      --metadata bindings.adk [shader options]
+agc --input machine-code.bin --metadata bindings.adk --header header.bin --code code.bin
+  shader compiles GLSL; spirv compiles SPIR-V. Both use the AGC packager.
+  agc only packages machine code and the versioned text binding metadata.
   Header and code are separate; runtime alignment requirements are 8 and 256.
   Advanced resource layouts remain available through the C++ ShaderCompiler API.
 
@@ -82,7 +84,7 @@ All outputs must be new; parent directories must exist. Unknown options fail.
         {"ps5-elf", PackagingCommand::Run}, {"eboot", PackagingCommand::Run},
         {"pfs", PackagingCommand::Run}, {"ffpfsc", PackagingCommand::Run}, {"pkg", PackagingCommand::Run},
         {"param", MetadataCommand::Run}, {"png", MetadataCommand::Run}, {"dds", MetadataCommand::Run},
-        {"windows-startup", MetadataCommand::Run}, {"shader", ShaderCommand::Run}, {"agc", ShaderCommand::Run}
+        {"windows-startup", MetadataCommand::Run}, {"shader", ShaderCommand::Run}, {"agc", ShaderCommand::Run}, {"spirv", ShaderCommand::Run}
     };
     const auto found = commands.find(arguments.front());
     if (found == commands.end()) throw std::invalid_argument("Unknown command: " + arguments.front());

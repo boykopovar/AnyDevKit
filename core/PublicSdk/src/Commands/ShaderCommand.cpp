@@ -1,6 +1,7 @@
 #include "Commands/ShaderCommand.hpp"
 #include "IO/Files.hpp"
 #include "ShaderCompiler.hpp"
+#include "Shader/ShaderMetadata.hpp"
 #include "Backend/PsbcCompiler.hpp"
 #include <stdexcept>
 namespace AnyDevKit::PublicSdk {
@@ -11,6 +12,24 @@ void ShaderCommand::Run(std::string_view command, Arguments& arguments) {
     Files::RequireNew(header);
     Files::RequireNew(code);
     if (std::filesystem::weakly_canonical(header) == std::filesystem::weakly_canonical(code)) throw std::invalid_argument("Shader header and code outputs must differ");
+    const auto metadataPath = Files::Path(arguments.Require("metadata"));
+    if (command == "agc") {
+        arguments.Finish();
+        const auto metadataBytes = Files::Read(metadataPath);
+        if (metadataBytes.empty()) throw std::invalid_argument("Empty shader metadata");
+        const std::string_view text(reinterpret_cast<const char*>(metadataBytes.data()), metadataBytes.size());
+        auto bytes = Files::Read(input);
+        PsbcShaderOutput compiled{};
+        compiled.metadata = ShaderMetadata::Decode(text);
+        compiled.machine_code = bytes.data();
+        compiled.machine_code_size = bytes.size();
+        const auto package = AgcPackager::Build(compiled);
+        Files::Write(header, package.GetHeaderBytes());
+        Files::Write(code, package.GetCodeBytes());
+        return;
+    }
+    Files::RequireNew(metadataPath);
+    if (std::filesystem::weakly_canonical(metadataPath) == std::filesystem::weakly_canonical(header) || std::filesystem::weakly_canonical(metadataPath) == std::filesystem::weakly_canonical(code)) throw std::invalid_argument("Shader outputs must differ");
     const auto stage = arguments.Require("stage");
     if (stage != "vertex" && stage != "fragment") throw std::invalid_argument("Supported stages: vertex, fragment");
     auto options = ShaderCompiler::CreateOptions(stage == "vertex" ? PSBC_STAGE_VERTEX : PSBC_STAGE_FRAGMENT);
@@ -32,7 +51,9 @@ void ShaderCommand::Run(std::string_view command, Arguments& arguments) {
         return PsbcCompiler::Compile(words, options);
     };
     const auto package = compile();
+    const auto metadata = ShaderMetadata::Encode(package.GetBindingMetadata());
     Files::Write(header, package.GetHeaderBytes());
     Files::Write(code, package.GetCodeBytes());
+    Files::Write(metadataPath, std::as_bytes(std::span(metadata)));
 }
 }

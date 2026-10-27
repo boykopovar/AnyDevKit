@@ -7,6 +7,7 @@ add_library(AnyDevKitPublicSdk STATIC
     src/Commands/NidCommand.cpp
     src/Commands/PackagingCommand.cpp
     src/Commands/ShaderCommand.cpp
+    src/Shader/ShaderMetadata.cpp
     src/IO/Files.cpp
     src/Pipeline/ApplicationBuilder.cpp
 )
@@ -19,6 +20,7 @@ target_link_libraries(AnyDevKitPublicSdk PUBLIC
     AnyDevKit::PfsBuilder
     AnyDevKit::PkgPackager
     AnyDevKit::Ps5ElfBuilder
+    AnyDevKit::AgcPackager
     PRIVATE
     AnyDevKitNidCore
     AnyDevKit::FfpfscPackager
