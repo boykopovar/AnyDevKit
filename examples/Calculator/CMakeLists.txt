@@ -10,6 +10,7 @@ set_target_properties(Calculator PROPERTIES CXX_EXTENSIONS OFF)
 target_include_directories(Calculator PRIVATE include)
 anydevkit_configure_windows_executable(Calculator printf_nid_postfix)
 anydevkit_link_runtime_library(Calculator libSceVideoOut sceVideoOutOpen sceVideoOutSetBufferAttribute2 sceVideoOutRegisterBuffers2 sceVideoOutSubmitFlip sceVideoOutWaitVblank)
+anydevkit_link_runtime_library(Calculator libkernel sceKernelAllocateDirectMemory sceKernelGetDirectMemorySize sceKernelMapDirectMemory sceKernelReleaseDirectMemory)
 
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTENT [=[
 {"titleId":"CALC00001","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit Calculator"}}}

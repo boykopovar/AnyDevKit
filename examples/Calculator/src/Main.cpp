@@ -2,9 +2,9 @@
 #include "CalculatorError.hpp"
 #include "prx/libSceVideoOut/libSceVideoOut.hpp"
 #include "prx/libc/include/Api.hpp"
+#include "prx/libkernel/include/Api.hpp"
 
 #include <cstdint>
-#include <memory>
 
 namespace {
 
@@ -21,12 +21,16 @@ int main() {
         if (width < 480 || width > 16384) throw CalculatorError{"Calculator width must be between 480 and 16384"};
         constexpr int Height = 704;
         constexpr std::size_t Alignment = 65536;
-        const auto capacity = width * Height + Alignment / sizeof(std::uint32_t);
-        std::unique_ptr<std::uint32_t, decltype(&free_nid_postfix)> storage(static_cast<std::uint32_t*>(malloc_nid_postfix(capacity * sizeof(std::uint32_t))), free_nid_postfix);
-        if (storage == nullptr) throw CalculatorError{"Framebuffer allocation failed"};
-        const auto address = reinterpret_cast<std::uintptr_t>(storage.get());
-        const auto offset = ((Alignment - address % Alignment) % Alignment) / sizeof(std::uint32_t);
-        auto pixels = std::span(storage.get() + offset, width * Height);
+        constexpr auto capacity = (static_cast<std::size_t>(width) * Height * sizeof(std::uint32_t) + Alignment - 1) & ~(Alignment - 1);
+        std::int64_t physicalAddress = 0;
+        check(sceKernelAllocateDirectMemory(0, sceKernelGetDirectMemorySize(), capacity, Alignment, 12, &physicalAddress), "sceKernelAllocateDirectMemory");
+        void* address = nullptr;
+        const auto mapResult = sceKernelMapDirectMemory(&address, capacity, 0x33, 0, physicalAddress, Alignment);
+        if (mapResult < 0) {
+            check(sceKernelReleaseDirectMemory(physicalAddress, capacity), "sceKernelReleaseDirectMemory");
+            check(mapResult, "sceKernelMapDirectMemory");
+        }
+        auto pixels = std::span(static_cast<std::uint32_t*>(address), width * Height);
         Canvas(pixels, width, Height).DrawCalculator();
         const int handle = check(sceVideoOutOpen(255, 0, 0, nullptr), "sceVideoOutOpen");
         VideoOutBufferAttribute2 attribute{};
