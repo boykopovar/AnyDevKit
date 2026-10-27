@@ -1,4 +1,6 @@
 #include "IconBuilder.hpp"
+#include "Validator/ImageValidator.hpp"
+#include "Writer/DdsWriter.hpp"
 
 #include <lodepng.h>
 
@@ -10,13 +12,6 @@
 
 namespace AnyDevKit {
 namespace {
-
-std::size_t PixelBytes(std::uint32_t width, std::uint32_t height) {
-    if (!width || !height) throw std::invalid_argument("PNG dimensions must be positive");
-    if (width > 0x7fffffff || height > 0x7fffffff) throw std::invalid_argument("PNG dimensions exceed format limits");
-    if (width > std::numeric_limits<std::size_t>::max() / 4 / height) throw std::length_error("PNG pixel buffer size overflow");
-    return static_cast<std::size_t>(width) * height * 4;
-}
 
 void Check(unsigned error) {
     if (error) throw std::runtime_error("PNG error " + std::to_string(error) + ": " + lodepng_error_text(error));
@@ -31,7 +26,7 @@ RgbaImage IconBuilder::DecodePng(std::span<const std::byte> data) {
     unsigned height = 0;
     const auto* source = reinterpret_cast<const unsigned char*>(data.data());
     Check(lodepng_inspect(&width, &height, &state, source, data.size()));
-    const auto expectedSize = PixelBytes(width, height);
+    const auto expectedSize = Icon::ImageValidator::ComputePixelBytes(width, height);
     state.info_raw.colortype = LCT_RGBA;
     state.info_raw.bitdepth = 8;
     std::vector<unsigned char> pixels;
@@ -56,7 +51,7 @@ RgbaImage IconBuilder::ReadPng(const std::filesystem::path& input) {
 }
 
 std::vector<std::byte> IconBuilder::EncodePng(const RgbaImage& image) {
-    if (image.Pixels.size() != PixelBytes(image.Width, image.Height)) throw std::invalid_argument("RGBA pixel buffer size does not match image dimensions");
+    Icon::ImageValidator::Validate(image);
     std::vector<unsigned char> encoded;
     Check(lodepng::encode(encoded, reinterpret_cast<const unsigned char*>(image.Pixels.data()), image.Width, image.Height, LCT_RGBA, 8));
     std::vector<std::byte> result(encoded.size());
@@ -64,9 +59,20 @@ std::vector<std::byte> IconBuilder::EncodePng(const RgbaImage& image) {
     return result;
 }
 
+std::vector<std::byte> IconBuilder::EncodeDds(const RgbaImage& image) {
+    return Icon::DdsWriter::Build(image);
+}
+
+void IconBuilder::WriteDds(const std::filesystem::path& output, const RgbaImage& image) {
+    writeFile(output, EncodeDds(image));
+}
+
 void IconBuilder::WritePng(const std::filesystem::path& output, const RgbaImage& image) {
-    const auto encoded = EncodePng(image);
-    if (encoded.size() > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max())) throw std::length_error("PNG output exceeds stream limits");
+    writeFile(output, EncodePng(image));
+}
+
+void IconBuilder::writeFile(const std::filesystem::path& output, std::span<const std::byte> encoded) {
+    if (encoded.size() > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max())) throw std::length_error("Image output exceeds stream limits");
     std::ofstream stream;
     stream.exceptions(std::ios::badbit | std::ios::failbit);
     stream.open(output, std::ios::binary | std::ios::trunc);

@@ -1,4 +1,4 @@
-add_library(AnyDevKitIconBuilder STATIC src/IconBuilder.cpp)
+add_library(AnyDevKitIconBuilder STATIC src/IconBuilder.cpp src/Encoder/Bc7Encoder.cpp src/Writer/DdsWriter.cpp src/Validator/ImageValidator.cpp)
 add_library(AnyDevKit::IconBuilder ALIAS AnyDevKitIconBuilder)
 target_include_directories(AnyDevKitIconBuilder PUBLIC include)
 target_link_libraries(AnyDevKitIconBuilder PRIVATE AnyDevKitLodePng)
