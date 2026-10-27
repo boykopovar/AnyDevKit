@@ -26,16 +26,6 @@ std::string identifier(std::uint16_t value) {
     return result;
 }
 
-std::uint32_t hash(std::string_view name) {
-    std::uint32_t value = 0;
-    for (unsigned char c : name) {
-        value = (value << 4) + c;
-        const auto high = value & 0xf0000000;
-        value ^= high >> 24;
-        value &= ~high;
-    }
-    return value;
-}
 
 void validate(const ElfImage& image) {
     if (image.Read(16, 2) != 3) throw std::invalid_argument("PS5 ELF builder requires a linked position-independent ET_DYN image");
@@ -210,20 +200,10 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     const auto relativeEnd = std::stable_partition(relocations.begin(), relocations.end(), [](const auto& relocation) { return relocation.Info == 8; });
     const auto relativeCount = static_cast<std::uint64_t>(relativeEnd - relocations.begin());
     const auto relaAddress = appendRelocations(relocations);
-    if (symbols.size() > 0xffffffff) throw std::length_error("Too many ELF symbols");
-    const auto bucketCount = static_cast<std::uint32_t>(symbols.size());
-    std::vector<std::uint32_t> buckets(bucketCount);
-    std::vector<std::uint32_t> chains(symbols.size());
-    for (std::size_t i = 1; i < symbols.size(); ++i) {
-        const auto bucket = hash(symbols[i].Name) % bucketCount;
-        chains[i] = buckets[bucket];
-        buckets[bucket] = static_cast<std::uint32_t>(i);
-    }
-    std::vector<std::byte> hashBytes;
-    BinaryWriter::Append(hashBytes, bucketCount, 4);
-    BinaryWriter::Append(hashBytes, symbols.size(), 4);
-    for (auto value : buckets) BinaryWriter::Append(hashBytes, value, 4);
-    for (auto value : chains) BinaryWriter::Append(hashBytes, value, 4);
+    std::vector<std::string> hashNames;
+    hashNames.reserve(symbols.size());
+    for (const auto& symbol : symbols) hashNames.push_back(symbol.Name);
+    const auto hashBytes = BinaryWriter::HashTable(hashNames);
     const auto hashAddress = append(hashBytes);
     std::vector<std::byte> note;
     BinaryWriter::Append(note, 4, 4);
