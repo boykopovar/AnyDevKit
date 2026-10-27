@@ -3,6 +3,7 @@
 
 #include "Calculator.hpp"
 #include "Canvas.hpp"
+#include <array>
 
 class Interface final {
 public:
@@ -11,6 +12,9 @@ public:
     void Activate();
     void Press(CalculatorKey key);
     void Tick();
+    int VibrationDuration() const;
+    int LowFrequencyStrength() const;
+    int HighFrequencyStrength() const;
     bool NeedsDraw() const;
     void Draw(Canvas& canvas);
 
@@ -18,6 +22,7 @@ private:
     struct Bounds { int x; int y; int width; int height; };
     Bounds button(int index) const;
     Calculator calculator;
+    std::array<int, 3> vibration{20, 12, 16};
     int width;
     int height;
     int selected = 17;

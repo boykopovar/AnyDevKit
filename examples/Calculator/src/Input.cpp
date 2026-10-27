@@ -25,10 +25,16 @@ Input::Input() {
     check(scePadSetVibrationMode(pad, 2), "scePadSetVibrationMode");
 }
 
-void Input::vibrate(std::uint64_t now, bool activation) {
-    const PadVibrationParam vibration{static_cast<std::uint8_t>(activation ? 38 : 24), static_cast<std::uint8_t>(activation ? 45 : 32)};
+void Input::vibrate(std::uint64_t now, const Interface& interface) {
+    if (interface.VibrationDuration() == 0) {
+        const PadVibrationParam stopped{};
+        check(scePadSetVibration(pad, &stopped), "scePadSetVibration");
+        vibrationEnd = 0;
+        return;
+    }
+    const PadVibrationParam vibration{static_cast<std::uint8_t>(interface.LowFrequencyStrength()), static_cast<std::uint8_t>(interface.HighFrequencyStrength())};
     check(scePadSetVibration(pad, &vibration), "scePadSetVibration");
-    vibrationEnd = now + (activation ? 35000 : 20000);
+    vibrationEnd = now + static_cast<std::uint64_t>(interface.VibrationDuration()) * 1000;
 }
 
 void Input::Poll(Interface& interface) {
@@ -57,6 +63,6 @@ void Input::Poll(Interface& interface) {
     if ((pressed & 0x1000u) != 0) interface.Press(CalculatorKey::Clear);
     if ((pressed & 0x8000u) != 0) interface.Press(CalculatorKey::Equals);
     const bool activated = (pressed & 0xf000u) != 0;
-    if (activated || moved) vibrate(now, activated);
+    if (activated || moved) vibrate(now, interface);
     padButtons = data.buttons;
 }
