@@ -2,6 +2,7 @@
 #include "IO/Files.hpp"
 #include "FfpfscPackager.hpp"
 #include "IconBuilder.hpp"
+#include "KeystoneBuilder.hpp"
 #include <set>
 #include <stdexcept>
 namespace AnyDevKit::PublicSdk {
@@ -17,8 +18,12 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     const auto relative = output.lexically_relative(workspace);
     if (output == workspace || (!relative.empty() && *relative.begin() != "..")) throw std::invalid_argument("Package output must be outside workspace");
     const auto entries = PfsBuilder::ScanDirectory(options.App0);
-    const std::set<std::string> generated{"eboot.bin", "sce_sys/param.json", "sce_sys/icon0.dds", "sce_sys/pic0.dds"};
+    const std::set<std::string> generated{"eboot.bin", "sce_sys/param.json", "sce_sys/icon0.dds", "sce_sys/pic0.dds", "sce_sys/keystone"};
     for (const auto& entry : entries) if (generated.contains(entry.Path)) throw std::invalid_argument("app0 already contains generated file: " + entry.Path);
+    std::array<std::byte, 32> passcode{};
+    if (options.Format == PackageFormat::Pkg) passcode = options.Keys->Passcode;
+    else passcode.fill(std::byte{'0'});
+    const auto keystone = KeystoneBuilder::Build(passcode);
     const auto param = ParamBuilder::Build(options.Parameters);
     const auto icon = IconBuilder::ReadPng(options.App0 / "sce_sys/icon0.png");
     const auto background = IconBuilder::ReadPng(options.App0 / "sce_sys/pic0.png");
@@ -41,6 +46,7 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     }
     Files::Write(workspace / "application.elf", elf);
     Files::Write(app0 / "eboot.bin", eboot);
+    Files::Write(app0 / "sce_sys/keystone", keystone);
     Files::Write(app0 / "sce_sys/param.json", std::as_bytes(std::span(param)));
     Files::Write(app0 / "sce_sys/icon0.dds", iconDds);
     Files::Write(app0 / "sce_sys/pic0.dds", backgroundDds);

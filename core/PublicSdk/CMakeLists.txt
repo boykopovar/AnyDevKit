@@ -24,6 +24,7 @@ target_link_libraries(AnyDevKitPublicSdk PUBLIC
     PRIVATE
     AnyDevKitNidCore
     AnyDevKit::FfpfscPackager
+    AnyDevKit::KeystoneBuilder
     AnyDevKit::IconBuilder
     AnyDevKit::WindowsStartupBuilder
     AnyDevKit::ShaderCompiler

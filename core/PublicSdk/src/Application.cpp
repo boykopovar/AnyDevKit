@@ -19,7 +19,7 @@ build --input linked.elf --app0 directory --output file --workspace new-director
   Requires app0/sce_sys/icon0.png (512x512) and pic0.png (3840x2160).
   Produces PS5 ELF, fake-signed SELF, param.json, BC7 DDS and the archive.
   Prepared app0 and application.elf remain in workspace. No compiler is launched.
-  app0 must not already contain eboot.bin, param.json, icon0.dds or pic0.dds.
+  app0 must not already contain eboot.bin, param.json, icon0.dds, pic0.dds or keystone.
 
 nid --input binary --output binary [--exec [--only-sce]] [--library name]
     [--preserve-exports binary]... [--preserve-export-list text]...

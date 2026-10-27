@@ -1,0 +1,6 @@
+add_library(AnyDevKitKeystoneBuilder STATIC src/KeystoneBuilder.cpp)
+add_library(AnyDevKit::KeystoneBuilder ALIAS AnyDevKitKeystoneBuilder)
+target_include_directories(AnyDevKitKeystoneBuilder PUBLIC include)
+target_compile_features(AnyDevKitKeystoneBuilder PUBLIC cxx_std_20)
+set_target_properties(AnyDevKitKeystoneBuilder PROPERTIES CXX_EXTENSIONS OFF)
+target_link_libraries(AnyDevKitKeystoneBuilder PRIVATE AnyDevKit::Crypto)
