@@ -16,3 +16,6 @@
 [submodule "3rdparty/SPIRV-Headers"]
 	path = 3rdparty/SPIRV-Headers
 	url = https://github.com/KhronosGroup/SPIRV-Headers.git
+[submodule "3rdparty/lodepng"]
+	path = 3rdparty/lodepng
+	url = https://github.com/lvandeve/lodepng.git
