@@ -16,7 +16,7 @@ anydevkit_link_runtime_library(Calculator libSceSysmodule sceSysmoduleLoadModule
 anydevkit_link_runtime_library(Calculator libSceUserService sceUserServiceInitialize sceUserServiceGetInitialUser)
 
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTENT [=[
-{"titleId":"ADKC00001","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit Calculator"}}}
+{"titleId":"FAKE26109","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit Calculator"}}}
 ]=])
 
 get_filename_component(compilerDirectory "${CMAKE_CXX_COMPILER}" DIRECTORY)
