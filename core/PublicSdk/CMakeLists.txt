@@ -20,6 +20,7 @@ target_link_libraries(AnyDevKitPublicSdk PUBLIC
     AnyDevKit::PfsBuilder
     AnyDevKit::PkgPackager
     AnyDevKit::Ps5ElfBuilder
+    AnyDevKit::LibcModuleBuilder
     AnyDevKit::AgcPackager
     PRIVATE
     AnyDevKitNidCore

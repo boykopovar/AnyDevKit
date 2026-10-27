@@ -3,6 +3,7 @@
 #include "FfpfscPackager.hpp"
 #include "IconBuilder.hpp"
 #include "KeystoneBuilder.hpp"
+#include "LibcModuleBuilder.hpp"
 #include <set>
 #include <stdexcept>
 namespace AnyDevKit::PublicSdk {
@@ -18,7 +19,7 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     const auto relative = output.lexically_relative(workspace);
     if (output == workspace || (!relative.empty() && *relative.begin() != "..")) throw std::invalid_argument("Package output must be outside workspace");
     const auto entries = PfsBuilder::ScanDirectory(options.App0);
-    const std::set<std::string> generated{"eboot.bin", "sce_sys/param.json", "sce_sys/icon0.dds", "sce_sys/pic0.dds", "sce_sys/keystone"};
+    const std::set<std::string> generated{"eboot.bin", "sce_sys/param.json", "sce_sys/icon0.dds", "sce_sys/pic0.dds", "sce_sys/keystone", "sce_module/libc.prx"};
     for (const auto& entry : entries) if (generated.contains(entry.Path)) throw std::invalid_argument("app0 already contains generated file: " + entry.Path);
     std::array<std::byte, 32> passcode{};
     if (options.Format == PackageFormat::Pkg) passcode = options.Keys->Passcode;
@@ -31,6 +32,8 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     if (background.Width != 3840 || background.Height != 2160) throw std::invalid_argument("pic0.png must be 3840x2160");
     const auto elf = Ps5ElfBuilder::Build(Files::Read(options.InputElf), options.Imports, options.Elf);
     const auto eboot = EbootPackager::Build(elf, options.Eboot);
+    const auto libcElf = LibcModuleBuilder::Build(options.Imports, options.Elf);
+    const auto libc = EbootPackager::Build(libcElf, options.Eboot);
     const auto iconDds = IconBuilder::EncodeDds(icon);
     const auto backgroundDds = IconBuilder::EncodeDds(background);
     if (!std::filesystem::create_directory(workspace)) throw std::invalid_argument("Workspace must be new");
@@ -46,6 +49,9 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     }
     Files::Write(workspace / "application.elf", elf);
     Files::Write(app0 / "eboot.bin", eboot);
+    std::filesystem::create_directories(app0 / "sce_module");
+    Files::Write(app0 / "sce_module/libc.prx", libc);
+    Files::Write(workspace / "libc.elf", libcElf);
     Files::Write(app0 / "sce_sys/keystone", keystone);
     Files::Write(app0 / "sce_sys/param.json", std::as_bytes(std::span(param)));
     Files::Write(app0 / "sce_sys/icon0.dds", iconDds);

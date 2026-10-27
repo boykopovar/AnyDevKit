@@ -24,7 +24,7 @@ ElfImage ElfReader::Read(std::span<const std::byte> bytes) {
     if (bytes.size() < 64 || read(bytes, 0, 4) != 0x464c457f || read(bytes, 4, 3) != 0x010102) throw std::invalid_argument("Expected little-endian ELF64 version 1");
     if (read(bytes, 18, 2) != 62 || read(bytes, 20, 4) != 1 || read(bytes, 52, 2) != 64) throw std::invalid_argument("Expected x86-64 ELF header");
     const auto type = read(bytes, 16, 2);
-    if (type != 2 && type != 3 && type != 0xfe00 && type != 0xfe10) throw std::invalid_argument("Unsupported ELF executable type");
+    if (type != 2 && type != 3 && type != 0xfe00 && type != 0xfe10 && type != 0xfe18) throw std::invalid_argument("Unsupported ELF executable type");
     const auto phoff = read(bytes, 32, 8);
     const auto count = read(bytes, 56, 2);
     if (count == 0 || count == 0xffff || phoff < 64 || read(bytes, 54, 2) != 56) throw std::invalid_argument("Invalid or extended ELF program header table");
