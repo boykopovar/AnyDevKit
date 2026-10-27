@@ -68,13 +68,13 @@ void writeFile(const char* path, const char* temporaryPath, const std::array<int
     check(sceKernelRename(temporaryPath, path), "Replace vibration settings");
 }
 
-SaveDataMountResult mountSave(int userId, int resource, bool create) {
+SaveDataMountResult mountSave(int userId, int resource) {
     const SceSaveDataDirName name{"Settings"};
     SaveDataMount3 request{};
     request.user_id = userId;
     request.dir_name = &name;
     request.blocks = 56;
-    request.mount_mode = create ? 32 : 2;
+    request.mount_mode = 32;
     request.resource = resource;
     SaveDataMountResult result{};
     check(sceSaveDataMount3(&request, &result), "sceSaveDataMount3");
@@ -128,7 +128,7 @@ Settings::~Settings() noexcept(false) {
 }
 
 std::array<int, 3> Settings::Load() {
-    const auto mount = mountSave(userId, resource, true);
+    const auto mount = mountSave(userId, resource);
     std::array<int, 3> values{};
     try {
         if ((mount.mount_status & 1u) != 0) {
@@ -149,7 +149,7 @@ std::array<int, 3> Settings::Load() {
 
 void Settings::Save(const std::array<int, 3>& values) {
     validate(values);
-    const auto mount = mountSave(userId, resource, false);
+    const auto mount = mountSave(userId, resource);
     try {
         writeSave(mount, resource, values);
     } catch (...) {
