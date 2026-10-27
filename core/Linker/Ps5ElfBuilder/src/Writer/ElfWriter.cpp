@@ -3,6 +3,7 @@
 #include "Builder/ProcessBuilder.hpp"
 #include "Builder/StartupBuilder.hpp"
 #include "Builder/UnwindBuilder.hpp"
+#include "Sha256.hpp"
 
 #include <algorithm>
 #include <array>
@@ -103,6 +104,8 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     const auto slots = BinaryWriter::Add(processAddress, process.Bytes.size());
     process.Bytes.resize(process.Bytes.size() + 24);
     auto startup = StartupBuilder::Build(image, codeAddress, slots);
+    const auto emptyFunction = BinaryWriter::Add(codeAddress, startup.Bytes.size());
+    startup.Bytes.push_back(std::byte{0xc3});
     if (startup.Bytes.size() > 0x4000) throw std::length_error("PS5 startup exceeds its segment");
     relocations.insert(relocations.end(), process.Relocations.begin(), process.Relocations.end());
     const std::array<std::string, 3> startupNames{"_init_env", "atexit", "exit"};
@@ -157,20 +160,26 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         BinaryWriter::Append(symbolBytes, symbol.Size, 8);
     }
     std::vector<DynamicEntry> dynamic;
-    for (const auto& [module, imported] : modules) {
+    std::vector<std::string> moduleOrder(moduleIds.size());
+    for (const auto& [module, id] : moduleIds) moduleOrder.at(id - 1) = module;
+    for (const auto& module : moduleOrder) {
+        const auto& imported = modules.at(module);
         dynamic.push_back({1, BinaryWriter::String(strings, imported.FileName)});
         dynamic.push_back({0x61000045, (static_cast<std::uint64_t>(moduleIds.at(module)) << 48) | (static_cast<std::uint64_t>(imported.ModuleVersion) << 32) | BinaryWriter::String(strings, module)});
-    }
-    for (const auto& [key, imported] : libraries) {
-        const auto id = static_cast<std::uint64_t>(libraryIds.at(key)) << 48;
-        dynamic.push_back({0x61000049, id | (static_cast<std::uint64_t>(imported.LibraryVersion) << 32) | BinaryWriter::String(strings, imported.Library)});
-        dynamic.push_back({0x61000019, id | 9});
+        for (const auto& [key, library] : libraries) {
+            if (key.first != module) continue;
+            const auto id = static_cast<std::uint64_t>(libraryIds.at(key)) << 48;
+            dynamic.push_back({0x61000049, id | (static_cast<std::uint64_t>(library.LibraryVersion) << 32) | BinaryWriter::String(strings, library.Library)});
+            dynamic.push_back({0x61000019, id | 9});
+        }
     }
     dynamic.push_back({0x61000043, 0x10100000000ull | BinaryWriter::String(strings, options.ModuleName)});
     dynamic.push_back({0x61000011, 0});
     dynamic.push_back({0x61000041, BinaryWriter::String(strings, options.FileName)});
     std::vector<std::byte> metadata;
-    const auto metadataAddress = BinaryWriter::Add(processAddress, 0x4000);
+    const auto unwindAddress = BinaryWriter::Add(processAddress, 0x4000);
+    const auto unwind = UnwindBuilder::Build(image, startup, codeAddress, unwindAddress);
+    const auto metadataAddress = BinaryWriter::Align(BinaryWriter::Add(unwindAddress, unwind.Bytes.size()), 0x4000);
     auto append = [&](std::span<const std::byte> data) {
         metadata.resize(static_cast<std::size_t>(BinaryWriter::Align(metadata.size(), 8)));
         const auto address = BinaryWriter::Add(metadataAddress, metadata.size());
@@ -188,10 +197,12 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         }
         return append(data);
     };
-    const auto relaAddress = appendRelocations(relocations);
     const auto pltAddress = appendRelocations(plt);
+    const auto relativeEnd = std::stable_partition(relocations.begin(), relocations.end(), [](const auto& relocation) { return relocation.Info == 8; });
+    const auto relativeCount = static_cast<std::uint64_t>(relativeEnd - relocations.begin());
+    const auto relaAddress = appendRelocations(relocations);
     if (symbols.size() > 0xffffffff) throw std::length_error("Too many ELF symbols");
-    const auto bucketCount = static_cast<std::uint32_t>(std::max<std::size_t>(1, symbols.size() / 2));
+    const auto bucketCount = static_cast<std::uint32_t>(symbols.size());
     std::vector<std::uint32_t> buckets(bucketCount);
     std::vector<std::uint32_t> chains(symbols.size());
     for (std::size_t i = 1; i < symbols.size(); ++i) {
@@ -205,12 +216,18 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     for (auto value : buckets) BinaryWriter::Append(hashBytes, value, 4);
     for (auto value : chains) BinaryWriter::Append(hashBytes, value, 4);
     const auto hashAddress = append(hashBytes);
+    std::vector<std::byte> note;
+    BinaryWriter::Append(note, 4, 4);
+    BinaryWriter::Append(note, 20, 4);
+    BinaryWriter::Append(note, 3, 4);
+    BinaryWriter::Append(note, 0x554e47, 4);
+    const auto digest = Crypto::Sha256::Compute(input);
+    note.insert(note.end(), digest.begin(), digest.begin() + 20);
+    const auto noteAddress = append(note);
     metadata.resize(static_cast<std::size_t>(BinaryWriter::Align(metadata.size(), 8)));
-    const auto unwindAddress = BinaryWriter::Add(metadataAddress, metadata.size());
-    const auto unwind = UnwindBuilder::Build(image, startup, codeAddress, unwindAddress);
-    append(unwind.Bytes);
-    dynamic.insert(dynamic.end(), {{4, hashAddress}, {5, stringAddress}, {6, symbolAddress}, {7, relaAddress}, {8, relocations.size() * 24}, {9, 24}, {10, strings.size()}, {11, 24}, {0x6100003d, hashBytes.size()}, {0x6100003f, symbolBytes.size()}, {21, 0}});
-    if (!plt.empty()) dynamic.insert(dynamic.end(), {{23, pltAddress}, {2, plt.size() * 24}, {20, 7}, {3, image.Dynamic(3)}});
+    dynamic.insert(dynamic.end(), {{21, 0}, {7, relaAddress}, {8, relocations.size() * 24}, {9, 24}, {0x6ffffff9, relativeCount}});
+    if (!plt.empty()) dynamic.insert(dynamic.end(), {{23, pltAddress}, {2, plt.size() * 24}, {3, image.Dynamic(3)}, {20, 7}});
+    dynamic.insert(dynamic.end(), {{6, symbolAddress}, {11, 24}, {5, stringAddress}, {10, strings.size()}, {4, hashAddress}, {32, 0}, {33, 0}, {25, 0}, {27, 0}, {26, 0}, {28, 0}, {12, emptyFunction}, {13, codeAddress}, {0x6100003f, symbolBytes.size()}, {0x6100003d, hashBytes.size()}});
     metadata.resize(static_cast<std::size_t>(BinaryWriter::Align(metadata.size(), 8)));
     const auto dynamicAddress = BinaryWriter::Add(metadataAddress, metadata.size());
     for (const auto& entry : dynamic) {
@@ -224,6 +241,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     std::vector<Segment> segments;
     for (auto segment : image.Segments()) {
         if (segment.Type != 1) continue;
+        if ((segment.Flags & 1) != 0) segment.Flags &= ~std::uint32_t{4};
         const auto prefix = segment.Address % 0x4000;
         const auto data = image.Slice(segment.Offset, segment.FileSize);
         segment.Address -= prefix;
@@ -250,6 +268,14 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
             });
             if (mapped == segments.end()) throw std::invalid_argument("ELF auxiliary segment is outside load data");
             segment.Offset = BinaryWriter::Add(mapped->Offset, segment.Address - mapped->Address);
+            if (segment.Type == 0x6474e552) {
+                const auto prefix = segment.Address - mapped->Address;
+                segment.Address = mapped->Address;
+                segment.Offset = mapped->Offset;
+                segment.FileSize = BinaryWriter::Add(prefix, segment.FileSize);
+                segment.MemorySize = BinaryWriter::Add(prefix, segment.MemorySize);
+                segment.Alignment = 0x4000;
+            }
         } else segment.Offset = 0;
         segments.push_back(segment);
     }
@@ -260,12 +286,14 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         segments.push_back({1, flags, offset, address, data.size(), data.size(), 0x4000});
         return offset;
     };
-    addSegment(5, codeAddress, startup.Bytes);
+    addSegment(1, codeAddress, startup.Bytes);
     const auto processOffset = addSegment(6, processAddress, process.Bytes);
-    const auto metadataOffset = addSegment(4, metadataAddress, metadata);
+    const auto unwindOffset = addSegment(4, unwindAddress, unwind.Bytes);
+    const auto metadataOffset = addSegment(0, metadataAddress, metadata);
+    segments.push_back({4, 0, metadataOffset + noteAddress - metadataAddress, noteAddress, note.size(), note.size(), 4});
     segments.push_back({0x61000001, 4, processOffset, processAddress, 0x60, 0x60, 8});
-    segments.push_back({2, 4, metadataOffset + dynamicAddress - metadataAddress, dynamicAddress, dynamicSize, dynamicSize, 8});
-    segments.push_back({0x6474e550, 4, metadataOffset + unwindAddress - metadataAddress + unwind.HeaderOffset, unwindAddress + unwind.HeaderOffset, unwind.HeaderSize, unwind.HeaderSize, 4});
+    segments.push_back({2, 6, metadataOffset + dynamicAddress - metadataAddress, dynamicAddress, dynamicSize, dynamicSize, 8});
+    segments.push_back({0x6474e550, 4, unwindOffset + unwind.HeaderOffset, unwindAddress + unwind.HeaderOffset, unwind.HeaderSize, unwind.HeaderSize, 4});
     if (64 + segments.size() * 56 > 0x4000) throw std::length_error("Too many ELF program headers");
     BinaryWriter::Set(output, 0, 0x464c457f, 4);
     BinaryWriter::Set(output, 4, 0x0209010102, 5);
@@ -284,6 +312,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         BinaryWriter::Set(output, offset + 4, segment.Flags, 4);
         BinaryWriter::Set(output, offset + 8, segment.Offset, 8);
         BinaryWriter::Set(output, offset + 16, segment.Address, 8);
+        BinaryWriter::Set(output, offset + 24, segment.Address, 8);
         BinaryWriter::Set(output, offset + 32, segment.FileSize, 8);
         BinaryWriter::Set(output, offset + 40, segment.MemorySize, 8);
         BinaryWriter::Set(output, offset + 48, segment.Alignment, 8);
