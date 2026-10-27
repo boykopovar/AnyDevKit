@@ -1,4 +1,4 @@
-set(ANYDEVKIT_CALCULATOR_WIDTH 480 CACHE STRING "Calculator framebuffer width")
+set(ANYDEVKIT_CALCULATOR_WIDTH 1920 CACHE STRING "Calculator framebuffer width")
 if(NOT ANYDEVKIT_CALCULATOR_WIDTH MATCHES "^[0-9]+$")
     message(FATAL_ERROR "ANYDEVKIT_CALCULATOR_WIDTH must contain decimal digits")
 endif()
@@ -8,12 +8,12 @@ target_compile_features(Calculator PRIVATE cxx_std_20)
 target_compile_definitions(Calculator PRIVATE ANYDEVKIT_CALCULATOR_WIDTH=${ANYDEVKIT_CALCULATOR_WIDTH})
 set_target_properties(Calculator PROPERTIES CXX_EXTENSIONS OFF)
 target_include_directories(Calculator PRIVATE include)
-anydevkit_configure_windows_executable(Calculator printf_nid_postfix)
+anydevkit_configure_windows_executable(Calculator snprintf_nid_postfix)
 anydevkit_link_runtime_library(Calculator libSceVideoOut sceVideoOutOpen sceVideoOutSetBufferAttribute2 sceVideoOutRegisterBuffers2 sceVideoOutSubmitFlip sceVideoOutWaitVblank)
-anydevkit_link_runtime_library(Calculator libkernel sceKernelAllocateDirectMemory sceKernelGetDirectMemorySize sceKernelMapDirectMemory sceKernelReleaseDirectMemory)
+anydevkit_link_runtime_library(Calculator libkernel sceKernelAllocateDirectMemory sceKernelGetDirectMemorySize sceKernelMapDirectMemory sceKernelReleaseDirectMemory sceKernelDebugOutText)
 
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTENT [=[
-{"titleId":"CALC00001","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit Calculator"}}}
+{"titleId":"FAKE40001","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit Calculator"}}}
 ]=])
 
 get_filename_component(compilerDirectory "${CMAKE_CXX_COMPILER}" DIRECTORY)

@@ -45,13 +45,24 @@ std::array<unsigned, 7> glyph(char character) {
 }
 
 Canvas::Canvas(std::span<std::uint32_t> pixels, int width, int height) : pixels(pixels), width(width), height(height) {
-    if (width <= 0 || height <= 0 || pixels.size() != static_cast<std::size_t>(width) * static_cast<std::size_t>(height)) throw CalculatorError{"Invalid canvas extent"};
+    if (pixels.size_bytes() != StorageSize(width, height)) throw CalculatorError{"Invalid canvas extent"};
+}
+
+std::size_t Canvas::StorageSize(int width, int height) {
+    if (width <= 0 || height <= 0 || width > 16384 || height > 16384) throw CalculatorError{"Invalid canvas extent"};
+    return static_cast<std::size_t>((width + 127) / 128) * ((height + 127) / 128) * 65536;
 }
 
 void Canvas::Rectangle(int x, int y, int rectangleWidth, int rectangleHeight, std::uint32_t color) {
     if (x < 0 || y < 0 || rectangleWidth < 0 || rectangleHeight < 0 || x > width || y > height || rectangleWidth > width - x || rectangleHeight > height - y) throw CalculatorError{"Rectangle outside canvas"};
     for (int row = y; row < y + rectangleHeight; ++row) {
-        for (int column = x; column < x + rectangleWidth; ++column) pixels[static_cast<std::size_t>(row) * width + column] = color;
+        for (int column = x; column < x + rectangleWidth; ++column) {
+            const auto tile = static_cast<std::size_t>(row / 128) * ((width + 127) / 128) + column / 128;
+            const auto tileX = static_cast<std::uint32_t>(column);
+            const auto tileY = static_cast<std::uint32_t>(row);
+            const auto offset = ((tileY << 4) & 0x0070u) ^ ((tileY << 5) & 0x0f00u) ^ ((tileY << 9) & 0x1000u) ^ ((tileY << 8) & 0x4000u) ^ ((tileX << 2) & 0x000cu) ^ ((tileX << 5) & 0x0380u) ^ ((tileX << 4) & 0x0400u) ^ ((tileX << 6) & 0x0800u) ^ ((tileX << 9) & 0xa000u);
+            pixels[tile * 16384 + offset / sizeof(std::uint32_t)] = color;
+        }
     }
 }
 
