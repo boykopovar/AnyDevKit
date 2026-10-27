@@ -18,6 +18,7 @@ add_subdirectory(core/Packager/FfpfscPackager)
 add_subdirectory(core/Packager/PkgPackager)
 add_subdirectory(core/Linker/Ps5ElfBuilder)
 add_subdirectory(core/Linker/WindowsStartupBuilder)
+add_subdirectory(core/PublicSdk)
 include(cmake/WindowsExecutable.cmake)
 
 option(ANYDEVKIT_BUILD_EXAMPLES "Build examples" OFF)
