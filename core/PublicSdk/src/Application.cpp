@@ -56,7 +56,8 @@ metadata:
   [--flexible-memory bytes]
 elf:
   --module-name name --file-name name --elf-sdk-version uint32
-  --companion-sdk-version uint32 --import filename=decrypted-module [...]
+  --companion-sdk-version uint32 --import-directory directory
+  Dependencies come from ELF DT_NEEDED: libc.prx -> libSceLibcInternal.sprx; .prx -> .sprx.
   [--select-import symbol,module,library]...
 self:
   [--authority uint64 (default 0x3100000000000002)]

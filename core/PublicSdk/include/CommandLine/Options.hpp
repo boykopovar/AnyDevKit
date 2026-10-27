@@ -13,7 +13,7 @@ public:
     static PfsOptions Pfs(Arguments& arguments);
     static EbootPackageOptions Eboot(Arguments& arguments);
     static Ps5ElfOptions Elf(Arguments& arguments);
-    static ImportCatalog Imports(Arguments& arguments);
+    static ImportCatalog Imports(Arguments& arguments, const std::filesystem::path& input);
     static std::int64_t Timestamp(Arguments& arguments);
 };
 }

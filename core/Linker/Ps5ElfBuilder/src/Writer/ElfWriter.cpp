@@ -39,7 +39,7 @@ std::uint32_t hash(std::string_view name) {
 
 void validate(const ElfImage& image) {
     if (image.Read(16, 2) != 3) throw std::invalid_argument("PS5 ELF builder requires a linked position-independent ET_DYN image");
-    const std::set<std::uint64_t> supported{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 20, 21, 23, 25, 26, 27, 28, 30, 32, 33, 0x6ffffef5, 0x6ffffff9, 0x6ffffffb};
+    const std::set<std::uint64_t> supported{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 20, 21, 23, 25, 26, 27, 28, 30, 32, 33, 0x6ffffef5, 0x6ffffff9, 0x6ffffffb};
     for (const auto& entry : image.DynamicEntries()) {
         if (!supported.contains(entry.Tag)) throw std::invalid_argument("Unsupported input ELF dynamic tag: " + std::to_string(entry.Tag));
         if (entry.Tag == 30 && (entry.Value & ~std::uint64_t{10}) != 0) throw std::invalid_argument("Unsupported ELF dynamic flags");
@@ -125,6 +125,15 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     std::map<std::pair<std::string, std::string>, std::uint16_t> libraryIds;
     std::map<std::string, Ps5Import> modules;
     std::map<std::pair<std::string, std::string>, Ps5Import> libraries;
+    const auto dependencies = ImportCatalog::Dependencies(input);
+    if (dependencies.size() != imports.Modules().size()) throw std::invalid_argument("Import catalog must match ELF dependencies");
+    for (const auto& fileName : dependencies) {
+        const auto found = std::ranges::find(imports.Modules(), fileName, &Ps5Import::FileName);
+        if (found == imports.Modules().end()) throw std::invalid_argument("Missing PS5 dependency: " + fileName);
+        if (moduleIds.size() >= 65535) throw std::length_error("Too many PS5 import modules");
+        moduleIds.emplace(found->Module, static_cast<std::uint16_t>(moduleIds.size() + 1));
+        modules.emplace(found->Module, *found);
+    }
     for (std::size_t i = 1; i < symbols.size(); ++i) {
         auto& symbol = symbols[i];
         if (symbol.Section != 0) continue;

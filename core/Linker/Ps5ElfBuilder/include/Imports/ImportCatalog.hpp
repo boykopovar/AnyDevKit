@@ -22,10 +22,13 @@ struct Ps5Import {
 
 class ImportCatalog final {
 public:
+    static std::vector<std::string> Dependencies(std::span<const std::byte> elf);
+    const std::vector<Ps5Import>& Modules() const;
     void AddModule(std::span<const std::byte> elf, const std::string& fileName);
     void Select(const std::string& symbol, const std::string& module, const std::string& library);
     Ps5Import Resolve(const std::string& symbol) const;
 private:
+    std::vector<Ps5Import> modules;
     std::map<std::string, std::vector<Ps5Import>> imports;
     std::map<std::string, Ps5Import> selections;
 };

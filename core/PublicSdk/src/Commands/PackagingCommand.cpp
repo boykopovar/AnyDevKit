@@ -11,7 +11,7 @@ void PackagingCommand::Run(std::string_view command, Arguments& arguments) {
     Files::RequireNew(output);
     if (command == "ps5-elf") {
         const auto options = Options::Elf(arguments);
-        const auto imports = Options::Imports(arguments);
+        const auto imports = Options::Imports(arguments, input);
         arguments.Finish();
         Ps5ElfBuilder::BuildFile(input, output, imports, options);
     } else if (command == "eboot") {

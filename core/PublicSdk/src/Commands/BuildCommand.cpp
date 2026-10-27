@@ -16,7 +16,7 @@ void BuildCommand::Run(std::string_view command, Arguments& arguments) {
     else if (format == "pkg") options.Format = PackageFormat::Pkg;
     else throw std::invalid_argument("Supported package formats: ffpfsc, pkg");
     options.Parameters = Options::Parameters(arguments);
-    options.Imports = Options::Imports(arguments);
+    options.Imports = Options::Imports(arguments, options.InputElf);
     options.Elf = Options::Elf(arguments);
     options.Eboot = Options::Eboot(arguments);
     if (options.Format == PackageFormat::Pkg) {

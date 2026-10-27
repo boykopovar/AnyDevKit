@@ -77,15 +77,11 @@ Ps5ElfOptions Options::Elf(Arguments& arguments) {
     result.CompanionSdkVersion = Arguments::Number32(arguments.Require("companion-sdk-version"));
     return result;
 }
-ImportCatalog Options::Imports(Arguments& arguments) {
+ImportCatalog Options::Imports(Arguments& arguments, const std::filesystem::path& input) {
     ImportCatalog catalog;
-    const auto modules = arguments.Many("import");
-    if (modules.empty()) throw std::invalid_argument("At least one --import filename=decrypted-module is required");
-    for (const auto& module : modules) {
-        const auto split = module.find('=');
-        if (split == std::string::npos || split == 0 || split + 1 == module.size()) throw std::invalid_argument("Expected --import filename=decrypted-module");
-        catalog.AddModule(Files::Read(Files::Path(module.substr(split + 1))), module.substr(0, split));
-    }
+    const auto directory = Files::Path(arguments.Require("import-directory"));
+    if (!std::filesystem::is_directory(directory)) throw std::invalid_argument("Import directory does not exist");
+    for (const auto& module : ImportCatalog::Dependencies(Files::Read(input))) catalog.AddModule(Files::Read(directory / module), module);
     for (const auto& selection : arguments.Many("select-import")) {
         const auto first = selection.find(',');
         const auto second = first == std::string::npos ? first : selection.find(',', first + 1);

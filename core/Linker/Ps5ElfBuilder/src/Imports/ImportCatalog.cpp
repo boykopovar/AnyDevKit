@@ -24,6 +24,24 @@ std::uint16_t decode(std::string_view value) {
 
 }
 
+std::vector<std::string> ImportCatalog::Dependencies(std::span<const std::byte> elf) {
+    const Ps5::ElfImage image(elf);
+    std::vector<std::string> result;
+    for (const auto& entry : image.DynamicEntries()) {
+        if (entry.Tag != 1) continue;
+        auto name = image.String(entry.Value);
+        if (!name.ends_with(".prx") || name.size() <= 4 || name.find_first_of("/\\") != std::string::npos) throw std::invalid_argument("Expected an AnyPS5 .prx dependency: " + name);
+        if (name == "libc.prx") name = "libSceLibcInternal.sprx";
+        else name.replace(name.size() - 4, 4, ".sprx");
+        if (std::ranges::find(result, name) != result.end()) throw std::invalid_argument("Duplicate mapped PS5 dependency: " + name);
+        result.push_back(std::move(name));
+    }
+    if (result.empty()) throw std::invalid_argument("Input ELF has no DT_NEEDED dependencies");
+    return result;
+}
+
+const std::vector<Ps5Import>& ImportCatalog::Modules() const { return modules; }
+
 void ImportCatalog::AddModule(std::span<const std::byte> elf, const std::string& fileName) {
     if (fileName.empty() || fileName.find_first_of("/\\\0", 0, 3) != std::string::npos || (!fileName.ends_with(".prx") && !fileName.ends_with(".sprx"))) throw std::invalid_argument("Expected a PS5 module filename ending in .prx or .sprx");
     const Ps5::ElfImage image(elf);
@@ -52,6 +70,8 @@ void ImportCatalog::AddModule(std::span<const std::byte> elf, const std::string&
             if (existing->Type != imported.Type || existing->FileName != imported.FileName || existing->ModuleVersion != imported.ModuleVersion || existing->LibraryVersion != imported.LibraryVersion) throw std::invalid_argument("Conflicting PS5 export: " + imported.Nid);
         } else candidates.push_back(std::move(imported));
     }
+    if (std::ranges::any_of(modules, [&](const auto& existing) { return existing.Module == module || existing.FileName == fileName; })) throw std::invalid_argument("Duplicate PS5 module: " + fileName);
+    modules.push_back({{}, module, fileName, {}, static_cast<std::uint16_t>(info >> 32), 0, 0});
     imports = std::move(updated);
 }
 
