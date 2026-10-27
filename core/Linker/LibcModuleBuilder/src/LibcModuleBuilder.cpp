@@ -1,5 +1,6 @@
 #include "LibcModuleBuilder.hpp"
 #include "Runtime/Initialization.hpp"
+#include "Sha256.hpp"
 #include "Writer/BinaryWriter.hpp"
 
 #include <nid/NidCompute.hpp>
@@ -14,9 +15,9 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
     if (options.SdkVersion == 0 || options.CompanionSdkVersion == 0) throw std::invalid_argument("Libc module requires SDK versions");
     const auto allocator = imports.Resolve("_malloc_init");
     if (allocator.Module != "libSceLibcInternal" || allocator.FileName != "libSceLibcInternal.sprx" || allocator.Type != 2) throw std::invalid_argument("Libc initialization requires the system allocator");
-    constexpr std::uint64_t codeAddress = 0x4000;
-    constexpr std::uint64_t dataAddress = 0x8000;
-    constexpr std::uint64_t metadataAddress = 0xc000;
+    constexpr std::uint64_t codeAddress = 0x10;
+    constexpr std::uint64_t dataAddress = 0x4000;
+    constexpr std::uint64_t metadataAddress = 0x8000;
     auto code = Libc::Initialization::Build(codeAddress, dataAddress);
     const auto fini = codeAddress + code.size();
     for (auto value : {0x31, 0xc0, 0xc3}) code.push_back(static_cast<std::byte>(value));
@@ -61,15 +62,21 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
     std::vector<std::byte> hash;
     for (auto value : {1, 3, 2, 0, 0, 1}) BinaryWriter::Append(hash, value, 4);
     const auto hashAddress = append(hash);
-    const std::array<std::pair<std::uint64_t, std::uint64_t>, 26> dynamic{{
-        {1, dependency}, {0x61000043, (std::uint64_t{0x101} << 32) | moduleName},
+    std::vector<std::byte> note;
+    for (auto value : {4, 20, 3, 0x554e47}) BinaryWriter::Append(note, value, 4);
+    const auto digest = Crypto::Sha256::Compute(code);
+    note.insert(note.end(), digest.begin(), digest.begin() + 20);
+    const auto noteAddress = append(note);
+    const std::array<std::pair<std::uint64_t, std::uint64_t>, 34> dynamic{{
+        {1, dependency}, {14, fileName}, {0x61000043, (std::uint64_t{0x101} << 32) | moduleName},
         {0x61000045, (std::uint64_t{1} << 48) | (std::uint64_t{allocator.ModuleVersion} << 32) | importModule},
-        {0x61000047, (std::uint64_t{1} << 32) | moduleName}, {0x61000017, 0},
+        {0x61000047, (std::uint64_t{1} << 32) | moduleName}, {0x61000017, 1},
         {0x61000049, (std::uint64_t{1} << 48) | (std::uint64_t{allocator.LibraryVersion} << 32) | importLibrary},
         {0x61000019, (std::uint64_t{1} << 48) | 9}, {0x61000041, fileName}, {0x61000011, 0},
         {5, stringAddress}, {10, strings.size()}, {6, symbolAddress}, {11, 24}, {4, hashAddress},
         {3, dataAddress + 48}, {23, relocationAddress}, {2, 0}, {20, 7},
-        {7, relocationAddress}, {8, relocations.size()}, {9, 24}, {12, codeAddress}, {13, fini},
+        {7, relocationAddress}, {8, relocations.size()}, {9, 24}, {0x6ffffff9, 0}, {12, codeAddress}, {13, fini},
+        {32, 0}, {33, 0}, {25, 0}, {27, 0}, {26, 0}, {28, 0},
         {0x6100003f, symbols.size()}, {0x6100003d, hash.size()}, {0, 0}
     }};
     std::vector<std::byte> dynamicBytes;
@@ -78,10 +85,10 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
         BinaryWriter::Append(dynamicBytes, value, 8);
     }
     const auto dynamicAddress = append(dynamicBytes);
-    std::vector<std::byte> output(metadataAddress + metadata.size());
-    std::ranges::copy(code, output.begin() + codeAddress);
-    std::ranges::copy(data, output.begin() + dataAddress);
-    std::ranges::copy(metadata, output.begin() + metadataAddress);
+    std::vector<std::byte> output(0x4000 + metadataAddress + metadata.size());
+    std::ranges::copy(code, output.begin() + 0x4000 + codeAddress);
+    std::ranges::copy(data, output.begin() + 0x4000 + dataAddress);
+    std::ranges::copy(metadata, output.begin() + 0x4000 + metadataAddress);
     BinaryWriter::Set(output, 0, 0x464c457f, 4);
     BinaryWriter::Set(output, 4, 0x0209010102, 5);
     BinaryWriter::Set(output, 16, 0xfe18, 2);
@@ -91,21 +98,26 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
     BinaryWriter::Set(output, 32, 64, 8);
     BinaryWriter::Set(output, 52, 64, 2);
     BinaryWriter::Set(output, 54, 56, 2);
-    BinaryWriter::Set(output, 56, 5, 2);
+    BinaryWriter::Set(output, 56, 7, 2);
     auto segment = [&](std::size_t index, std::uint32_t type, std::uint32_t flags, std::uint64_t address, std::uint64_t size, std::uint64_t alignment) {
         const auto offset = 64 + index * 56;
         BinaryWriter::Set(output, offset, type, 4);
         BinaryWriter::Set(output, offset + 4, flags, 4);
-        for (auto field : {8, 16, 24}) BinaryWriter::Set(output, offset + field, address, 8);
+        BinaryWriter::Set(output, offset + 8, 0x4000 + address, 8);
+        for (auto field : {16, 24}) BinaryWriter::Set(output, offset + field, address, 8);
         BinaryWriter::Set(output, offset + 32, size, 8);
         BinaryWriter::Set(output, offset + 40, size, 8);
         BinaryWriter::Set(output, offset + 48, alignment, 8);
     };
-    segment(0, 1, 1, codeAddress, code.size(), 0x4000);
+    segment(0, 1, 1, 0, codeAddress + code.size(), 0x4000);
     segment(1, 1, 6, dataAddress, data.size(), 0x4000);
     segment(2, 1, 0, metadataAddress, metadata.size(), 0x4000);
     segment(3, 0x61000002, 4, dataAddress + 8, 0x20, 8);
     segment(4, 2, 6, dynamicAddress, dynamicBytes.size(), 8);
+    segment(5, 4, 0, noteAddress, note.size(), 4);
+    segment(6, 0x6474e552, 4, dataAddress, data.size(), 1);
+    BinaryWriter::Set(output, 64 + 56 + 40, 0x4000, 8);
+    BinaryWriter::Set(output, 64 + 6 * 56 + 40, 0x4000, 8);
     return output;
 }
 

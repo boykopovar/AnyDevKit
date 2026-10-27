@@ -1,6 +1,6 @@
 add_library(AnyDevKitLibcModuleBuilder STATIC src/LibcModuleBuilder.cpp src/Runtime/Initialization.cpp)
 add_library(AnyDevKit::LibcModuleBuilder ALIAS AnyDevKitLibcModuleBuilder)
 target_include_directories(AnyDevKitLibcModuleBuilder PUBLIC include)
-target_link_libraries(AnyDevKitLibcModuleBuilder PUBLIC AnyDevKit::Ps5ElfBuilder PRIVATE AnyDevKitNidCore)
+target_link_libraries(AnyDevKitLibcModuleBuilder PUBLIC AnyDevKit::Ps5ElfBuilder PRIVATE AnyDevKitNidCore AnyDevKitCrypto)
 target_compile_features(AnyDevKitLibcModuleBuilder PUBLIC cxx_std_20)
 set_target_properties(AnyDevKitLibcModuleBuilder PROPERTIES CXX_EXTENSIONS OFF)
