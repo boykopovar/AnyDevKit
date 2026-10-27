@@ -221,11 +221,36 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     BinaryWriter::Append(metadata, 0, 8);
     const auto dynamicSize = (dynamic.size() + 1) * 16;
     std::vector<std::byte> output(0x4000);
-    output.insert(output.end(), input.begin(), input.end());
     std::vector<Segment> segments;
     for (auto segment : image.Segments()) {
-        if (segment.Type == 0 || segment.Type == 2 || segment.Type == 6 || segment.Type == 4 || segment.Type == 0x6474e550) continue;
-        segment.Offset = BinaryWriter::Add(segment.Offset, 0x4000);
+        if (segment.Type != 1) continue;
+        const auto prefix = segment.Address % 0x4000;
+        const auto data = image.Slice(segment.Offset, segment.FileSize);
+        segment.Address -= prefix;
+        segment.MemorySize = BinaryWriter::Add(prefix, segment.MemorySize);
+        segment.FileSize = segment.FileSize == 0 ? 0 : BinaryWriter::Add(prefix, segment.FileSize);
+        segment.Alignment = 0x4000;
+        segment.Offset = BinaryWriter::Align(output.size(), 0x4000);
+        for (const auto& previous : segments) {
+            const auto previousEnd = BinaryWriter::Align(BinaryWriter::Add(previous.Address, previous.MemorySize), 0x4000);
+            const auto currentEnd = BinaryWriter::Align(BinaryWriter::Add(segment.Address, segment.MemorySize), 0x4000);
+            if (segment.Address < previousEnd && previous.Address < currentEnd) throw std::invalid_argument("ELF load segments share a PS5 memory page");
+        }
+        const auto fileEnd = BinaryWriter::Add(segment.Offset, segment.FileSize);
+        if (fileEnd > output.max_size()) throw std::length_error("PS5 load segment exceeds output capacity");
+        output.resize(static_cast<std::size_t>(fileEnd));
+        if (!data.empty()) std::copy(data.begin(), data.end(), output.begin() + static_cast<std::ptrdiff_t>(segment.Offset + prefix));
+        segments.push_back(segment);
+    }
+    for (auto segment : image.Segments()) {
+        if (segment.Type != 7 && segment.Type != 0x6474e551 && segment.Type != 0x6474e552) continue;
+        if (segment.FileSize != 0) {
+            const auto mapped = std::ranges::find_if(segments, [&](const auto& load) {
+                return load.Type == 1 && segment.Address >= load.Address && segment.Address - load.Address <= load.FileSize && segment.FileSize <= load.FileSize - (segment.Address - load.Address);
+            });
+            if (mapped == segments.end()) throw std::invalid_argument("ELF auxiliary segment is outside load data");
+            segment.Offset = BinaryWriter::Add(mapped->Offset, segment.Address - mapped->Address);
+        } else segment.Offset = 0;
         segments.push_back(segment);
     }
     auto addSegment = [&](std::uint32_t flags, std::uint64_t address, std::span<const std::byte> data) {

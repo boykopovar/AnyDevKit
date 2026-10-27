@@ -49,6 +49,7 @@ ElfImage ElfReader::Read(std::span<const std::byte> bytes) {
         if (alignment > 1 && (alignment & (alignment - 1)) != 0) throw std::invalid_argument("ELF segment alignment is not a power of two");
         if (memorySize > std::numeric_limits<std::uint64_t>::max() - address) throw std::invalid_argument("ELF virtual address range overflows");
         if (segmentType == 1) {
+            if (offset % 0x4000 != 0 || address % 0x4000 != 0) throw std::invalid_argument("PS5 load segments must begin on 16 KiB boundaries");
             if (fileSize > memorySize || (alignment > 1 && offset % alignment != address % alignment)) throw std::invalid_argument("Invalid ELF load segment");
             if ((flags & 1) != 0 && entry >= address && entry - address < fileSize) entryMapped = true;
         }
