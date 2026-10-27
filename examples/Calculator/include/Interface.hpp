@@ -22,7 +22,7 @@ private:
     struct Bounds { int x; int y; int width; int height; };
     Bounds button(int index) const;
     Calculator calculator;
-    std::array<int, 3> vibration{20, 12, 16};
+    std::array<int, 3> vibration{5, 0, 5};
     int width;
     int height;
     int selected = 17;
