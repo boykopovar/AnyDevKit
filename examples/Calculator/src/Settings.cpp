@@ -41,13 +41,14 @@ void readExact(int file, std::span<std::uint8_t> bytes) {
     }
 }
 
-Settings::Data readFile(const char* path) {
+Settings::Data readFile(const char* path, bool& separateHistory) {
     const int file = check(sceKernelOpen(path, SCE_KERNEL_O_RDONLY, 0), "Open calculator settings");
     Settings::Data values{};
     try {
         std::array<std::uint8_t, 8> header{};
         readExact(file, header);
-        if (header[0] != 'A' || header[1] != 'D' || header[2] != 'K' || header[3] != 'V' || (header[4] != 1 && header[4] != 2)) throw CalculatorError{"Unsupported calculator settings format"};
+        if (header[0] != 'A' || header[1] != 'D' || header[2] != 'K' || header[3] != 'V' || (header[4] != 1 && header[4] != 2 && header[4] != 3)) throw CalculatorError{"Unsupported calculator settings format"};
+        separateHistory = header[4] == 3;
         values.Vibration = {header[5], header[6], header[7]};
         if (header[4] == 2) {
             std::array<std::uint8_t, 161> history{};
@@ -70,13 +71,29 @@ Settings::Data readFile(const char* path) {
     return values;
 }
 
-void writeFile(const char* path, const char* temporaryPath, const Settings::Data& values) {
-    validate(values);
-    std::array<std::uint8_t, 169> bytes{'A', 'D', 'K', 'V', 2, static_cast<std::uint8_t>(values.Vibration[0]), static_cast<std::uint8_t>(values.Vibration[1]), static_cast<std::uint8_t>(values.Vibration[2]), static_cast<std::uint8_t>(values.History.Count)};
-    for (std::size_t i = 0; i < values.History.Count; ++i) {
-        const auto& entry = values.History.Entries[i];
-        for (std::size_t j = 0; j < entry.size() && entry[j] != 0; ++j) bytes[9 + i * 80 + j] = static_cast<std::uint8_t>(entry[j]);
+void readHistory(const char* path, Settings::Data& values) {
+    const int file = check(sceKernelOpen(path, SCE_KERNEL_O_RDONLY, 0), "Open calculator history");
+    try {
+        std::array<std::uint8_t, 166> bytes{};
+        readExact(file, bytes);
+        if (bytes[0] != 'A' || bytes[1] != 'D' || bytes[2] != 'K' || bytes[3] != 'H' || bytes[4] != 1) throw CalculatorError{"Unsupported calculator history format"};
+        values.History.Count = bytes[5];
+        for (std::size_t i = 0; i < values.History.Entries.size(); ++i) {
+            for (std::size_t j = 0; j < values.History.Entries[i].size(); ++j) values.History.Entries[i][j] = static_cast<char>(bytes[6 + i * 80 + j]);
+        }
+        std::uint8_t extra = 0;
+        const auto count = sceKernelRead(file, &extra, 1);
+        if (count < 0) throw CalculatorError{"Read calculator history", static_cast<int>(count)};
+        if (count != 0) throw CalculatorError{"Unexpected calculator history data"};
+        validate(values);
+    } catch (...) {
+        check(sceKernelClose(file), "Close calculator history");
+        throw;
     }
+    check(sceKernelClose(file), "Close calculator history");
+}
+
+void writeFile(const char* path, const char* temporaryPath, std::span<const std::uint8_t> bytes) {
     const int file = check(sceKernelOpen(temporaryPath, SCE_KERNEL_O_WRONLY | SCE_KERNEL_O_CREAT | SCE_KERNEL_O_TRUNC, 0666), "Create calculator settings");
     try {
         std::size_t offset = 0;
@@ -130,7 +147,16 @@ void writeSave(const SaveDataMountResult& mount, int resource, const Settings::D
     char temporaryPath[64];
     makePath(path, mount.mount_point, "vibration.bin");
     makePath(temporaryPath, mount.mount_point, "vibration.tmp");
-    writeFile(path, temporaryPath, values);
+    const std::array<std::uint8_t, 8> vibration{'A', 'D', 'K', 'V', 3, static_cast<std::uint8_t>(values.Vibration[0]), static_cast<std::uint8_t>(values.Vibration[1]), static_cast<std::uint8_t>(values.Vibration[2])};
+    writeFile(path, temporaryPath, vibration);
+    std::array<std::uint8_t, 166> history{'A', 'D', 'K', 'H', 1, static_cast<std::uint8_t>(values.History.Count)};
+    for (std::size_t i = 0; i < values.History.Count; ++i) {
+        const auto& entry = values.History.Entries[i];
+        for (std::size_t j = 0; j < entry.size() && entry[j] != 0; ++j) history[6 + i * 80 + j] = static_cast<std::uint8_t>(entry[j]);
+    }
+    makePath(path, mount.mount_point, "history.bin");
+    makePath(temporaryPath, mount.mount_point, "history.tmp");
+    writeFile(path, temporaryPath, history);
     SaveDataCommitParam commit{};
     commit.resource = resource;
     check(sceSaveDataCommit(&commit), "sceSaveDataCommit");
@@ -163,7 +189,14 @@ Settings::Data Settings::Load() {
         } else {
             char path[64];
             makePath(path, mount.mount_point, "vibration.bin");
-            values = readFile(path);
+            bool separateHistory = false;
+            values = readFile(path, separateHistory);
+            if (separateHistory) {
+                makePath(path, mount.mount_point, "history.bin");
+                readHistory(path, values);
+            } else {
+                writeSave(mount, resource, values);
+            }
         }
     } catch (...) {
         check(sceSaveDataUmount2(0, &mount.mount_point), "sceSaveDataUmount2");
