@@ -2,6 +2,9 @@
 #include "CalculatorError.hpp"
 #include "prx/libSceVideoOut/libSceVideoOut.hpp"
 #include "prx/libkernel/libkernel.hpp"
+#include "prx/libc/include/Api.hpp"
+
+#include <atomic>
 
 namespace {
 
@@ -33,12 +36,31 @@ Display::Display(int width, int height) : width(width), height(height) {
     VideoOutBufferAttribute2 attribute{};
     sceVideoOutSetBufferAttribute2(&attribute, 0x8000000000000000ull, 0, width, height, 0, 0, 0);
     check(sceVideoOutRegisterBuffers2(handle, 0, 0, registered, 2, &attribute, 0, nullptr), "sceVideoOutRegisterBuffers2");
+    std::uintptr_t labelAddress = 0;
+    const auto labelCount = check(sceVideoOutGetBufferLabelAddress(handle, &labelAddress), "sceVideoOutGetBufferLabelAddress");
+    if (labelCount < static_cast<int>(buffers.size()) || labelAddress == 0 || labelAddress % std::atomic_ref<std::uint64_t>::required_alignment != 0) throw CalculatorError{"Invalid VideoOut buffer labels"};
+    labels = reinterpret_cast<std::uint64_t*>(labelAddress);
+    auto* storage = static_cast<std::uint32_t*>(malloc_nid_postfix(capacity));
+    if (storage == nullptr) throw CalculatorError{"Cannot allocate frame storage"};
+    frame = std::span(storage, capacity / sizeof(std::uint32_t));
+    memset_nid_postfix(frame.data(), 0, frame.size_bytes());
 }
 
-Canvas Display::BackBuffer() { return Canvas(buffers[back], width, height); }
+Display::~Display() { free_nid_postfix(frame.data()); }
+Canvas Display::BackBuffer() { return Canvas(frame, width, height); }
 void Display::Wait() { check(sceVideoOutWaitVblank(handle), "sceVideoOutWaitVblank"); }
 
 void Display::Present() {
+    const auto releaseStart = sceKernelGetProcessTime();
+    std::atomic_ref label(labels[back]);
+    static_assert(decltype(label)::is_always_lock_free);
+    while (label.load(std::memory_order_acquire) != 0) {
+        if (sceKernelGetProcessTime() - releaseStart > 5000000) throw CalculatorError{"Display buffer release timed out"};
+        Wait();
+    }
+    memcpy_nid_postfix(buffers[back].data(), frame.data(), frame.size_bytes());
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+    label.store(1, std::memory_order_release);
     check(sceVideoOutSubmitFlip(handle, back, 1, ++sequence), "sceVideoOutSubmitFlip");
     const auto start = sceKernelGetProcessTime();
     for (;;) {
