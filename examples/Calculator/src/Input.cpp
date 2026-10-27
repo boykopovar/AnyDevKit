@@ -28,7 +28,7 @@ Input::Input() {
 void Input::vibrate(std::uint64_t now, bool activation) {
     const PadVibrationParam vibration{static_cast<std::uint8_t>(activation ? 150 : 96), static_cast<std::uint8_t>(activation ? 180 : 128)};
     check(scePadSetVibration(pad, &vibration), "scePadSetVibration");
-    vibrationEnd = now + (activation ? 140000 : 80000);
+    vibrationEnd = now + (activation ? 35000 : 20000);
 }
 
 void Input::Poll(Interface& interface) {
