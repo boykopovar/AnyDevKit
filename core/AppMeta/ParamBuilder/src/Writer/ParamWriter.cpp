@@ -32,6 +32,7 @@ std::string ParamWriter::Write(const ApplicationParameters& parameters) {
     field("contentVersion", quote(parameters.ContentVersion));
     field("masterVersion", quote(parameters.MasterVersion));
     field("applicationCategoryType", std::to_string(parameters.ApplicationCategoryType));
+    field("applicationDrmType", quote("standard"));
     field("attribute", std::to_string(parameters.Attribute));
     field("attribute2", std::to_string(parameters.Attribute2));
     field("attribute3", std::to_string(parameters.Attribute3));
