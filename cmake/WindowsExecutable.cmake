@@ -43,7 +43,7 @@ function(anydevkit_configure_windows_executable target)
     string(JOIN "\n" preservedExceptions ${nativeExceptionSymbols})
     set(preservedFile "${CMAKE_CURRENT_BINARY_DIR}/${target}-native-exceptions.txt")
     file(CONFIGURE OUTPUT "${preservedFile}" CONTENT "${preservedExceptions}\n" NEWLINE_STYLE UNIX)
-    set(libcSymbols ${nativeExceptionSymbols} ApplicationHeapInitialize_nid_no_patch malloc_nid_postfix free_nid_postfix exit_nid_postfix atexit_nid_postfix __cxa_atexit_nid_postfix "_ZTVN10__cxxabiv117__class_type_infoE DATA" ${ARGN})
+    set(libcSymbols ${nativeExceptionSymbols} memcpy_nid_postfix memmove_nid_postfix memset_nid_postfix memcmp_nid_postfix memchr_nid_postfix strlen_nid_postfix ApplicationHeapInitialize_nid_no_patch malloc_nid_postfix free_nid_postfix exit_nid_postfix atexit_nid_postfix __cxa_atexit_nid_postfix "_ZTVN10__cxxabiv117__class_type_infoE DATA" ${ARGN})
     list(REMOVE_DUPLICATES libcSymbols)
     anydevkit_link_runtime_library(${target} libc ${libcSymbols})
     add_custom_command(TARGET ${target} POST_BUILD
