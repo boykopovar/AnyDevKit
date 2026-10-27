@@ -95,13 +95,13 @@ downloads/
 
 *.bat
 *.jpg
-*.png
+*.[pP][nN][gG]
 
 *.json
 !demo/web/i18n/*.json
 
 !/assets/*.jpg
-!/assets/*.png
+
 
 .DS_Store
 Thumbs.db
