@@ -18,6 +18,20 @@ std::array<unsigned, 7> glyph(char character) {
     case '8': return {14, 17, 17, 14, 17, 17, 14};
     case '9': return {14, 17, 17, 15, 1, 1, 14};
     case 'A': return {14, 17, 17, 31, 17, 17, 17};
+    case 'B': return {30, 17, 17, 30, 17, 17, 30};
+    case 'F': return {31, 16, 16, 30, 16, 16, 16};
+    case 'G': return {14, 17, 16, 23, 17, 17, 15};
+    case 'H': return {17, 17, 17, 31, 17, 17, 17};
+    case 'J': return {7, 2, 2, 2, 18, 18, 12};
+    case 'M': return {17, 27, 21, 21, 17, 17, 17};
+    case 'P': return {30, 17, 17, 30, 16, 16, 16};
+    case 'Q': return {14, 17, 17, 17, 21, 18, 13};
+    case 'S': return {15, 16, 16, 14, 1, 1, 30};
+    case 'W': return {17, 17, 17, 21, 21, 27, 17};
+    case 'X': return {17, 17, 10, 4, 10, 17, 17};
+    case 'Z': return {31, 1, 2, 4, 8, 16, 31};
+    case '%': return {25, 25, 2, 4, 8, 19, 19};
+    case ':': return {0, 6, 6, 0, 6, 6, 0};
     case 'C': return {14, 17, 16, 16, 16, 17, 14};
     case 'D': return {30, 17, 17, 17, 17, 17, 30};
     case 'E': return {31, 16, 16, 30, 16, 16, 31};
@@ -79,22 +93,14 @@ void Canvas::Text(int x, int y, std::string_view text, int scale, std::uint32_t 
     }
 }
 
-void Canvas::DrawCalculator() {
-    Rectangle(0, 0, width, height, 0xff101722);
-    Rectangle(24, 24, 432, 656, 0xff202b3a);
-    Rectangle(24, 24, 432, 5, 0xff45d6b0);
-    Text(48, 48, "ANYDEVKIT", 3, 0xff45d6b0);
-    Text(48, 82, "CALCULATOR", 2, 0xffb1bfd0);
-    Rectangle(48, 118, 384, 126, 0xff111b28);
-    Text(72, 140, "12 + 34 =", 3, 0xff8298b2);
-    Text(336, 187, "46", 6, 0xffe9fff9);
-    constexpr std::array<std::string_view, 16> keys{"7", "8", "9", "/", "4", "5", "6", "*", "1", "2", "3", "-", "C", "0", ".", "+"};
-    for (std::size_t index = 0; index < keys.size(); ++index) {
-        const int x = 48 + static_cast<int>(index % 4) * 98;
-        const int y = 266 + static_cast<int>(index / 4) * 76;
-        Rectangle(x, y, 90, 64, index % 4 == 3 ? 0xff375969 : 0xff304055);
-        Text(x + 35, y + 18, keys[index], 4, 0xffe9f1fa);
+void Canvas::RoundedRectangle(int x, int y, int rectangleWidth, int rectangleHeight, int radius, std::uint32_t color) {
+    if (radius < 0 || radius * 2 > rectangleWidth || radius * 2 > rectangleHeight) throw CalculatorError{"Invalid corner radius"};
+    Rectangle(x, y + radius, rectangleWidth, rectangleHeight - radius * 2, color);
+    for (int row = 0; row < radius; ++row) {
+        const int dy = radius - row - 1;
+        int inset = 0;
+        while ((radius - inset - 1) * (radius - inset - 1) + dy * dy > radius * radius) ++inset;
+        Rectangle(x + inset, y + row, rectangleWidth - inset * 2, 1, color);
+        Rectangle(x + inset, y + rectangleHeight - row - 1, rectangleWidth - inset * 2, 1, color);
     }
-    Rectangle(48, 580, 384, 64, 0xff45d6b0);
-    Text(230, 598, "=", 4, 0xff102820);
 }

@@ -3,14 +3,17 @@ if(NOT ANYDEVKIT_CALCULATOR_WIDTH MATCHES "^[0-9]+$")
     message(FATAL_ERROR "ANYDEVKIT_CALCULATOR_WIDTH must contain decimal digits")
 endif()
 
-add_executable(Calculator src/Main.cpp src/Canvas.cpp)
+add_executable(Calculator src/Main.cpp src/Canvas.cpp src/Calculator.cpp src/Interface.cpp src/Input.cpp src/Display.cpp)
 target_compile_features(Calculator PRIVATE cxx_std_20)
 target_compile_definitions(Calculator PRIVATE ANYDEVKIT_CALCULATOR_WIDTH=${ANYDEVKIT_CALCULATOR_WIDTH})
 set_target_properties(Calculator PROPERTIES CXX_EXTENSIONS OFF)
 target_include_directories(Calculator PRIVATE include)
-anydevkit_configure_windows_executable(Calculator snprintf_nid_postfix)
-anydevkit_link_runtime_library(Calculator libSceVideoOut sceVideoOutOpen sceVideoOutSetBufferAttribute2 sceVideoOutRegisterBuffers2 sceVideoOutSubmitFlip sceVideoOutWaitVblank)
-anydevkit_link_runtime_library(Calculator libkernel sceKernelAllocateDirectMemory sceKernelGetDirectMemorySize sceKernelMapDirectMemory sceKernelReleaseDirectMemory sceKernelDebugOutText)
+anydevkit_configure_windows_executable(Calculator snprintf_nid_postfix strtod_nid_postfix)
+anydevkit_link_runtime_library(Calculator libSceVideoOut sceVideoOutOpen sceVideoOutSetBufferAttribute2 sceVideoOutRegisterBuffers2 sceVideoOutSubmitFlip sceVideoOutWaitVblank sceVideoOutGetFlipStatus)
+anydevkit_link_runtime_library(Calculator libkernel sceKernelAllocateDirectMemory sceKernelGetDirectMemorySize sceKernelMapDirectMemory sceKernelReleaseDirectMemory sceKernelDebugOutText sceKernelGetProcessTime)
+anydevkit_link_runtime_library(Calculator libScePad scePadInit_nid_postfix scePadOpen_nid_postfix scePadReadState scePadGetControllerInformation)
+anydevkit_link_runtime_library(Calculator libSceMouse sceMouseInit sceMouseOpen sceMouseRead)
+anydevkit_link_runtime_library(Calculator libSceUserService sceUserServiceInitialize sceUserServiceGetInitialUser)
 
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTENT [=[
 {"titleId":"FAKE40001","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit Calculator"}}}
