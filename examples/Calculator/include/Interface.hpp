@@ -24,7 +24,7 @@ private:
     Bounds button(int index) const;
     Settings& settings;
     Calculator calculator;
-    std::array<int, 3> vibration{};
+    Settings::Data state{};
     int width;
     int height;
     int selected = 17;

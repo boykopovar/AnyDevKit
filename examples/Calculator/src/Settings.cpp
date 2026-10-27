@@ -8,6 +8,8 @@
 #include "prx/libc/include/Api.hpp"
 
 #include <cstdint>
+#include <algorithm>
+#include <span>
 
 namespace {
 
@@ -16,56 +18,81 @@ int check(int result, const char* operation) {
     return result;
 }
 
-void validate(const std::array<int, 3>& values) {
-    if (values[0] < 0 || values[0] > 200 || values[0] % 5 != 0 || values[1] < 0 || values[1] > 255 || values[2] < 0 || values[2] > 255) throw CalculatorError{"Invalid vibration settings"};
+void validate(const Settings::Data& values) {
+    const auto& vibration = values.Vibration;
+    if (vibration[0] < 0 || vibration[0] > 200 || vibration[0] % 5 != 0 || vibration[1] < 0 || vibration[1] > 255 || vibration[2] < 0 || vibration[2] > 255) throw CalculatorError{"Invalid vibration settings"};
+    if (values.History.Count > values.History.Entries.size()) throw CalculatorError{"Invalid saved history count"};
+    constexpr std::string_view allowed = "0123456789 .+-*/=E";
+    for (std::size_t i = 0; i < values.History.Count; ++i) {
+        const auto& entry = values.History.Entries[i];
+        const auto end = std::find(entry.begin(), entry.end(), 0);
+        if (end == entry.begin() || end == entry.end()) throw CalculatorError{"Invalid saved history text"};
+        for (auto it = entry.begin(); it != end; ++it) if (allowed.find(*it) == std::string_view::npos) throw CalculatorError{"Invalid saved history character"};
+    }
 }
 
-std::array<int, 3> readFile(const char* path) {
-    const int file = sceKernelOpen(path, SCE_KERNEL_O_RDONLY, 0);
-    check(file, "Open vibration settings");
-    std::array<std::uint8_t, 8> bytes{};
+void readExact(int file, std::span<std::uint8_t> bytes) {
+    std::size_t offset = 0;
+    while (offset < bytes.size()) {
+        const auto count = sceKernelRead(file, bytes.data() + offset, bytes.size() - offset);
+        if (count < 0) throw CalculatorError{"Read calculator settings", static_cast<int>(count)};
+        if (count == 0) throw CalculatorError{"Truncated calculator settings"};
+        offset += static_cast<std::size_t>(count);
+    }
+}
+
+Settings::Data readFile(const char* path) {
+    const int file = check(sceKernelOpen(path, SCE_KERNEL_O_RDONLY, 0), "Open calculator settings");
+    Settings::Data values{};
     try {
-        std::size_t offset = 0;
-        while (offset < bytes.size()) {
-            const auto count = sceKernelRead(file, bytes.data() + offset, bytes.size() - offset);
-            if (count < 0) throw CalculatorError{"Read vibration settings", static_cast<int>(count)};
-            if (count == 0) throw CalculatorError{"Truncated vibration settings"};
-            offset += static_cast<std::size_t>(count);
+        std::array<std::uint8_t, 8> header{};
+        readExact(file, header);
+        if (header[0] != 'A' || header[1] != 'D' || header[2] != 'K' || header[3] != 'V' || (header[4] != 1 && header[4] != 2)) throw CalculatorError{"Unsupported calculator settings format"};
+        values.Vibration = {header[5], header[6], header[7]};
+        if (header[4] == 2) {
+            std::array<std::uint8_t, 161> history{};
+            readExact(file, history);
+            values.History.Count = history[0];
+            for (std::size_t i = 0; i < values.History.Entries.size(); ++i) {
+                for (std::size_t j = 0; j < values.History.Entries[i].size(); ++j) values.History.Entries[i][j] = static_cast<char>(history[1 + i * 80 + j]);
+            }
         }
         std::uint8_t extra = 0;
         const auto count = sceKernelRead(file, &extra, 1);
-        if (count < 0) throw CalculatorError{"Read vibration settings", static_cast<int>(count)};
-        if (count != 0) throw CalculatorError{"Unexpected vibration settings data"};
+        if (count < 0) throw CalculatorError{"Read calculator settings", static_cast<int>(count)};
+        if (count != 0) throw CalculatorError{"Unexpected calculator settings data"};
+        validate(values);
     } catch (...) {
-        check(sceKernelClose(file), "Close vibration settings");
+        check(sceKernelClose(file), "Close calculator settings");
         throw;
     }
-    check(sceKernelClose(file), "Close vibration settings");
-    if (bytes[0] != 'A' || bytes[1] != 'D' || bytes[2] != 'K' || bytes[3] != 'V' || bytes[4] != 1) throw CalculatorError{"Unsupported vibration settings format"};
-    const std::array<int, 3> values{bytes[5], bytes[6], bytes[7]};
-    validate(values);
+    check(sceKernelClose(file), "Close calculator settings");
     return values;
 }
 
-void writeFile(const char* path, const char* temporaryPath, const std::array<int, 3>& values) {
+void writeFile(const char* path, const char* temporaryPath, const Settings::Data& values) {
     validate(values);
-    const std::array<std::uint8_t, 8> bytes{'A', 'D', 'K', 'V', 1, static_cast<std::uint8_t>(values[0]), static_cast<std::uint8_t>(values[1]), static_cast<std::uint8_t>(values[2])};
-    const int file = check(sceKernelOpen(temporaryPath, SCE_KERNEL_O_WRONLY | SCE_KERNEL_O_CREAT | SCE_KERNEL_O_TRUNC, 0666), "Create vibration settings");
+    std::array<std::uint8_t, 169> bytes{'A', 'D', 'K', 'V', 2, static_cast<std::uint8_t>(values.Vibration[0]), static_cast<std::uint8_t>(values.Vibration[1]), static_cast<std::uint8_t>(values.Vibration[2]), static_cast<std::uint8_t>(values.History.Count)};
+    for (std::size_t i = 0; i < values.History.Count; ++i) {
+        const auto& entry = values.History.Entries[i];
+        for (std::size_t j = 0; j < entry.size() && entry[j] != 0; ++j) bytes[9 + i * 80 + j] = static_cast<std::uint8_t>(entry[j]);
+    }
+    const int file = check(sceKernelOpen(temporaryPath, SCE_KERNEL_O_WRONLY | SCE_KERNEL_O_CREAT | SCE_KERNEL_O_TRUNC, 0666), "Create calculator settings");
     try {
         std::size_t offset = 0;
         while (offset < bytes.size()) {
             const auto count = sceKernelWrite(file, bytes.data() + offset, bytes.size() - offset);
-            if (count < 0) throw CalculatorError{"Write vibration settings", static_cast<int>(count)};
-            if (count == 0) throw CalculatorError{"Vibration settings write made no progress"};
+            if (count < 0) throw CalculatorError{"Write calculator settings", static_cast<int>(count)};
+            if (count == 0) throw CalculatorError{"Calculator settings write made no progress"};
             offset += static_cast<std::size_t>(count);
         }
-        check(sceKernelFsync(file), "Flush vibration settings");
+        check(sceKernelFsync(file), "Flush calculator settings");
     } catch (...) {
-        check(sceKernelClose(file), "Close vibration settings");
+        check(sceKernelClose(file), "Close calculator settings");
         throw;
     }
-    check(sceKernelClose(file), "Close vibration settings");
-    check(sceKernelRename(temporaryPath, path), "Replace vibration settings");
+    check(sceKernelClose(file), "Close calculator settings");
+    check(sceKernelRename(temporaryPath, path), "Replace calculator settings");
 }
 
 SaveDataMountResult mountSave(int userId, int resource) {
@@ -89,7 +116,7 @@ void makePath(char (&path)[64], const SaveDataMountPoint& mount, const char* fil
     if (count < 0 || static_cast<std::size_t>(count) >= sizeof(path)) throw CalculatorError{"SaveData path exceeds capacity"};
 }
 
-void writeSave(const SaveDataMountResult& mount, int resource, const std::array<int, 3>& values) {
+void writeSave(const SaveDataMountResult& mount, int resource, const Settings::Data& values) {
     SaveDataPrepareParam prepare{};
     prepare.resource = resource;
     check(sceSaveDataPrepare(&mount.mount_point, &prepare), "sceSaveDataPrepare");
@@ -127,12 +154,11 @@ Settings::~Settings() noexcept(false) {
     check(sceSaveDataTerminate(), "sceSaveDataTerminate");
 }
 
-std::array<int, 3> Settings::Load() {
+Settings::Data Settings::Load() {
     const auto mount = mountSave(userId, resource);
-    std::array<int, 3> values{};
+    Data values{};
     try {
         if ((mount.mount_status & 1u) != 0) {
-            values = {55, 1, 1};
             writeSave(mount, resource, values);
         } else {
             char path[64];
@@ -147,7 +173,7 @@ std::array<int, 3> Settings::Load() {
     return values;
 }
 
-void Settings::Save(const std::array<int, 3>& values) {
+void Settings::Save(const Settings::Data& values) {
     validate(values);
     const auto mount = mountSave(userId, resource);
     try {

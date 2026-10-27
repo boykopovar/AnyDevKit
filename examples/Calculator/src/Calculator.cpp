@@ -19,6 +19,17 @@ std::string_view Calculator::Display() const { return entry.data(); }
 std::string_view Calculator::Expression() const { return expression.data(); }
 std::size_t Calculator::HistoryCount() const { return historyCount; }
 bool Calculator::HasError() const { return error; }
+CalculatorHistory Calculator::GetHistory() const { return {history, historyCount}; }
+
+void Calculator::RestoreHistory(const CalculatorHistory& saved) {
+    if (saved.Count > saved.Entries.size()) throw CalculatorError{"Invalid saved history count"};
+    for (std::size_t i = 0; i < saved.Count; ++i) {
+        const auto& text = saved.Entries[i];
+        if (text[0] == 0 || std::find(text.begin(), text.end(), 0) == text.end()) throw CalculatorError{"Invalid saved history text"};
+    }
+    history = saved.Entries;
+    historyCount = saved.Count;
+}
 
 std::string_view Calculator::History(std::size_t index) const {
     if (index >= historyCount) throw CalculatorError{"Invalid history index"};

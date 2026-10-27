@@ -7,6 +7,12 @@
 
 enum class CalculatorKey { Clear, Sign, Percent, Divide, Seven, Eight, Nine, Multiply, Four, Five, Six, Subtract, One, Two, Three, Add, Backspace, Zero, Decimal, Equals };
 
+struct CalculatorHistory {
+    std::array<std::array<char, 80>, 2> Entries{};
+    std::size_t Count = 0;
+    bool operator==(const CalculatorHistory&) const = default;
+};
+
 class Calculator final {
 public:
     void Press(CalculatorKey key);
@@ -15,6 +21,8 @@ public:
     std::string_view History(std::size_t index) const;
     std::size_t HistoryCount() const;
     bool HasError() const;
+    CalculatorHistory GetHistory() const;
+    void RestoreHistory(const CalculatorHistory& saved);
 
 private:
     void clear();
@@ -28,7 +36,7 @@ private:
     void addHistory(double left, char operation, double right);
     std::array<char, 32> entry{'0', '\0'};
     std::array<char, 80> expression{};
-    std::array<std::array<char, 80>, 5> history{};
+    std::array<std::array<char, 80>, 2> history{};
     std::size_t historyCount = 0;
     double accumulator = 0;
     double repeatedOperand = 0;
