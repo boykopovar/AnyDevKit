@@ -25,7 +25,7 @@ std::uint16_t decode(std::string_view value) {
 }
 
 void ImportCatalog::AddModule(std::span<const std::byte> elf, const std::string& fileName) {
-    if (fileName.empty() || fileName.find_first_of("/\\\0", 0, 3) != std::string::npos || !fileName.ends_with(".prx")) throw std::invalid_argument("Expected a PS5 module filename ending in .prx");
+    if (fileName.empty() || fileName.find_first_of("/\\\0", 0, 3) != std::string::npos || (!fileName.ends_with(".prx") && !fileName.ends_with(".sprx"))) throw std::invalid_argument("Expected a PS5 module filename ending in .prx or .sprx");
     const Ps5::ElfImage image(elf);
     if (image.Read(16, 2) != 0xfe18) throw std::invalid_argument("Import catalog requires a decrypted PS5 dynamic module");
     const auto info = image.Dynamic(0x61000043);
