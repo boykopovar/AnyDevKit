@@ -22,7 +22,7 @@ Input::Input() {
     check(sceUserServiceGetInitialUser(&user), "sceUserServiceGetInitialUser");
     check(scePadInit_nid_postfix(), "scePadInit");
     pad = check(scePadOpen_nid_postfix(user, 0, 0, nullptr), "scePadOpen");
-    check(scePadSetVibrationMode(pad, 1), "scePadSetVibrationMode");
+    check(scePadSetVibrationMode(pad, 2), "scePadSetVibrationMode");
 }
 
 void Input::vibrate(std::uint64_t now, bool activation) {
