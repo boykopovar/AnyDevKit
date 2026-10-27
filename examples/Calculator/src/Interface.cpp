@@ -36,12 +36,17 @@ Interface::Bounds Interface::button(int index) const {
 void Interface::Navigate(int horizontal, int vertical) {
     if (selected >= 20) {
         const int index = selected - 20;
-        if (horizontal != 0) vibration[index] = std::clamp(vibration[index] + horizontal * (index == 0 ? 5 : 1), 0, index == 0 ? 200 : 255);
-        if (vertical < 0) selected = selected == 20 ? 16 : selected - 1;
-        if (vertical > 0) selected = selected == 22 ? 0 : selected + 1;
-    } else if (vertical > 0 && selected >= 16) selected = 20;
-    else if (vertical < 0 && selected < 4) selected = 22;
-    else selected = (selected / 4 + vertical + 5) % 5 * 4 + (selected % 4 + horizontal + 4) % 4;
+        if (editingSlider && horizontal != 0) vibration[index] = std::clamp(vibration[index] + horizontal * (index == 0 ? 5 : 1), 0, index == 0 ? 200 : 255);
+        else if (horizontal > 0) selected = sliderReturn;
+        if (vertical != 0) {
+            selected = 20 + (index + vertical + 3) % 3;
+            editingSlider = false;
+        }
+    } else if (horizontal < 0 && selected % 4 == 0) {
+        sliderReturn = selected;
+        selected = 20 + std::clamp(selected / 4 - 2, 0, 2);
+        editingSlider = false;
+    } else selected = (selected / 4 + vertical + 5) % 5 * 4 + (selected % 4 + horizontal + 4) % 4;
     dirty = true;
 }
 
@@ -54,6 +59,10 @@ void Interface::Press(CalculatorKey key) {
 
 void Interface::Activate() {
     if (selected < 20) Press(static_cast<CalculatorKey>(selected));
+    else {
+        editingSlider = !editingSlider;
+        dirty = true;
+    }
 }
 
 int Interface::VibrationDuration() const { return vibration[0]; }
@@ -86,7 +95,7 @@ void Interface::Draw(Canvas& canvas) {
         const int top = height * (60 + index * 10) / 100;
         const bool focused = selected == 20 + index;
         const int maximum = index == 0 ? 200 : 255;
-        if (focused) canvas.RoundedRectangle(margin - 8, top - 8, panelWidth + 16, height * 8 / 100, 12, 0xff294c58);
+        if (focused) canvas.RoundedRectangle(margin - 8, top - 8, panelWidth + 16, height * 8 / 100, 12, editingSlider ? 0xff356455 : 0xff294c58);
         canvas.Text(margin + 12, top + 4, sliderLabels[index], 2, focused ? Mint : Ink);
         char value[24];
         const int length = snprintf_nid_postfix(value, sizeof(value), index == 0 ? "%d MS" : "%d / 255", vibration[index]);
@@ -111,7 +120,7 @@ void Interface::Draw(Canvas& canvas) {
         const int scale = Labels[index].size() > 1 ? 4 : 6;
         canvas.Text(bounds.x + (bounds.width - static_cast<int>(Labels[index].size()) * 6 * scale + scale) / 2, bounds.y + (bounds.height - 7 * scale) / 2, Labels[index], scale, accent || index == pressed ? 0xff102b27 : Ink);
     }
-    canvas.Text(margin, height * 92 / 100, "UP / DOWN: MOVE   LEFT / RIGHT: MOVE OR ADJUST   X / ENTER: SELECT / TRY", 2, Muted);
+    canvas.Text(margin, height * 92 / 100, selected >= 20 ? (editingSlider ? "LEFT / RIGHT: ADJUST   X / ENTER: DONE   UP / DOWN: NEXT SLIDER" : "UP / DOWN: SLIDER   X / ENTER: EDIT   RIGHT: BACK TO KEYPAD") : "DPAD / ARROWS: MOVE   LEFT EDGE: SLIDERS   X / ENTER: SELECT", 2, Muted);
     canvas.Text(margin, height * 96 / 100, "TRIANGLE / I: CLEAR   SQUARE: EQUALS   F11: FULLSCREEN ON WINDOWS", 2, Muted);
     dirty = false;
 }

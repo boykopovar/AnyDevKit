@@ -26,6 +26,8 @@ private:
     int width;
     int height;
     int selected = 17;
+    int sliderReturn = 16;
+    bool editingSlider = false;
     int pressed = -1;
     int pressedFrames = 0;
     bool dirty = true;
