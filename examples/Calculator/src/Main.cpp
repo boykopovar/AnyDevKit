@@ -1,6 +1,5 @@
 #include "Canvas.hpp"
 #include "CalculatorError.hpp"
-#include "Runtime.hpp"
 #include "prx/libSceVideoOut/libSceVideoOut.hpp"
 #include "prx/libc/include/Api.hpp"
 
@@ -16,7 +15,7 @@ int check(int result, const char* operation) {
 
 }
 
-int RunCalculator() {
+int main() {
     try {
         constexpr int width = ANYDEVKIT_CALCULATOR_WIDTH;
         if (width < 480 || width > 16384) throw CalculatorError{"Calculator width must be between 480 and 16384"};
@@ -40,9 +39,4 @@ int RunCalculator() {
         printf_nid_postfix("Calculator: %s (%d)\n", error.Message, error.Code);
         return 1;
     }
-}
-
-extern "C" void CalculatorEntry() {
-    InitializeRuntime();
-    exit_nid_postfix(RunCalculator());
 }
