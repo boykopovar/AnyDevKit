@@ -19,13 +19,14 @@ Input::Input() {
     check(sceSysmoduleLoadModuleInternal(0x80000011), "Load UserService");
     check(sceSysmoduleLoadModuleInternal(0x80000024), "Load Pad");
     check(sceUserServiceInitialize(nullptr), "sceUserServiceInitialize");
-    int user = 0;
-    check(sceUserServiceGetInitialUser(&user), "sceUserServiceGetInitialUser");
+    check(sceUserServiceGetInitialUser(&userId), "sceUserServiceGetInitialUser");
     check(scePadInit_nid_postfix(), "scePadInit");
-    pad = check(scePadOpen_nid_postfix(user, 0, 0, nullptr), "scePadOpen");
+    pad = check(scePadOpen_nid_postfix(userId, 0, 0, nullptr), "scePadOpen");
     check(scePadSetVibrationMode(pad, 2), "scePadSetVibrationMode");
     check(scePthreadCreate(&vibrationThread, nullptr, vibrationEntry, this, "CalculatorVibration"), "scePthreadCreate");
 }
+
+int Input::UserId() const { return userId; }
 
 Input::~Input() noexcept(false) {
     stopping.store(true, std::memory_order_release);

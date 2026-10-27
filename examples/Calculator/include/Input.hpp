@@ -14,6 +14,7 @@ public:
     Input(const Input&) = delete;
     Input& operator=(const Input&) = delete;
     void Poll(Interface& interface);
+    int UserId() const;
 
 private:
     struct Pulse { std::uint32_t Duration; std::uint8_t Low; std::uint8_t High; };
@@ -27,6 +28,7 @@ private:
     std::atomic<int> vibrationError{0};
     Pthread vibrationThread{};
     int pad;
+    int userId = 0;
     int direction = 0;
     std::uint64_t nextRepeat = 0;
     std::uint32_t padButtons = 0;

@@ -20,9 +20,10 @@ int main() {
     try {
         constexpr int Width = ANYDEVKIT_CALCULATOR_WIDTH;
         constexpr int Height = 1080;
-        Interface interface(Width, Height);
-        Display display(Width, Height);
         Input input;
+        Settings settings(input.UserId());
+        Interface interface(Width, Height, settings);
+        Display display(Width, Height);
         for (;;) {
             interface.Tick();
             input.Poll(interface);

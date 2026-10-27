@@ -1,4 +1,5 @@
 #include "Interface.hpp"
+#include "Settings.hpp"
 #include "CalculatorError.hpp"
 #include "prx/libc/include/Api.hpp"
 
@@ -21,8 +22,9 @@ void fitted(Canvas& canvas, int x, int y, int available, std::string_view text, 
 
 }
 
-Interface::Interface(int width, int height) : width(width), height(height) {
+Interface::Interface(int width, int height, Settings& settings) : settings(settings), width(width), height(height) {
     if (width < 1280 || height < 720) throw CalculatorError{"Calculator requires at least 1280 by 720"};
+    vibration = settings.Load();
 }
 
 Interface::Bounds Interface::button(int index) const {
@@ -36,7 +38,14 @@ Interface::Bounds Interface::button(int index) const {
 void Interface::Navigate(int horizontal, int vertical) {
     if (selected >= 20) {
         const int index = selected - 20;
-        if (editingSlider && horizontal != 0) vibration[index] = std::clamp(vibration[index] + horizontal * (index == 0 ? 5 : 1), 0, index == 0 ? 200 : 255);
+        if (editingSlider && horizontal != 0) {
+            auto updated = vibration;
+            updated[index] = std::clamp(updated[index] + horizontal * (index == 0 ? 5 : 1), 0, index == 0 ? 200 : 255);
+            if (updated != vibration) {
+                settings.Save(updated);
+                vibration = updated;
+            }
+        }
         else if (horizontal > 0) selected = sliderReturn;
         if (vertical != 0) {
             selected = 20 + (index + vertical + 3) % 3;
