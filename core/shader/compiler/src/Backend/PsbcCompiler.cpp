@@ -9,6 +9,20 @@ namespace AnyDevKit {
 
 namespace {
 
+std::mutex& compilerMutex() {
+    static std::mutex mutex;
+    return mutex;
+}
+
+void validateSpirv(std::span<const std::uint32_t> spirv) {
+    if (spirv.size() < 5 || spirv.front() != 0x07230203u || spirv[4] != 0) throw std::invalid_argument("PSBC: invalid SPIR-V header");
+    for (std::size_t offset = 5; offset < spirv.size();) {
+        const auto count = spirv[offset] >> 16;
+        if (count == 0 || count > spirv.size() - offset) throw std::invalid_argument("PSBC: invalid SPIR-V instruction length");
+        offset += count;
+    }
+}
+
 class PsbcRuntime {
 public:
     PsbcRuntime() { psbc_init(); }
@@ -33,8 +47,8 @@ private:
 
 void PsbcCompiler::ValidateOptions(const PsbcCompileOptions& options) {
     if (options.target != PSBC_TARGET_PS5 || options.address32_hi != 2) throw std::invalid_argument("PSBC: AGC requires the PS5 target and address32_hi=2");
-    if (options.stage != PSBC_STAGE_VERTEX && options.stage != PSBC_STAGE_FRAGMENT) throw std::invalid_argument("PSBC: unsupported AGC stage");
-    if (options.stage == PSBC_STAGE_VERTEX && !options.ngg) throw std::invalid_argument("PSBC: vertex AGC shaders require NGG");
+    if (options.stage != PSBC_STAGE_VERTEX && options.stage != PSBC_STAGE_FRAGMENT && options.stage != PSBC_STAGE_GEOMETRY) throw std::invalid_argument("PSBC: unsupported AGC stage");
+    if ((options.stage == PSBC_STAGE_VERTEX || options.stage == PSBC_STAGE_GEOMETRY) && !options.ngg) throw std::invalid_argument("PSBC: vertex AGC shaders require NGG");
     if (options.stage == PSBC_STAGE_FRAGMENT && (options.ngg || options.vertex_attribute_count)) throw std::invalid_argument("PSBC: vertex-only options on a fragment shader");
     if (!options.entrypoint || std::strcmp(options.entrypoint, "main") != 0) throw std::invalid_argument("PSBC: GLSL entry point must be main");
     if (!options.force_indirect_push_constants || !options.static_descriptor_use) throw std::invalid_argument("PSBC: indirect push constants and static descriptor usage are required");
@@ -66,19 +80,28 @@ void PsbcCompiler::ValidateOptions(const PsbcCompileOptions& options) {
 
 AgcShaderPackage PsbcCompiler::Compile(std::span<const std::uint32_t> spirv, const PsbcCompileOptions& options) {
     ValidateOptions(options);
-    if (spirv.size() < 5 || spirv.front() != 0x07230203u || spirv[4] != 0) throw std::invalid_argument("PSBC: invalid SPIR-V header");
-    for (std::size_t offset = 5; offset < spirv.size();) {
-        const auto wordCount = spirv[offset] >> 16;
-        if (wordCount == 0 || wordCount > spirv.size() - offset) throw std::invalid_argument("PSBC: invalid SPIR-V instruction length");
-        offset += wordCount;
-    }
-    static std::mutex mutex;
-    const std::lock_guard lock(mutex);
+    if (options.stage == PSBC_STAGE_GEOMETRY) throw std::invalid_argument("PSBC: geometry requires CompileGeometry and its vertex stage");
+    validateSpirv(spirv);
+    const std::lock_guard lock(compilerMutex());
     static const PsbcRuntime runtime;
     PsbcOutput output;
     const auto result = psbc_compile_shader(spirv.data(), spirv.size_bytes(), &options, &output.Get());
     if (result != PSBC_RESULT_OK) throw std::runtime_error("PSBC: " + std::string(psbc_result_string(result)));
     if (output.Get().metadata.source_stage != options.stage) throw std::runtime_error("PSBC: compiled stage does not match the request");
+    return AgcPackager::Build(output.Get());
+}
+
+AgcShaderPackage PsbcCompiler::CompileGeometry(std::span<const std::uint32_t> vertex, std::span<const std::uint32_t> geometry, const PsbcCompileOptions& options) {
+    ValidateOptions(options);
+    if (options.stage != PSBC_STAGE_GEOMETRY) throw std::invalid_argument("PSBC: geometry pipeline requires geometry options");
+    validateSpirv(vertex);
+    validateSpirv(geometry);
+    const std::lock_guard lock(compilerMutex());
+    static const PsbcRuntime runtime;
+    PsbcOutput output;
+    const auto result = psbc_compile_geometry_pipeline(vertex.data(), vertex.size_bytes(), geometry.data(), geometry.size_bytes(), &options, &output.Get());
+    if (result != PSBC_RESULT_OK) throw std::runtime_error("PSBC: " + std::string(psbc_result_string(result)));
+    if (output.Get().metadata.source_stage != PSBC_STAGE_GEOMETRY || !output.Get().metadata.merged_geometry) throw std::runtime_error("PSBC: missing merged geometry program");
     return AgcPackager::Build(output.Get());
 }
 

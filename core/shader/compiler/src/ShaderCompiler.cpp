@@ -8,13 +8,13 @@
 namespace AnyDevKit {
 
 PsbcCompileOptions ShaderCompiler::CreateOptions(PsbcStage stage) {
-    if (stage != PSBC_STAGE_VERTEX && stage != PSBC_STAGE_FRAGMENT) throw std::invalid_argument("Compiler: only vertex and fragment AGC packages are supported");
+    if (stage != PSBC_STAGE_VERTEX && stage != PSBC_STAGE_FRAGMENT && stage != PSBC_STAGE_GEOMETRY) throw std::invalid_argument("Compiler: unsupported AGC stage");
     PsbcCompileOptions options{};
     options.target = PSBC_TARGET_PS5;
     options.stage = stage;
     options.entrypoint = "main";
     options.optimise = true;
-    options.ngg = stage == PSBC_STAGE_VERTEX;
+    options.ngg = stage == PSBC_STAGE_VERTEX || stage == PSBC_STAGE_GEOMETRY;
     options.primitive_type = 4;
     options.address32_hi = 2;
     options.force_indirect_push_constants = true;
@@ -28,6 +28,16 @@ AgcShaderPackage ShaderCompiler::Compile(std::string_view source, std::string_vi
     PsbcCompiler::ValidateOptions(options);
     const auto spirv = GlslCompiler::Compile(source, sourceName, options, includeDirectories);
     return PsbcCompiler::Compile(spirv, options);
+}
+
+AgcShaderPackage ShaderCompiler::CompileGeometry(const ShaderSource& vertex, const ShaderSource& geometry, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories) {
+    PsbcCompiler::ValidateOptions(options);
+    if (options.stage != PSBC_STAGE_GEOMETRY) throw std::invalid_argument("Compiler: geometry pipeline requires geometry options");
+    auto vertexOptions = options;
+    vertexOptions.stage = PSBC_STAGE_VERTEX;
+    const auto vertexSpirv = GlslCompiler::Compile(vertex.Text, vertex.Name, vertexOptions, includeDirectories);
+    const auto geometrySpirv = GlslCompiler::Compile(geometry.Text, geometry.Name, options, includeDirectories);
+    return PsbcCompiler::CompileGeometry(vertexSpirv, geometrySpirv, options);
 }
 
 AgcShaderPackage ShaderCompiler::CompileFile(const std::filesystem::path& sourcePath, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories) {

@@ -8,10 +8,16 @@
 
 namespace AnyDevKit {
 
+struct ShaderSource {
+    std::string_view Text;
+    std::string_view Name;
+};
+
 class ShaderCompiler {
 public:
     static PsbcCompileOptions CreateOptions(PsbcStage stage);
     static AgcShaderPackage Compile(std::string_view source, std::string_view sourceName, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories = {});
+    static AgcShaderPackage CompileGeometry(const ShaderSource& vertex, const ShaderSource& geometry, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories = {});
     static AgcShaderPackage CompileFile(const std::filesystem::path& sourcePath, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories = {});
 };
 

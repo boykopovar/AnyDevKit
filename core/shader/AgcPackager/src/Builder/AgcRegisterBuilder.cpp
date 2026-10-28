@@ -40,7 +40,7 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     const std::span<const PsbcRegisterWrite> shader(metadata.shader_registers, metadata.shader_register_count);
     validateRegisters(context);
     validateRegisters(shader);
-    const bool vertex = metadata.source_stage == PSBC_STAGE_VERTEX;
+    const bool vertex = metadata.hardware_stage == PSBC_HW_STAGE_NGG;
     const auto programOffset = vertex ? ShaderRegs::SPI_SHADER_PGM_LO_ES : ShaderRegs::SPI_SHADER_PGM_LO_PS;
     const auto& low = requireRegister(shader, programOffset);
     const auto& high = requireRegister(shader, programOffset + 1);
@@ -55,7 +55,7 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
         requireRegister(shader, 0x87u);
         requireRegister(shader, ShaderRegs::SPI_SHADER_PGM_RSRC4_GS);
         if (!metadata.linkage_valid || metadata.linkage_ge_cntl.offset != ShaderRegs::GE_CNTL || metadata.linkage_stages_en.offset != ShaderRegs::VGT_SHADER_STAGES_EN || metadata.linkage_user_vgpr_en.offset != ShaderRegs::GE_USER_VGPR_EN || metadata.linkage_ge_cntl.padding || metadata.linkage_stages_en.padding || metadata.linkage_user_vgpr_en.padding) throw std::invalid_argument("AGC: invalid vertex linkage registers");
-        if (!(metadata.unresolved_fields & PSBC_UNRESOLVED_NGG_ESGS_RING_ITEMSIZE) && requireRegister(context, 0x2abu).value != 1) throw std::invalid_argument("AGC: inconsistent resolved NGG ring item size");
+        if (!(metadata.unresolved_fields & PSBC_UNRESOLVED_NGG_ESGS_RING_ITEMSIZE) && requireRegister(context, 0x2abu).value != (metadata.merged_geometry ? metadata.merged_esgs_ring_itemsize : 1)) throw std::invalid_argument("AGC: inconsistent resolved NGG ring item size");
         if (metadata.esgs_system_sgprs_valid) {
             const auto onchip = requireRegister(context, ShaderRegs::VGT_GS_ONCHIP_CNTL).value;
             if ((onchip & 0x7ffu) != metadata.esgs_es_verts_per_subgroup || ((onchip >> 22) & 0x3ffu) != metadata.esgs_gs_inst_prims_per_subgroup || (requireRegister(context, ShaderRegs::GE_NGG_SUBGRP_CNTL).value & 0x1ffu) != metadata.esgs_prim_amp_factor) throw std::invalid_argument("AGC: NGG launch registers disagree with system metadata");
@@ -70,7 +70,7 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     const auto shaderOffset = writer.Reserve(shader.size() * sizeof(ShaderRegister), alignof(ShaderRegister));
     for (std::size_t index = 0; index < context.size(); ++index) {
         auto entry = context[index];
-        if (vertex && entry.offset == 0x2abu) entry.value = 1;
+        if (vertex && entry.offset == 0x2abu) entry.value = metadata.merged_geometry ? metadata.merged_esgs_ring_itemsize : 1;
         writeRegister(writer, contextOffset + index * sizeof(ShaderRegister), entry);
     }
     for (std::size_t index = 0; index < shader.size(); ++index) writeRegister(writer, shaderOffset + index * sizeof(ShaderRegister), shader[index]);

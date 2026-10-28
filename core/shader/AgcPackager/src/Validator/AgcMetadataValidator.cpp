@@ -25,13 +25,15 @@ void AgcMetadataValidator::Validate(const PsbcShaderOutput& compiled) {
     const auto& metadata = compiled.metadata;
     if (!compiled.machine_code || compiled.machine_code_size == 0 || compiled.machine_code_size % 4 != 0 || compiled.machine_code_size > std::numeric_limits<std::uint32_t>::max()) throw std::invalid_argument("AGC: invalid machine code buffer or size");
     if (metadata.version != PSBC_SHADER_METADATA_VERSION || metadata.target != PSBC_TARGET_PS5) throw std::invalid_argument("AGC: incompatible PSBC metadata version or target");
-    const bool vertex = metadata.source_stage == PSBC_STAGE_VERTEX && metadata.hardware_stage == PSBC_HW_STAGE_NGG;
+    const bool vertex = (metadata.source_stage == PSBC_STAGE_VERTEX || metadata.source_stage == PSBC_STAGE_GEOMETRY) && metadata.hardware_stage == PSBC_HW_STAGE_NGG;
     const bool fragment = metadata.source_stage == PSBC_STAGE_FRAGMENT && metadata.hardware_stage == PSBC_HW_STAGE_PIXEL;
-    if (!vertex && !fragment) throw std::invalid_argument("AGC: only NGG vertex and pixel fragment stages are supported");
+    if (!vertex && !fragment) throw std::invalid_argument("AGC: invalid hardware stage for the source stage");
     const std::uint32_t permitted = PSBC_UNRESOLVED_PROGRAM_CHECKSUM | (vertex ? static_cast<std::uint32_t>(PSBC_UNRESOLVED_NGG_ESGS_RING_ITEMSIZE) : 0u);
     if (metadata.unresolved_fields & ~permitted) throw std::invalid_argument("AGC: unresolved compiler metadata");
     if (metadata.scratch_valid || metadata.scratch_bytes_per_wave || metadata.scratch_size_per_thread || metadata.scratch_buffer_table_user_data_dword) throw std::invalid_argument("AGC: scratch storage is unsupported");
-    if (metadata.merged_geometry || metadata.merged_es_source_stage != PSBC_STAGE_NONE || metadata.merged_es_itemsize || metadata.merged_esgs_ring_itemsize) throw std::invalid_argument("AGC: merged geometry is unsupported");
+    if (metadata.source_stage == PSBC_STAGE_GEOMETRY) {
+        if (!metadata.merged_geometry || metadata.merged_es_source_stage != PSBC_STAGE_VERTEX || !metadata.merged_es_itemsize || !metadata.merged_esgs_ring_itemsize || !metadata.esgs_system_sgprs_valid) throw std::invalid_argument("AGC: incomplete merged geometry metadata");
+    } else if (metadata.merged_geometry || metadata.merged_es_source_stage != PSBC_STAGE_NONE || metadata.merged_es_itemsize || metadata.merged_esgs_ring_itemsize) throw std::invalid_argument("AGC: unexpected merged geometry metadata");
     if (metadata.hull_ls_valid || metadata.hull_ls_code_size || metadata.hull_ls_code_offset || metadata.hull_tess_wg_valid || metadata.hull_num_patches_per_wg || metadata.hull_tcs_lds_size || metadata.hull_workgroup_size || metadata.hull_push_use_valid || metadata.hull_vertex_push_dwords || metadata.hull_control_push_dwords || metadata.ps5_ring_table_valid || metadata.ps5_ring_table_user_data_dword) throw std::invalid_argument("AGC: tessellation metadata is unsupported");
     for (const auto& entry : {metadata.hull_ls_pgm_lo, metadata.hull_ls_pgm_hi, metadata.hull_ls_rsrc1, metadata.hull_ls_rsrc2}) {
         if (entry.offset || entry.padding || entry.value) throw std::invalid_argument("AGC: unexpected hull registers");

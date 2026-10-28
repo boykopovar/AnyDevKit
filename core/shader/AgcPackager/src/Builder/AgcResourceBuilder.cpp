@@ -59,10 +59,10 @@ void AgcResourceBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
         throw std::invalid_argument("AGC: push constant size without a pointer");
     }
     if (!metadata.push_use_valid && (metadata.stage_push_dwords || metadata.previous_stage_push_dwords)) throw std::invalid_argument("AGC: push constant usage without a valid declaration");
-    if (metadata.previous_stage_push_dwords) throw std::invalid_argument("AGC: unexpected previous-stage push constant usage");
+    if (metadata.previous_stage_push_dwords && !metadata.merged_geometry) throw std::invalid_argument("AGC: unexpected previous-stage push constant usage");
     const auto pushDwords = (metadata.push_constant_size + 3u) / 4u;
     const auto pushMask = pushDwords == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << pushDwords) - 1;
-    if (metadata.stage_push_dwords & ~pushMask) throw std::invalid_argument("AGC: push constant usage exceeds its declared size");
+    if ((metadata.stage_push_dwords | metadata.previous_stage_push_dwords) & ~pushMask) throw std::invalid_argument("AGC: push constant usage exceeds its declared size");
     if (metadata.descriptor_set0_valid != metadata.descriptor_set_valid[0] || metadata.descriptor_set0_user_data_dword != metadata.descriptor_set_user_data_dword[0]) throw std::invalid_argument("AGC: descriptor set zero aliases disagree");
     std::array<std::uint64_t, PSBC_MAX_DESCRIPTOR_SETS> bindings{};
     for (std::uint32_t index = 0; index < metadata.descriptor_binding_count; ++index) {
