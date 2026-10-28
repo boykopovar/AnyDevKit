@@ -58,49 +58,45 @@ std::array<unsigned, 7> glyph(char character) {
 
 }
 
-Canvas::Canvas(std::span<std::uint32_t> pixels, int width, int height) : pixels(pixels), width(width), height(height) {
-    if (pixels.size_bytes() != StorageSize(width, height)) throw CalculatorError{"Invalid canvas extent"};
-}
+Canvas::Canvas(int width, int height) : width(width), height(height) { StorageSize(width, height); }
 
 std::size_t Canvas::StorageSize(int width, int height) {
     if (width <= 0 || height <= 0 || width > 16384 || height > 16384) throw CalculatorError{"Invalid canvas extent"};
     return static_cast<std::size_t>((width + 127) / 128) * ((height + 127) / 128) * 65536;
 }
 
-void Canvas::Rectangle(int x, int y, int rectangleWidth, int rectangleHeight, std::uint32_t color) {
+void Canvas::Clear() { count = 0; }
+std::span<const DrawCommand> Canvas::Commands() const { return {commands.data(), count}; }
+
+DrawCommand& Canvas::append(int x, int y, int rectangleWidth, int rectangleHeight, std::uint32_t color) {
     if (x < 0 || y < 0 || rectangleWidth < 0 || rectangleHeight < 0 || x > width || y > height || rectangleWidth > width - x || rectangleHeight > height - y) throw CalculatorError{"Rectangle outside canvas"};
-    for (int row = y; row < y + rectangleHeight; ++row) {
-        for (int column = x; column < x + rectangleWidth; ++column) {
-            const auto tile = static_cast<std::size_t>(row / 128) * ((width + 127) / 128) + column / 128;
-            const auto tileX = static_cast<std::uint32_t>(column);
-            const auto tileY = static_cast<std::uint32_t>(row);
-            const auto offset = ((tileY << 4) & 0x0070u) ^ ((tileY << 5) & 0x0f00u) ^ ((tileY << 9) & 0x1000u) ^ ((tileY << 8) & 0x4000u) ^ ((tileX << 2) & 0x000cu) ^ ((tileX << 5) & 0x0380u) ^ ((tileX << 4) & 0x0400u) ^ ((tileX << 6) & 0x0800u) ^ ((tileX << 9) & 0xa000u);
-            pixels[tile * 16384 + offset / sizeof(std::uint32_t)] = color;
-        }
-    }
+    if (count == Capacity) throw CalculatorError{"Canvas draw command capacity exceeded"};
+    auto& command = commands[count++];
+    command = {};
+    command.Rectangle = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(rectangleWidth), static_cast<float>(rectangleHeight)};
+    command.Color = {static_cast<float>((color >> 16) & 255) / 255.0f, static_cast<float>((color >> 8) & 255) / 255.0f, static_cast<float>(color & 255) / 255.0f, static_cast<float>(color >> 24) / 255.0f};
+    command.Parameters = {0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f};
+    return command;
+}
+
+void Canvas::Rectangle(int x, int y, int rectangleWidth, int rectangleHeight, std::uint32_t color) {
+    append(x, y, rectangleWidth, rectangleHeight, color);
 }
 
 void Canvas::Text(int x, int y, std::string_view text, int scale, std::uint32_t color) {
     if (scale <= 0 || scale > 16) throw CalculatorError{"Invalid text scale"};
     for (char character : text) {
         const auto rows = glyph(character);
-        for (int row = 0; row < 7; ++row) {
-            for (int column = 0; column < 5; ++column) {
-                if ((rows[row] & (1u << (4 - column))) != 0) Rectangle(x + column * scale, y + row * scale, scale, scale, color);
-            }
+        if (character != ' ') {
+            auto& command = append(x, y, 5 * scale, 7 * scale, color);
+            command.Parameters[3] = static_cast<float>(scale);
+            for (std::size_t row = 0; row < rows.size(); ++row) command.Glyph[row / 4] |= rows[row] << ((row % 4) * 5);
         }
         x += 6 * scale;
     }
 }
 
 void Canvas::RoundedRectangle(int x, int y, int rectangleWidth, int rectangleHeight, int radius, std::uint32_t color) {
-    if (radius < 0 || radius * 2 > rectangleWidth || radius * 2 > rectangleHeight) throw CalculatorError{"Invalid corner radius"};
-    Rectangle(x, y + radius, rectangleWidth, rectangleHeight - radius * 2, color);
-    for (int row = 0; row < radius; ++row) {
-        const int dy = radius - row - 1;
-        int inset = 0;
-        while ((radius - inset - 1) * (radius - inset - 1) + dy * dy > radius * radius) ++inset;
-        Rectangle(x + inset, y + row, rectangleWidth - inset * 2, 1, color);
-        Rectangle(x + inset, y + rectangleHeight - row - 1, rectangleWidth - inset * 2, 1, color);
-    }
+    if (radius < 0 || radius > rectangleWidth / 2 || radius > rectangleHeight / 2) throw CalculatorError{"Invalid corner radius"};
+    append(x, y, rectangleWidth, rectangleHeight, color).Parameters[0] = static_cast<float>(radius);
 }

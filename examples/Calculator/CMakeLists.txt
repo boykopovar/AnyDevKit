@@ -7,10 +7,10 @@ add_subdirectory(ShaderBuilder)
 set(shaderHeader "${CMAKE_CURRENT_BINARY_DIR}/generated/CalculatorShaders.hpp")
 add_custom_command(OUTPUT "${shaderHeader}"
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
-    COMMAND "$<TARGET_FILE:CalculatorShaderBuilder>" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.frag" "${shaderHeader}"
-    DEPENDS CalculatorShaderBuilder shaders/Background.vert shaders/Background.frag
+    COMMAND "$<TARGET_FILE:CalculatorShaderBuilder>" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.frag" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.frag" "${shaderHeader}"
+    DEPENDS CalculatorShaderBuilder shaders/Background.vert shaders/Background.frag shaders/Interface.vert shaders/Interface.frag
     VERBATIM)
-add_executable(Calculator src/Main.cpp src/Canvas.cpp src/Calculator.cpp src/Interface.cpp src/Input.cpp src/Display.cpp src/Settings.cpp src/Graphics/Background.cpp "${shaderHeader}")
+add_executable(Calculator src/Main.cpp src/Canvas.cpp src/Calculator.cpp src/Interface.cpp src/Input.cpp src/Display.cpp src/Settings.cpp src/Graphics/Renderer.cpp "${shaderHeader}")
 target_compile_features(Calculator PRIVATE cxx_std_20)
 target_compile_definitions(Calculator PRIVATE ANYDEVKIT_CALCULATOR_WIDTH=${ANYDEVKIT_CALCULATOR_WIDTH})
 set_target_properties(Calculator PROPERTIES CXX_EXTENSIONS OFF)

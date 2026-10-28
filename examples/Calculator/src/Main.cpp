@@ -1,5 +1,5 @@
 #include "Display.hpp"
-#include "Graphics/Background.hpp"
+#include "Graphics/Renderer.hpp"
 #include "Input.hpp"
 #include "Interface.hpp"
 #include "CalculatorError.hpp"
@@ -25,15 +25,16 @@ int main() {
         Settings settings(input.UserId());
         Interface interface(Width, Height, settings);
         Display display(Width, Height);
-        Background background(Width, Height);
+        Renderer renderer(Width, Height);
+        Canvas canvas(Width, Height);
         const auto start = sceKernelGetProcessTime();
         for (;;) {
             interface.Tick();
             input.Poll(interface);
             const auto seconds = static_cast<float>(sceKernelGetProcessTime() - start) / 1000000.0f;
-            display.SetBackground(background.Draw(seconds));
-            auto canvas = display.BackBuffer();
+            canvas.Clear();
             interface.Draw(canvas);
+            renderer.Draw(display.Acquire(), seconds, canvas);
             display.Present();
         }
     } catch (const CalculatorError& error) {

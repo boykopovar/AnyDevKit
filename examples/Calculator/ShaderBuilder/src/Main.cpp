@@ -18,7 +18,7 @@ void writeBytes(std::ostream& output, std::string_view name, std::span<const std
     output << "\n};\n";
 }
 
-void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage stage, const std::string& name) {
+void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage stage, const std::string& name, std::uint32_t constantSize) {
     auto options = AnyDevKit::ShaderCompiler::CreateOptions(stage);
     if (stage == PSBC_STAGE_FRAGMENT) options.spi_shader_col_format = 4;
     const auto shader = AnyDevKit::ShaderCompiler::CompileFile(path, options);
@@ -26,7 +26,7 @@ void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage 
     if (metadata.descriptor_binding_count || metadata.vertex_buffer_table_valid || metadata.view_index_valid || metadata.draw_id_valid || metadata.start_instance_valid) throw std::runtime_error("Unexpected calculator shader resource layout");
     std::array<std::uint32_t, 16> data{};
     if (metadata.ngg_lds_layout_valid) data.at(metadata.ngg_lds_layout_user_data_dword) = metadata.ngg_lds_layout;
-    if (metadata.push_constants_valid && metadata.push_constant_size != 12) throw std::runtime_error("Unexpected calculator push constant size");
+    if (metadata.push_constants_valid && metadata.push_constant_size > constantSize) throw std::runtime_error("Unexpected calculator push constant size");
     writeBytes(output, name + "Header", shader.GetHeaderBytes());
     writeBytes(output, name + "Code", shader.GetCodeBytes());
     output << "inline constexpr ShaderAsset " << name << '{' << name << "Header, " << name << "Code, {";
@@ -38,12 +38,14 @@ void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage 
 
 int main(int count, char** arguments) {
     try {
-        if (count != 4) throw std::invalid_argument("Expected vertex source, fragment source and output header");
-        std::ofstream output(arguments[3], std::ios::binary | std::ios::trunc);
+        if (count != 6) throw std::invalid_argument("Expected background vertex/fragment, interface vertex/fragment and output header");
+        std::ofstream output(arguments[5], std::ios::binary | std::ios::trunc);
         output.exceptions(std::ios::failbit | std::ios::badbit);
         output << "#ifndef ANYDEVKIT_CALCULATOR_GENERATED_SHADERS_HPP\n#define ANYDEVKIT_CALCULATOR_GENERATED_SHADERS_HPP\n#include \"Graphics/ShaderAsset.hpp\"\nnamespace CalculatorShaders {\n";
-        compile(output, arguments[1], PSBC_STAGE_VERTEX, "Vertex");
-        compile(output, arguments[2], PSBC_STAGE_FRAGMENT, "Fragment");
+        compile(output, arguments[1], PSBC_STAGE_VERTEX, "Vertex", 12);
+        compile(output, arguments[2], PSBC_STAGE_FRAGMENT, "Fragment", 12);
+        compile(output, arguments[3], PSBC_STAGE_VERTEX, "InterfaceVertex", 64);
+        compile(output, arguments[4], PSBC_STAGE_FRAGMENT, "InterfaceFragment", 64);
         output << "}\n#endif\n";
         output.close();
         return 0;

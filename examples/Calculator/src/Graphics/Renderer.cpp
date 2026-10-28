@@ -1,4 +1,4 @@
-#include "Graphics/Background.hpp"
+#include "Graphics/Renderer.hpp"
 #include "CalculatorShaders.hpp"
 #include "CalculatorError.hpp"
 #include "Canvas.hpp"
@@ -14,7 +14,7 @@ namespace {
 
 constexpr std::size_t MemorySize = 32 * 1024 * 1024;
 constexpr std::size_t Alignment = 131072;
-constexpr std::size_t CommandWords = 16384;
+constexpr std::size_t CommandWords = 65536;
 constexpr std::size_t RegisterCapacity = 256;
 
 void check(int result, const char* operation) {
@@ -34,7 +34,7 @@ bool APS5_VABI exhausted(CommandBuffer*, std::uint32_t, void*) {
 
 }
 
-Background::Background(int width, int height) : width(width), height(height) {
+Renderer::Renderer(int width, int height) : width(width), height(height) {
     check(sceAgcInit(11), "sceAgcInit");
     check(sceKernelAllocateDirectMemory(0, sceKernelGetDirectMemorySize(), MemorySize, Alignment, 12, &physicalAddress), "sceKernelAllocateDirectMemory");
     void* address = reinterpret_cast<void*>(0x240000000ull);
@@ -47,8 +47,6 @@ Background::Background(int width, int height) : width(width), height(height) {
     try {
         if ((reinterpret_cast<std::uintptr_t>(memory) >> 32) != 2 || ((reinterpret_cast<std::uintptr_t>(memory) + MemorySize - 1) >> 32) != 2) throw CalculatorError{"AGC requires memory in the shader address aperture"};
         memset_nid_postfix(memory, 0, MemorySize);
-        const auto size = Canvas::StorageSize(width, height);
-        pixels = {static_cast<std::uint32_t*>(allocate(size, Alignment)), size / 4};
         commands = static_cast<std::uint32_t*>(allocate(CommandWords * 4, 256));
         fence = static_cast<std::uint64_t*>(allocate(sizeof(std::uint64_t), 64));
         constants = static_cast<float*>(allocate(16, 16));
@@ -56,7 +54,13 @@ Background::Background(int width, int height) : width(width), height(height) {
         primitive = static_cast<ShaderRegister*>(allocate(3 * sizeof(ShaderRegister), 256));
         vertex = createShader(CalculatorShaders::Vertex);
         fragment = createShader(CalculatorShaders::Fragment);
-        createTarget();
+        createPipeline(context, contextCount, primitive, vertex, fragment);
+        interfaceVertex = createShader(CalculatorShaders::InterfaceVertex);
+        interfaceFragment = createShader(CalculatorShaders::InterfaceFragment);
+        interfaceContext = static_cast<ShaderRegister*>(allocate(RegisterCapacity * sizeof(ShaderRegister), 256));
+        interfacePrimitive = static_cast<ShaderRegister*>(allocate(3 * sizeof(ShaderRegister), 256));
+        interfaceCommands = static_cast<DrawCommand*>(allocate(Canvas::Capacity * sizeof(DrawCommand), alignof(DrawCommand)));
+        createPipeline(interfaceContext, interfaceContextCount, interfacePrimitive, interfaceVertex, interfaceFragment);
     } catch (...) {
         check(sceKernelMunmap(reinterpret_cast<std::uintptr_t>(memory), MemorySize), "sceKernelMunmap");
         check(sceKernelReleaseDirectMemory(physicalAddress, MemorySize), "sceKernelReleaseDirectMemory");
@@ -64,20 +68,20 @@ Background::Background(int width, int height) : width(width), height(height) {
     }
 }
 
-Background::~Background() noexcept(false) {
+Renderer::~Renderer() noexcept(false) {
     if (pending) return;
     check(sceKernelMunmap(reinterpret_cast<std::uintptr_t>(memory), MemorySize), "sceKernelMunmap");
     check(sceKernelReleaseDirectMemory(physicalAddress, MemorySize), "sceKernelReleaseDirectMemory");
 }
 
-void* Background::allocate(std::size_t bytes, std::size_t alignment) {
+void* Renderer::allocate(std::size_t bytes, std::size_t alignment) {
     const auto offset = (used + alignment - 1) & ~(alignment - 1);
     if (offset > MemorySize || bytes > MemorySize - offset) throw CalculatorError{"AGC allocation exceeds arena"};
     used = offset + bytes;
     return memory + offset;
 }
 
-Shader* Background::createShader(const ShaderAsset& asset) {
+Shader* Renderer::createShader(const ShaderAsset& asset) {
     auto* header = allocate(asset.Header.size(), 8);
     auto* code = allocate(asset.Code.size(), 256);
     memcpy_nid_postfix(header, asset.Header.data(), asset.Header.size());
@@ -88,7 +92,7 @@ Shader* Background::createShader(const ShaderAsset& asset) {
     return shader;
 }
 
-void Background::createTarget() {
+void Renderer::createPipeline(ShaderRegister* context, std::uint32_t& contextCount, ShaderRegister* primitive, Shader* vertex, Shader* fragment) {
     const auto* defaults = sceAgcGetRegisterDefaults();
     if (!defaults) throw CalculatorError{"AGC register defaults are missing"};
     const auto* table = read<const ShaderRegister* const*>(defaults, 0);
@@ -107,14 +111,13 @@ void Background::createTarget() {
         if (target[i].offset != offsets[i]) throw CalculatorError{"Unexpected AGC color register layout"};
         context[contextCount++] = target[i];
     }
-    const auto address = reinterpret_cast<std::uintptr_t>(pixels.data());
-    context[0].value = static_cast<std::uint32_t>(address >> 8);
+    context[0].value = 0;
     context[1].value &= 0xfc001fffu;
     context[2].value = (context[2].value & ~0x1005df7cu) | 0x8828u;
     context[3].value &= ~0x1f000u;
     context[4].value = (context[4].value & ~0x18026cu) | 0x48u;
     context[5].value = context[6].value = context[9].value = 0;
-    context[10].value = (context[10].value & ~0xffu) | static_cast<std::uint32_t>(address >> 40);
+    context[10].value = context[10].value & ~0xffu;
     context[11].value &= ~0xffu;
     context[12].value &= ~0xffu;
     context[13].value &= ~0xffu;
@@ -149,8 +152,17 @@ void Background::createTarget() {
     for (const auto value : state) context[contextCount++] = value;
 }
 
-std::span<const std::uint32_t> Background::Draw(float seconds) {
+void Renderer::Draw(std::span<std::uint32_t> pixels, float seconds, const Canvas& canvas) {
     if (pending) throw CalculatorError{"Previous AGC submission is still pending"};
+    const auto address = reinterpret_cast<std::uintptr_t>(pixels.data());
+    if (pixels.size_bytes() != Canvas::StorageSize(width, height) || address % Alignment != 0 || address >> 48 != 0) throw CalculatorError{"Invalid AGC display target"};
+    for (auto* registers : {context, interfaceContext}) {
+        registers[0].value = static_cast<std::uint32_t>(address >> 8);
+        registers[10].value = (registers[10].value & ~0xffu) | static_cast<std::uint32_t>(address >> 40);
+    }
+    const auto draws = canvas.Commands();
+    if (draws.size() > Canvas::Capacity) throw CalculatorError{"Too many interface draws"};
+    memcpy_nid_postfix(interfaceCommands, draws.data(), draws.size_bytes());
     constants[0] = static_cast<float>(width);
     constants[1] = static_cast<float>(height);
     constants[2] = seconds;
@@ -162,16 +174,24 @@ std::span<const std::uint32_t> Background::Draw(float seconds) {
     sceAgcDcbSetCxRegistersIndirect(&buffer, context, contextCount);
     sceAgcDcbSetUcRegistersIndirect(&buffer, primitive, 3);
     for (const auto* shader : {vertex, fragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
-    const auto bind = [&](const ShaderAsset& asset, std::uint32_t base) {
+    const auto bind = [&](const ShaderAsset& asset, std::uint32_t base, const void* pushConstants) {
         for (std::uint32_t i = 0; i < asset.UserDataCount; ++i) {
-            const auto value = static_cast<int>(i) == asset.PushConstantSlot ? static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(constants)) : asset.UserData[i];
+            const auto value = static_cast<int>(i) == asset.PushConstantSlot ? static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(pushConstants)) : asset.UserData[i];
             sceAgcDcbSetShRegisterDirect(&buffer, {base + i, value});
         }
     };
-    bind(CalculatorShaders::Vertex, 0x8c);
-    bind(CalculatorShaders::Fragment, 0xc);
+    bind(CalculatorShaders::Vertex, 0x8c, constants);
+    bind(CalculatorShaders::Fragment, 0xc, constants);
     sceAgcDcbSetNumInstances(&buffer, 1);
     sceAgcDcbDrawIndexAuto(&buffer, 3, 0);
+    sceAgcDcbSetCxRegistersIndirect(&buffer, interfaceContext, interfaceContextCount);
+    sceAgcDcbSetUcRegistersIndirect(&buffer, interfacePrimitive, 3);
+    for (const auto* shader : {interfaceVertex, interfaceFragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
+    for (std::size_t i = 0; i < draws.size(); ++i) {
+        bind(CalculatorShaders::InterfaceVertex, 0x8c, interfaceCommands + i);
+        bind(CalculatorShaders::InterfaceFragment, 0xc, interfaceCommands + i);
+        sceAgcDcbDrawIndexAuto(&buffer, 6, 0);
+    }
     sceAgcCbReleaseMem(&buffer, 0x2d, 0x70f, 0, 0, reinterpret_cast<Label*>(fence), 2, 1, 0, 0, 3, 0);
     const Packet packet{commands, static_cast<std::uint32_t>(buffer.cursor_up - commands), 0, {}};
     std::atomic_thread_fence(std::memory_order_seq_cst);
@@ -183,5 +203,4 @@ std::span<const std::uint32_t> Background::Draw(float seconds) {
         check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
     }
     pending = false;
-    return pixels;
 }
