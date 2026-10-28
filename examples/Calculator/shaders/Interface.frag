@@ -15,7 +15,8 @@ void main() {
     if (scale > 0.0) {
         uvec2 cell = uvec2(floor(position / scale));
         if (cell.x >= 5u || cell.y >= 7u) discard;
-        uint row = drawing.glyph[cell.y / 4u] >> ((cell.y % 4u) * 5u);
+        uint packedRows = cell.y < 4u ? drawing.glyph.x : drawing.glyph.y;
+        uint row = packedRows >> ((cell.y % 4u) * 5u);
         if ((row & (1u << (4u - cell.x))) == 0u) discard;
     } else {
         float radius = drawing.parameters.x;
