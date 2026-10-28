@@ -16,8 +16,10 @@ PsbcShaderMetadata AgcComputeBuilder::ReadMetadata(const PsbcShaderOutput& compi
         std::memcpy(&value, bytes + offset, sizeof(value));
         return value;
     };
-    if (read(0x24) != 0x72646853u || read(0x28) != 0x00020007u || (read(0x2c) & 0xffffu) != 0x0904u || read(0x3c) != 0x24u || read(0x40) != 0) throw std::invalid_argument("AGC: incompatible compute container layout");
-    if (compiled.machine_code_size > compiled.size - 0x58 || !compiled.machine_code || std::memcmp(bytes + 0x58, compiled.machine_code, compiled.machine_code_size) != 0) throw std::invalid_argument("AGC: compute container and machine code disagree");
+    const auto headerSize = ((read(0x2c) >> 8) & 255u) * 4u;
+    if (headerSize < 0x24 || headerSize > compiled.size - 0x34) throw std::invalid_argument("AGC: invalid compute header size");
+    if (read(0x24) != 0x72646853u || read(0x28) != 0x00020007u || (read(0x2c) & 0xffu) != 4u || read(0x3c) != headerSize || read(0x40) != 0) throw std::invalid_argument("AGC: incompatible compute container layout");
+    if (compiled.machine_code_size > compiled.size - 0x34 - headerSize || !compiled.machine_code || std::memcmp(bytes + 0x34 + headerSize, compiled.machine_code, compiled.machine_code_size) != 0) throw std::invalid_argument("AGC: compute container and machine code disagree");
     auto metadata = compiled.metadata;
     if (metadata.shader_register_count || metadata.context_register_count || metadata.hardware_stage != PSBC_HW_STAGE_UNKNOWN) throw std::invalid_argument("AGC: unexpected compute metadata layout");
     const std::array<std::uint32_t, 3> threads{read(0x4c), read(0x50), read(0x54)};
