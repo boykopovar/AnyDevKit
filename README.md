@@ -8,7 +8,11 @@ SDK for developing cross-platform games and applications for PS5, Windows and Li
 
 ## Status
 
-[2D calculator](examples/Calculator) (compiled from source) with buttons, vibration feedback, and save data. Installs via ffpfsc and works (include two images when building).
+![anydevkit_3dcalc](https://gist.github.com/user-attachments/assets/64808b84-7edf-4598-a253-20efb1e1992e)
+
+[3D calculator](examples/Calculator) (compiled from source) with buttons, vibration feedback, save data and **[AGC shaders](examples/Calculator/shaders)** installs via ffpfsc and works (include two images when building). All rendering runs on GPU.
+
+Documentation and instructions will be added later.
 
 ## License
 
