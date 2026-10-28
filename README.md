@@ -8,7 +8,7 @@ SDK for developing cross-platform games and applications for PS5, Windows and Li
 
 ## Status
 
-Under development.
+[2D calculator](examples/Calculator) (compiled from source) with buttons, vibration feedback, and save data. Installs via ffpfsc and works (include two images when building).
 
 ## License
 
