@@ -1,0 +1,4 @@
+add_executable(CalculatorShaderBuilder src/Main.cpp)
+target_compile_features(CalculatorShaderBuilder PRIVATE cxx_std_20)
+set_target_properties(CalculatorShaderBuilder PROPERTIES CXX_EXTENSIONS OFF)
+target_link_libraries(CalculatorShaderBuilder PRIVATE AnyDevKit::ShaderCompiler)
