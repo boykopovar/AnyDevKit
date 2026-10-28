@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(AnyDevKit LANGUAGES C CXX)
+include(CTest)
 
 add_subdirectory(cmake/dependencies)
 
