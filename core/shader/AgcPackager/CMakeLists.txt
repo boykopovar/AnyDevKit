@@ -11,6 +11,7 @@ endforeach()
 
 add_library(AnyDevKitAgcPackager STATIC
     src/AgcPackager.cpp
+    src/Builder/AgcComputeBuilder.cpp
     src/Builder/AgcRegisterBuilder.cpp
     src/Builder/AgcResourceBuilder.cpp
     src/Builder/AgcSemanticBuilder.cpp

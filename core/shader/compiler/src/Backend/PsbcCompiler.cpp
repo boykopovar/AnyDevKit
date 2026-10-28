@@ -47,9 +47,9 @@ private:
 
 void PsbcCompiler::ValidateOptions(const PsbcCompileOptions& options) {
     if (options.target != PSBC_TARGET_PS5 || options.address32_hi != 2) throw std::invalid_argument("PSBC: AGC requires the PS5 target and address32_hi=2");
-    if (options.stage != PSBC_STAGE_VERTEX && options.stage != PSBC_STAGE_FRAGMENT && options.stage != PSBC_STAGE_GEOMETRY) throw std::invalid_argument("PSBC: unsupported AGC stage");
+    if (options.stage != PSBC_STAGE_VERTEX && options.stage != PSBC_STAGE_FRAGMENT && options.stage != PSBC_STAGE_GEOMETRY && options.stage != PSBC_STAGE_COMPUTE) throw std::invalid_argument("PSBC: unsupported AGC stage");
     if ((options.stage == PSBC_STAGE_VERTEX || options.stage == PSBC_STAGE_GEOMETRY) && !options.ngg) throw std::invalid_argument("PSBC: vertex AGC shaders require NGG");
-    if (options.stage == PSBC_STAGE_FRAGMENT && (options.ngg || options.vertex_attribute_count)) throw std::invalid_argument("PSBC: vertex-only options on a fragment shader");
+    if ((options.stage == PSBC_STAGE_FRAGMENT || options.stage == PSBC_STAGE_COMPUTE) && (options.ngg || options.vertex_attribute_count)) throw std::invalid_argument("PSBC: vertex-only options on a fragment shader");
     if (!options.entrypoint || std::strcmp(options.entrypoint, "main") != 0) throw std::invalid_argument("PSBC: GLSL entry point must be main");
     if (!options.force_indirect_push_constants || !options.static_descriptor_use) throw std::invalid_argument("PSBC: indirect push constants and static descriptor usage are required");
     if (options.primitive_type == 0 || options.primitive_type > 13 || (options.primitive_type > 6 && options.primitive_type < 10)) throw std::invalid_argument("PSBC: an explicit supported primitive topology is required");

@@ -27,7 +27,8 @@ void AgcMetadataValidator::Validate(const PsbcShaderOutput& compiled) {
     if (metadata.version != PSBC_SHADER_METADATA_VERSION || metadata.target != PSBC_TARGET_PS5) throw std::invalid_argument("AGC: incompatible PSBC metadata version or target");
     const bool vertex = (metadata.source_stage == PSBC_STAGE_VERTEX || metadata.source_stage == PSBC_STAGE_GEOMETRY) && metadata.hardware_stage == PSBC_HW_STAGE_NGG;
     const bool fragment = metadata.source_stage == PSBC_STAGE_FRAGMENT && metadata.hardware_stage == PSBC_HW_STAGE_PIXEL;
-    if (!vertex && !fragment) throw std::invalid_argument("AGC: invalid hardware stage for the source stage");
+    const bool compute = metadata.source_stage == PSBC_STAGE_COMPUTE && metadata.hardware_stage == PSBC_HW_STAGE_UNKNOWN;
+    if (!vertex && !fragment && !compute) throw std::invalid_argument("AGC: invalid hardware stage for the source stage");
     const std::uint32_t permitted = PSBC_UNRESOLVED_PROGRAM_CHECKSUM | (vertex ? static_cast<std::uint32_t>(PSBC_UNRESOLVED_NGG_ESGS_RING_ITEMSIZE) : 0u);
     if (metadata.unresolved_fields & ~permitted) throw std::invalid_argument("AGC: unresolved compiler metadata");
     if (metadata.scratch_valid || metadata.scratch_bytes_per_wave || metadata.scratch_size_per_thread || metadata.scratch_buffer_table_user_data_dword) throw std::invalid_argument("AGC: scratch storage is unsupported");
@@ -57,7 +58,7 @@ void AgcMetadataValidator::Validate(const PsbcShaderOutput& compiled) {
     } else if (metadata.linkage_ge_pc_alloc.offset || metadata.linkage_ge_pc_alloc.padding || metadata.linkage_ge_pc_alloc.value) {
         throw std::invalid_argument("AGC: undeclared parameter-cache allocation register");
     }
-    if (metadata.context_register_count == 0 || metadata.context_register_count > PSBC_MAX_CONTEXT_REGISTERS || metadata.shader_register_count == 0 || metadata.shader_register_count > PSBC_MAX_SHADER_REGISTERS || metadata.input_semantic_count > PSBC_MAX_SEMANTICS || metadata.output_semantic_count > PSBC_MAX_SEMANTICS || metadata.descriptor_binding_count > PSBC_MAX_DESCRIPTOR_BINDINGS) throw std::invalid_argument("AGC: invalid metadata table count");
+    if ((!compute && metadata.context_register_count == 0) || metadata.context_register_count > PSBC_MAX_CONTEXT_REGISTERS || metadata.shader_register_count == 0 || metadata.shader_register_count > PSBC_MAX_SHADER_REGISTERS || metadata.input_semantic_count > PSBC_MAX_SEMANTICS || metadata.output_semantic_count > PSBC_MAX_SEMANTICS || metadata.descriptor_binding_count > PSBC_MAX_DESCRIPTOR_BINDINGS) throw std::invalid_argument("AGC: invalid metadata table count");
 }
 
 }

@@ -8,7 +8,7 @@
 namespace AnyDevKit {
 
 PsbcCompileOptions ShaderCompiler::CreateOptions(PsbcStage stage) {
-    if (stage != PSBC_STAGE_VERTEX && stage != PSBC_STAGE_FRAGMENT && stage != PSBC_STAGE_GEOMETRY) throw std::invalid_argument("Compiler: unsupported AGC stage");
+    if (stage != PSBC_STAGE_VERTEX && stage != PSBC_STAGE_FRAGMENT && stage != PSBC_STAGE_GEOMETRY && stage != PSBC_STAGE_COMPUTE) throw std::invalid_argument("Compiler: unsupported AGC stage");
     PsbcCompileOptions options{};
     options.target = PSBC_TARGET_PS5;
     options.stage = stage;
