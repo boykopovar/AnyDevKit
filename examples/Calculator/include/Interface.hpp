@@ -16,7 +16,6 @@ public:
     int VibrationDuration() const;
     int LowFrequencyStrength() const;
     int HighFrequencyStrength() const;
-    bool NeedsDraw() const;
     void Draw(Canvas& canvas);
 
 private:
@@ -32,7 +31,6 @@ private:
     bool editingSlider = false;
     int pressed = -1;
     int pressedFrames = 0;
-    bool dirty = true;
 };
 
 #endif

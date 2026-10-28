@@ -57,7 +57,6 @@ void Interface::Navigate(int horizontal, int vertical) {
         selected = 20 + std::clamp(selected / 4 - 2, 0, 2);
         editingSlider = false;
     } else selected = (selected / 4 + vertical + 5) % 5 * 4 + (selected % 4 + horizontal + 4) % 4;
-    dirty = true;
 }
 
 void Interface::Press(CalculatorKey key) {
@@ -71,31 +70,24 @@ void Interface::Press(CalculatorKey key) {
     }
     pressed = static_cast<int>(key);
     pressedFrames = 7;
-    dirty = true;
 }
 
 void Interface::Activate() {
     if (selected < 20) Press(static_cast<CalculatorKey>(selected));
     else {
         editingSlider = !editingSlider;
-        dirty = true;
     }
 }
 
 int Interface::VibrationDuration() const { return state.Vibration[0]; }
 int Interface::LowFrequencyStrength() const { return state.Vibration[1]; }
 int Interface::HighFrequencyStrength() const { return state.Vibration[2]; }
-bool Interface::NeedsDraw() const { return dirty; }
 
 void Interface::Tick() {
-    if (pressedFrames > 0 && --pressedFrames == 0) { pressed = -1; dirty = true; }
+    if (pressedFrames > 0 && --pressedFrames == 0) pressed = -1;
 }
 
 void Interface::Draw(Canvas& canvas) {
-    for (int y = 0; y < height; ++y) {
-        const auto shade = static_cast<std::uint32_t>(y * 9 / height);
-        canvas.Rectangle(0, y, width, 1, 0xff0b1420 + shade * 0x010101);
-    }
     const int margin = width / 20;
     const int panelWidth = width * 40 / 100;
     canvas.RoundedRectangle(margin, height * 16 / 100, panelWidth, height * 40 / 100, 24, 0xff192a38);
@@ -141,5 +133,4 @@ void Interface::Draw(Canvas& canvas) {
     }
     canvas.Text(margin, height * 92 / 100, selected >= 20 ? (editingSlider ? "LEFT / RIGHT: ADJUST   X / ENTER: DONE   UP / DOWN: NEXT SLIDER" : "UP / DOWN: SLIDER   X / ENTER: EDIT   RIGHT: BACK TO KEYPAD") : "DPAD / ARROWS: MOVE   LEFT EDGE: SLIDERS   X / ENTER: SELECT", 2, Muted);
     canvas.Text(margin, height * 96 / 100, "TRIANGLE / I: CLEAR   SQUARE: EQUALS   F11: FULLSCREEN ON WINDOWS", 2, Muted);
-    dirty = false;
 }

@@ -1,9 +1,10 @@
 #include "Display.hpp"
+#include "Graphics/Background.hpp"
 #include "Input.hpp"
 #include "Interface.hpp"
 #include "CalculatorError.hpp"
 #include "prx/libc/include/Api.hpp"
-#include "prx/libkernel/include/Api.hpp"
+#include "prx/libkernel/libkernel.hpp"
 
 #include <cstdint>
 
@@ -24,14 +25,16 @@ int main() {
         Settings settings(input.UserId());
         Interface interface(Width, Height, settings);
         Display display(Width, Height);
+        Background background(Width, Height);
+        const auto start = sceKernelGetProcessTime();
         for (;;) {
             interface.Tick();
             input.Poll(interface);
-            if (interface.NeedsDraw()) {
-                auto canvas = display.BackBuffer();
-                interface.Draw(canvas);
-                display.Present();
-            } else display.Wait();
+            const auto seconds = static_cast<float>(sceKernelGetProcessTime() - start) / 1000000.0f;
+            display.SetBackground(background.Draw(seconds));
+            auto canvas = display.BackBuffer();
+            interface.Draw(canvas);
+            display.Present();
         }
     } catch (const CalculatorError& error) {
         char message[256];

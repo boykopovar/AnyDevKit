@@ -11,6 +11,7 @@ public:
     Display(const Display&) = delete;
     Display& operator=(const Display&) = delete;
     Canvas BackBuffer();
+    void SetBackground(std::span<const std::uint32_t> pixels);
     void Present();
     void Wait();
 

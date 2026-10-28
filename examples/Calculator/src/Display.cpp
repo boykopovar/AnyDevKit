@@ -48,6 +48,10 @@ Display::Display(int width, int height) : width(width), height(height) {
 
 Display::~Display() noexcept(false) { check(sceKernelMunmap(reinterpret_cast<std::uintptr_t>(frame.data()), frame.size_bytes()), "sceKernelMunmap"); }
 Canvas Display::BackBuffer() { return Canvas(frame, width, height); }
+void Display::SetBackground(std::span<const std::uint32_t> pixels) {
+    if (pixels.size() != frame.size()) throw CalculatorError{"Background extent differs from display"};
+    memcpy_nid_postfix(frame.data(), pixels.data(), frame.size_bytes());
+}
 void Display::Wait() { check(sceVideoOutWaitVblank(handle), "sceVideoOutWaitVblank"); }
 
 void Display::Present() {
