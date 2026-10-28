@@ -29,11 +29,19 @@ std::vector<std::uint32_t> GlslCompiler::Compile(std::string_view source, std::s
     const auto stage = compileOptions.stage;
     if (source.empty() || source.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()) || source.find('\0') != std::string_view::npos) throw std::invalid_argument("GLSL: empty, oversized or null-containing source");
     if (sourceName.empty() || sourceName.find('\0') != std::string_view::npos) throw std::invalid_argument("GLSL: invalid source name");
-    if (stage != PSBC_STAGE_VERTEX && stage != PSBC_STAGE_FRAGMENT && stage != PSBC_STAGE_GEOMETRY && stage != PSBC_STAGE_COMPUTE) throw std::invalid_argument("GLSL: unsupported AGC stage");
+    EShLanguage language;
+    switch (stage) {
+        case PSBC_STAGE_VERTEX: language = EShLangVertex; break;
+        case PSBC_STAGE_FRAGMENT: language = EShLangFragment; break;
+        case PSBC_STAGE_COMPUTE: language = EShLangCompute; break;
+        case PSBC_STAGE_GEOMETRY: language = EShLangGeometry; break;
+        case PSBC_STAGE_TESS_CTRL: language = EShLangTessControl; break;
+        case PSBC_STAGE_TESS_EVAL: language = EShLangTessEvaluation; break;
+        default: throw std::invalid_argument("GLSL: unsupported AGC stage");
+    }
     static std::mutex mutex;
     const std::lock_guard lock(mutex);
     static const GlslangRuntime runtime;
-    const auto language = stage == PSBC_STAGE_VERTEX ? EShLangVertex : stage == PSBC_STAGE_GEOMETRY ? EShLangGeometry : stage == PSBC_STAGE_COMPUTE ? EShLangCompute : EShLangFragment;
     glslang::TShader shader(language);
     const auto* text = source.data();
     const auto length = static_cast<int>(source.size());

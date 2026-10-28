@@ -35,6 +35,7 @@ void writeRegister(AgcBinaryWriter& writer, std::size_t offset, const PsbcRegist
 }
 
 void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWriter& writer) {
+    const bool hull = metadata.hardware_stage == PSBC_HW_STAGE_HULL;
     const bool compute = metadata.source_stage == PSBC_STAGE_COMPUTE;
     if ((!compute && !metadata.context_register_count) || metadata.context_register_count > PSBC_MAX_CONTEXT_REGISTERS || !metadata.shader_register_count || metadata.shader_register_count > PSBC_MAX_SHADER_REGISTERS) throw std::invalid_argument("AGC: invalid register count");
     const std::span<const PsbcRegisterWrite> context(metadata.context_registers, metadata.context_register_count);
@@ -42,11 +43,11 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     validateRegisters(context);
     validateRegisters(shader);
     const bool vertex = metadata.hardware_stage == PSBC_HW_STAGE_NGG;
-    const auto programOffset = compute ? ShaderRegs::COMPUTE_PGM_LO : vertex ? ShaderRegs::SPI_SHADER_PGM_LO_ES : ShaderRegs::SPI_SHADER_PGM_LO_PS;
+    const auto programOffset = hull ? ShaderRegs::SPI_SHADER_PGM_LO_LS : compute ? ShaderRegs::COMPUTE_PGM_LO : vertex ? ShaderRegs::SPI_SHADER_PGM_LO_ES : ShaderRegs::SPI_SHADER_PGM_LO_PS;
     const auto& low = requireRegister(shader, programOffset);
     const auto& high = requireRegister(shader, programOffset + 1);
     if (&low + 1 != &high || low.value || high.value) throw std::invalid_argument("AGC: program registers must be adjacent and unrelocated");
-    const std::uint32_t resourceOffset = compute ? 0x212u : vertex ? 0x8au : 0xau;
+    const std::uint32_t resourceOffset = hull ? 0x10au : compute ? 0x212u : vertex ? 0x8au : 0xau;
     requireRegister(shader, resourceOffset);
     const auto& resources = requireRegister(shader, resourceOffset + 1);
     if (resources.value & 1u) throw std::invalid_argument("AGC: scratch-enabled shader registers are unsupported");
@@ -61,6 +62,8 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
             const auto onchip = requireRegister(context, ShaderRegs::VGT_GS_ONCHIP_CNTL).value;
             if ((onchip & 0x7ffu) != metadata.esgs_es_verts_per_subgroup || ((onchip >> 22) & 0x3ffu) != metadata.esgs_gs_inst_prims_per_subgroup || (requireRegister(context, ShaderRegs::GE_NGG_SUBGRP_CNTL).value & 0x1ffu) != metadata.esgs_prim_amp_factor) throw std::invalid_argument("AGC: NGG launch registers disagree with system metadata");
         }
+    } else if (hull) {
+        requireRegister(context, 0x2dbu);
     } else if (!compute) {
         for (const auto offset : std::array<std::uint32_t, 9>{0x1c4u, 0x1c5u, 0x1b3u, 0x1b4u, 0x1b6u, 0x1b8u, 0x203u, 0x8fu, 0x310u}) requireRegister(context, offset);
         for (const auto& entry : {metadata.linkage_ge_cntl, metadata.linkage_stages_en, metadata.linkage_user_vgpr_en}) {
@@ -79,7 +82,7 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     writer.WriteRelativePointer(offsetof(Shader, sh_registers), shaderOffset);
     writer.WriteUInt8(offsetof(Shader, num_cx_registers), static_cast<std::uint8_t>(context.size()));
     writer.WriteUInt8(offsetof(Shader, num_sh_registers), static_cast<std::uint8_t>(shader.size()));
-    if (vertex || compute) {
+    if (vertex || compute || hull) {
         const auto specials = writer.Reserve(sizeof(ShaderSpecialRegs), alignof(ShaderSpecialRegs));
         if (compute) writer.WriteUInt32(specials + offsetof(ShaderSpecialRegs, dispatch_modifier), 0x8000u);
         writeRegister(writer, specials + offsetof(ShaderSpecialRegs, ge_cntl), metadata.linkage_ge_cntl);

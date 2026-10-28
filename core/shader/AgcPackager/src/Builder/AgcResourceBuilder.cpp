@@ -50,6 +50,8 @@ void AgcResourceBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     claim(metadata.draw_id_valid, metadata.draw_id_user_data_dword);
     claim(metadata.view_index_valid, metadata.view_index_user_data_dword);
     claim(metadata.ngg_lds_layout_valid, metadata.ngg_lds_layout_user_data_dword);
+    claim(metadata.ps5_ring_table_valid, metadata.ps5_ring_table_user_data_dword);
+    if (metadata.ps5_ring_table_valid) claim(true, metadata.ps5_ring_table_user_data_dword + 1);
     if (metadata.vertex_buffer_table_valid != (metadata.vertex_buffer_usage_mask != 0)) throw std::invalid_argument("AGC: inconsistent vertex buffer usage mask");
     if (!metadata.vertex_buffer_table_valid && metadata.vertex_buffer_per_attribute) throw std::invalid_argument("AGC: vertex attribute layout without a vertex buffer table");
     if ((metadata.start_instance_valid || metadata.draw_id_valid) && !metadata.base_vertex_valid) throw std::invalid_argument("AGC: incomplete draw-parameter block");
@@ -59,10 +61,10 @@ void AgcResourceBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
         throw std::invalid_argument("AGC: push constant size without a pointer");
     }
     if (!metadata.push_use_valid && (metadata.stage_push_dwords || metadata.previous_stage_push_dwords)) throw std::invalid_argument("AGC: push constant usage without a valid declaration");
-    if (metadata.previous_stage_push_dwords && !metadata.merged_geometry) throw std::invalid_argument("AGC: unexpected previous-stage push constant usage");
+    if (metadata.previous_stage_push_dwords && !metadata.merged_geometry && metadata.hardware_stage != PSBC_HW_STAGE_HULL) throw std::invalid_argument("AGC: unexpected previous-stage push constant usage");
     const auto pushDwords = (metadata.push_constant_size + 3u) / 4u;
     const auto pushMask = pushDwords == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << pushDwords) - 1;
-    if ((metadata.stage_push_dwords | metadata.previous_stage_push_dwords) & ~pushMask) throw std::invalid_argument("AGC: push constant usage exceeds its declared size");
+    if ((metadata.stage_push_dwords | metadata.previous_stage_push_dwords | metadata.hull_vertex_push_dwords | metadata.hull_control_push_dwords) & ~pushMask) throw std::invalid_argument("AGC: push constant usage exceeds its declared size");
     if (metadata.descriptor_set0_valid != metadata.descriptor_set_valid[0] || metadata.descriptor_set0_user_data_dword != metadata.descriptor_set_user_data_dword[0]) throw std::invalid_argument("AGC: descriptor set zero aliases disagree");
     std::array<std::uint64_t, PSBC_MAX_DESCRIPTOR_SETS> bindings{};
     for (std::uint32_t index = 0; index < metadata.descriptor_binding_count; ++index) {

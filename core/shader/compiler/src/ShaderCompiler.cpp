@@ -8,14 +8,14 @@
 namespace AnyDevKit {
 
 PsbcCompileOptions ShaderCompiler::CreateOptions(PsbcStage stage) {
-    if (stage != PSBC_STAGE_VERTEX && stage != PSBC_STAGE_FRAGMENT && stage != PSBC_STAGE_GEOMETRY && stage != PSBC_STAGE_COMPUTE) throw std::invalid_argument("Compiler: unsupported AGC stage");
+    if (stage != PSBC_STAGE_VERTEX && stage != PSBC_STAGE_FRAGMENT && stage != PSBC_STAGE_GEOMETRY && stage != PSBC_STAGE_COMPUTE && stage != PSBC_STAGE_TESS_CTRL && stage != PSBC_STAGE_TESS_EVAL) throw std::invalid_argument("Compiler: unsupported AGC stage");
     PsbcCompileOptions options{};
     options.target = PSBC_TARGET_PS5;
     options.stage = stage;
     options.entrypoint = "main";
     options.optimise = true;
-    options.ngg = stage == PSBC_STAGE_VERTEX || stage == PSBC_STAGE_GEOMETRY;
-    options.primitive_type = 4;
+    options.ngg = stage == PSBC_STAGE_VERTEX || stage == PSBC_STAGE_GEOMETRY || stage == PSBC_STAGE_TESS_EVAL;
+    options.primitive_type = stage == PSBC_STAGE_TESS_CTRL || stage == PSBC_STAGE_TESS_EVAL ? 0 : 4;
     options.address32_hi = 2;
     options.force_indirect_push_constants = true;
     options.static_descriptor_use = true;
@@ -38,6 +38,20 @@ AgcShaderPackage ShaderCompiler::CompileGeometry(const ShaderSource& vertex, con
     const auto vertexSpirv = GlslCompiler::Compile(vertex.Text, vertex.Name, vertexOptions, includeDirectories);
     const auto geometrySpirv = GlslCompiler::Compile(geometry.Text, geometry.Name, options, includeDirectories);
     return PsbcCompiler::CompileGeometry(vertexSpirv, geometrySpirv, options);
+}
+
+std::array<AgcShaderPackage, 2> ShaderCompiler::CompileTessellation(const ShaderSource& vertex, const ShaderSource& control, const ShaderSource& evaluation, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories) {
+    PsbcCompiler::ValidateOptions(options);
+    if (options.stage != PSBC_STAGE_TESS_CTRL) throw std::invalid_argument("Compiler: tessellation pipeline requires control options");
+    auto vertexOptions = options;
+    vertexOptions.stage = PSBC_STAGE_VERTEX;
+    auto evaluationOptions = options;
+    evaluationOptions.stage = PSBC_STAGE_TESS_EVAL;
+    evaluationOptions.ngg = true;
+    const auto vertexSpirv = GlslCompiler::Compile(vertex.Text, vertex.Name, vertexOptions, includeDirectories);
+    const auto controlSpirv = GlslCompiler::Compile(control.Text, control.Name, options, includeDirectories);
+    const auto evaluationSpirv = GlslCompiler::Compile(evaluation.Text, evaluation.Name, evaluationOptions, includeDirectories);
+    return PsbcCompiler::CompileTessellation(vertexSpirv, controlSpirv, evaluationSpirv, options);
 }
 
 AgcShaderPackage ShaderCompiler::CompileFile(const std::filesystem::path& sourcePath, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories) {

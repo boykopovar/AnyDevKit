@@ -33,7 +33,7 @@ AgcShaderPackage AgcPackager::Build(const PsbcShaderOutput& source) {
     writer.WriteUInt32(offsetof(Shader, version), ShaderRegs::SHADER_VERSION);
     writer.WriteUInt32(offsetof(Shader, shader_size), static_cast<std::uint32_t>(compiled.machine_code_size));
     writer.WriteUInt32(offsetof(Shader, target), 5);
-    const auto type = compiled.metadata.source_stage == PSBC_STAGE_COMPUTE ? ShaderRegs::ShaderBinaryType::Cs : compiled.metadata.hardware_stage == PSBC_HW_STAGE_NGG ? ShaderRegs::ShaderBinaryType::Gs : ShaderRegs::ShaderBinaryType::Ps;
+    const auto type = compiled.metadata.hardware_stage == PSBC_HW_STAGE_HULL ? ShaderRegs::ShaderBinaryType::Hs : compiled.metadata.source_stage == PSBC_STAGE_COMPUTE ? ShaderRegs::ShaderBinaryType::Cs : compiled.metadata.hardware_stage == PSBC_HW_STAGE_NGG ? ShaderRegs::ShaderBinaryType::Gs : ShaderRegs::ShaderBinaryType::Ps;
     writer.WriteUInt8(offsetof(Shader, type), static_cast<std::uint8_t>(type));
     AgcRegisterBuilder::Build(compiled.metadata, writer);
     AgcResourceBuilder::Build(compiled.metadata, writer);
