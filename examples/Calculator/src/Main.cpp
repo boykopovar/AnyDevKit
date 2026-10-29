@@ -1,6 +1,7 @@
 #include "prx/libkernel/Time/include/Time.hpp"
 #include "prx/libkernel/include/Api.hpp"
 #include "Display.hpp"
+#include "prx/libSceAgc/Misc/include/Suspend.hpp"
 #include "Graphics/Renderer.hpp"
 #include "Input.hpp"
 #include "Interface.hpp"
@@ -37,6 +38,7 @@ int main() {
             interface.Draw(canvas);
             renderer.Draw(display.Acquire(), seconds, canvas);
             display.Present();
+            check(sceAgcSuspendPoint(), "sceAgcSuspendPoint");
         }
     } catch (const CalculatorError& error) {
         char message[256];
