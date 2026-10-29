@@ -19,3 +19,6 @@
 [submodule "3rdparty/lodepng"]
 	path = 3rdparty/lodepng
 	url = https://github.com/lvandeve/lodepng.git
+[submodule "3rdparty/json"]
+	path = 3rdparty/json
+	url = https://github.com/nlohmann/json.git

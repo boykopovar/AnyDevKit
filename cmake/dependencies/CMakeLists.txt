@@ -9,3 +9,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/3rdparty/glslang" glslang)
 include(Psbc.cmake)
 include(NidPatcher.cmake)
 include(LodePng.cmake)
+
+set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+set(JSON_Install OFF CACHE BOOL "" FORCE)
+add_subdirectory("${PROJECT_SOURCE_DIR}/3rdparty/json" "${CMAKE_CURRENT_BINARY_DIR}/json" EXCLUDE_FROM_ALL)
