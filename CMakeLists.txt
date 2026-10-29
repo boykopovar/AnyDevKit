@@ -28,3 +28,8 @@ option(ANYDEVKIT_BUILD_EXAMPLES "Build examples" OFF)
 if(ANYDEVKIT_BUILD_EXAMPLES)
     add_subdirectory(examples/Calculator)
 endif()
+
+option(ANYDEVKIT_BUILD_CPP_STANDARD_LIBRARY "Build the PS5 standard library example" OFF)
+if(ANYDEVKIT_BUILD_CPP_STANDARD_LIBRARY)
+    add_subdirectory(examples/CppStandardLibrary)
+endif()
