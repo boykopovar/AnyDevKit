@@ -22,3 +22,6 @@
 [submodule "3rdparty/json"]
 	path = 3rdparty/json
 	url = https://github.com/nlohmann/json.git
+[submodule "3rdparty/ps5-nid-map"]
+	path = 3rdparty/ps5-nid-map
+	url = https://github.com/boykopovar/ps5-nid-map.git
