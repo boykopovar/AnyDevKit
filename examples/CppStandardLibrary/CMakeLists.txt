@@ -36,7 +36,7 @@ target_compile_definitions(CppStandardLibrary PRIVATE __NO_CTYPE __errno_locatio
 set_target_properties(CppStandardLibrary PROPERTIES CXX_EXTENSIONS OFF SUFFIX ".elf")
 target_include_directories(CppStandardLibrary PRIVATE include)
 target_include_directories(CppStandardLibrary SYSTEM PRIVATE "${runtimeRoot}/include/c++/v1")
-target_compile_options(CppStandardLibrary PRIVATE -nostdinc++ -fPIC -fno-stack-protector -fvisibility=hidden -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(CppStandardLibrary PRIVATE -nostdinc++ -fshort-wchar -fPIC -fno-stack-protector -fvisibility=hidden -Wall -Wextra -Wpedantic -Werror)
 target_link_options(CppStandardLibrary PRIVATE -nostdlib -fuse-ld=lld -shared "-Wl,--entry=main,--hash-style=sysv,--eh-frame-hdr,--no-undefined,-z,max-page-size=16384")
 target_link_libraries(CppStandardLibrary PRIVATE "${runtimeRoot}/lib/libc++.a" "${ANYDEVKIT_CPP_IMPORT_DIRECTORY}/libc.prx")
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTENT [=[

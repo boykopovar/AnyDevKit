@@ -3,19 +3,20 @@
 #include <cstdio>
 #include <exception>
 #include <cstring>
+#include <functional>
 
 int main(int argc, char** argv) {
     if (argc != 1 && (argc != 3 || std::strcmp(argv[1], "--report") != 0)) return 2;
     auto* report = argc == 3 ? std::fopen(argv[2], "w") : stdout;
     if (report == nullptr) return 2;
-    struct Check { const char* Name; void (*Run)(); };
+    struct Check { const char* Name; std::function<void()> Run; };
     const auto checks = std::to_array<Check>({
         {"containers", CheckContainers}, {"memory", CheckMemory},
         {"algorithms", CheckAlgorithms}, {"utilities", CheckUtilities},
         {"strings", CheckStrings}, {"numeric", CheckNumeric},
         {"exceptions", CheckExceptions}, {"coroutines", CheckCoroutines},
         {"atomics", CheckAtomics}, {"locale", CheckLocale},
-        {"streams", CheckStreams}, {"regex", CheckRegex},
+        {"streams", CheckStreams}, {"file streams", [&] { CheckFileStreams(argc == 3 ? argv[2] : nullptr); }}, {"regex", CheckRegex},
         {"formatting", CheckFormatting}, {"c compatibility", CheckCCompatibility}
     });
     unsigned failures = 0;

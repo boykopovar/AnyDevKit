@@ -26,6 +26,7 @@ void CheckCoroutines();
 void CheckAtomics();
 void CheckLocale();
 void CheckStreams();
+void CheckFileStreams(const char* path);
 void CheckRegex();
 void CheckFormatting();
 void CheckCCompatibility();
