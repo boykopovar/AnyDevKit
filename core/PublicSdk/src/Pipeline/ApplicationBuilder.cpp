@@ -22,12 +22,13 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     if (output == workspace || (!relative.empty() && *relative.begin() != "..")) throw std::invalid_argument("Package output must be outside workspace");
     const auto entries = PfsBuilder::ScanDirectory(options.App0);
     const std::set<std::string> generated{"eboot.bin", "sce_sys/param.json", "sce_sys/icon0.dds", "sce_sys/pic0.dds", "sce_sys/keystone", "sce_module/libc.prx"};
-    for (const auto& entry : entries) if (generated.contains(entry.Path)) throw std::invalid_argument("app0 already contains generated file: " + entry.Path);
+    for (const auto& entry : entries) if (generated.contains(entry.Path) && !(entry.Path == "sce_sys/param.json" && options.ParameterJson)) throw std::invalid_argument("app0 already contains generated file: " + entry.Path);
     std::array<std::byte, 32> passcode{};
     if (options.Format == PackageFormat::Pkg) passcode = options.Keys->Passcode;
     else passcode.fill(std::byte{'0'});
     const auto keystone = KeystoneBuilder::Build(passcode);
-    const auto param = ParamBuilder::Build(options.Parameters);
+    const auto generatedParam = ParamBuilder::Build(options.Parameters);
+    const auto& param = options.ParameterJson ? *options.ParameterJson : generatedParam;
     const auto iconPath = options.App0 / "sce_sys/icon0.png";
     const auto backgroundPath = options.App0 / "sce_sys/pic0.png";
     const bool generatedIcon = !std::filesystem::exists(iconPath);
@@ -48,6 +49,7 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     const auto app0 = workspace / "app0";
     std::filesystem::create_directory(app0);
     for (const auto& entry : entries) {
+        if (entry.Path == "sce_sys/param.json" && options.ParameterJson) continue;
         const auto destination = app0 / Files::Path(entry.Path);
         if (entry.Directory) std::filesystem::create_directories(destination);
         else {
@@ -70,6 +72,7 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     else {
         PkgOptions pkg;
         pkg.Parameters = options.Parameters;
+        pkg.ParameterJson = options.ParameterJson;
         pkg.Keys = *options.Keys;
         pkg.Timestamp = options.Pfs.Timestamp;
         PkgPackager::PackDirectory(app0, output, workspace / "package", pkg);

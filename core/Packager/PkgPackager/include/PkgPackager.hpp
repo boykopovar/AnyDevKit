@@ -8,6 +8,7 @@ namespace AnyDevKit {
 
 struct PkgOptions {
     ApplicationParameters Parameters;
+    std::optional<std::string> ParameterJson;
     Pkg::PackageKeys Keys;
     std::int64_t Timestamp = 0;
 };

@@ -1,11 +1,12 @@
 #ifndef ANYDEVKIT_PUBLICSDK_APPLICATION_HPP
 #define ANYDEVKIT_PUBLICSDK_APPLICATION_HPP
 #include <span>
+#include <filesystem>
 #include <string>
 namespace AnyDevKit::PublicSdk {
 class Application final {
 public:
-    static void Run(std::span<const std::string> arguments);
+    static void Run(std::span<const std::string> arguments, const std::filesystem::path& sdkRoot = {});
 };
 }
 #endif

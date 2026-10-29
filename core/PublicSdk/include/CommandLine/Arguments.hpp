@@ -14,6 +14,7 @@ public:
     std::vector<std::string> Many(const std::string& name);
     bool Flag(const std::string& name);
     void Finish() const;
+    void MergeDefaults(const std::map<std::string, std::vector<std::string>>& defaults);
     static std::uint64_t Number(const std::string& value);
     static std::uint32_t Number32(const std::string& value);
 private:

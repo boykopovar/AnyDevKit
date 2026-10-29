@@ -21,6 +21,7 @@ add_subdirectory(core/Packager/PkgPackager)
 add_subdirectory(core/Linker/Ps5ElfBuilder)
 add_subdirectory(core/Linker/LibcModuleBuilder)
 add_subdirectory(core/Linker/WindowsStartupBuilder)
+add_subdirectory(core/Linker/LinuxStartup)
 add_subdirectory(core/PublicSdk)
 include(cmake/WindowsExecutable.cmake)
 

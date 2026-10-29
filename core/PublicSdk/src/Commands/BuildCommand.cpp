@@ -15,7 +15,17 @@ void BuildCommand::Run(std::string_view command, Arguments& arguments) {
     if (format == "ffpfsc") options.Format = PackageFormat::Ffpfsc;
     else if (format == "pkg") options.Format = PackageFormat::Pkg;
     else throw std::invalid_argument("Supported package formats: ffpfsc, pkg");
-    options.Parameters = Options::Parameters(arguments);
+    const auto paramPath = arguments.Optional("param");
+    if (!paramPath.empty()) {
+        arguments.MergeDefaults({{"param", {paramPath}}});
+        const auto bytes = Files::Read(Files::Path(paramPath));
+        Arguments original(std::vector<std::string>{"--param", paramPath});
+        const auto parameters = Options::Parameters(original);
+        original.Finish();
+        options.Parameters = Options::Parameters(arguments);
+        if (ParamBuilder::Build(parameters) == ParamBuilder::Build(options.Parameters)) options.ParameterJson = std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        else options.ParameterJson = ParamBuilder::Build(options.Parameters);
+    } else options.Parameters = Options::Parameters(arguments);
     options.Imports = Options::Imports(arguments, options.InputElf);
     options.Elf = Options::Elf(arguments);
     options.Eboot = Options::Eboot(arguments);

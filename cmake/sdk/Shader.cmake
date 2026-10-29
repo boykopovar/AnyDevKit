@@ -1,0 +1,5 @@
+file(MAKE_DIRECTORY "${DIRECTORY}")
+foreach(name header.bin code.bin bindings.adk)
+    file(REMOVE "${DIRECTORY}/${name}")
+endforeach()
+execute_process(COMMAND "${ADK}" shader --input "${INPUT}" --stage "${STAGE}" --header "${DIRECTORY}/header.bin" --code "${DIRECTORY}/code.bin" --metadata "${DIRECTORY}/bindings.adk" ${OPTIONS} COMMAND_ERROR_IS_FATAL ANY)

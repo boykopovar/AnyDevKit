@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(@NAME@ LANGUAGES C CXX)
+find_package(AnyDevKit CONFIG REQUIRED)
+adk_add_executable(@NAME@ src/Main.cpp)
+adk_link_libraries(@NAME@ libc libkernel)

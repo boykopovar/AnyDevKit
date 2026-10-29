@@ -62,7 +62,8 @@ std::vector<std::byte> ChunkChecks(const std::filesystem::path& path, std::uint6
 void PkgPackager::PackDirectory(const std::filesystem::path& input, const std::filesystem::path& output, const std::filesystem::path& workspace, const PkgOptions& options) {
     using namespace Pkg;
     using Pfs::ImageWriter;
-    const auto parameterData = Bytes(ParamBuilder::Build(options.Parameters));
+    const auto generatedParam = ParamBuilder::Build(options.Parameters);
+    const auto parameterData = Bytes(options.ParameterJson ? *options.ParameterJson : generatedParam);
     if (options.Timestamp < 0) throw std::invalid_argument("Negative PKG timestamp");
     const auto root = std::filesystem::canonical(input);
     const auto destination = std::filesystem::weakly_canonical(output);

@@ -12,7 +12,10 @@ Arguments::Arguments(std::span<const std::string> arguments) {
         const auto& argument = arguments[i];
         if (!argument.starts_with("--") || argument.size() == 2) throw std::invalid_argument("Expected --option: " + argument);
         auto name = argument.substr(2);
-        if (flags.contains(name)) values[name].emplace_back("true");
+        if (flags.contains(name)) {
+            if (i + 1 < arguments.size() && (arguments[i + 1] == "true" || arguments[i + 1] == "false")) values[name].push_back(arguments[++i]);
+            else values[name].emplace_back("true");
+        }
         else {
             if (i + 1 == arguments.size() || arguments[i + 1].starts_with("--")) throw std::invalid_argument("Missing value for --" + name);
             values[name].push_back(arguments[++i]);
@@ -34,8 +37,12 @@ std::string Arguments::Optional(const std::string& name, const std::string& defa
 }
 bool Arguments::Flag(const std::string& name) {
     if (!values.contains(name)) return false;
-    if (Require(name) != "true") throw std::invalid_argument("Invalid flag --" + name);
-    return true;
+    const auto value = Require(name);
+    if (value != "true" && value != "false") throw std::invalid_argument("Invalid flag --" + name);
+    return value == "true";
+}
+void Arguments::MergeDefaults(const std::map<std::string, std::vector<std::string>>& defaults) {
+    for (const auto& [name, items] : defaults) if (!values.contains(name)) values.emplace(name, items);
 }
 void Arguments::Finish() const {
     if (!values.empty()) throw std::invalid_argument("Unexpected option --" + values.begin()->first);

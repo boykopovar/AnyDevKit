@@ -1,0 +1,6 @@
+#include <cstdio>
+#include <string>
+int main() {
+    const std::string message = "@NAME@";
+    return std::fprintf(stdout, "%s\n", message.c_str()) < 0 ? 1 : 0;
+}

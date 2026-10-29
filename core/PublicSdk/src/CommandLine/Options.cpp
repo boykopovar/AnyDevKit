@@ -1,10 +1,13 @@
 #include "CommandLine/Options.hpp"
 #include "IO/Files.hpp"
+#include "Project/Metadata.hpp"
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
 namespace AnyDevKit::PublicSdk {
 ApplicationParameters Options::Parameters(Arguments& arguments) {
+    const auto param = arguments.Optional("param");
+    if (!param.empty()) arguments.MergeDefaults(Metadata::Read(Files::Path(param)));
     ApplicationParameters result;
     result.TitleId = arguments.Require("title-id");
     result.ContentId = arguments.Require("content-id");

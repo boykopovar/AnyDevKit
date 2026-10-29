@@ -14,6 +14,7 @@ struct ApplicationBuildOptions {
     std::filesystem::path Workspace;
     PackageFormat Format = PackageFormat::Ffpfsc;
     ApplicationParameters Parameters;
+    std::optional<std::string> ParameterJson;
     ImportCatalog Imports;
     Ps5ElfOptions Elf;
     EbootPackageOptions Eboot;
