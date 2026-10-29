@@ -26,6 +26,7 @@ public:
 
 private:
     void clear();
+    void command(CalculatorKey key);
     void digit(char value);
     void operate(char operation);
     void evaluate();

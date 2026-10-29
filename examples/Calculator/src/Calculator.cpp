@@ -4,8 +4,47 @@
 
 #include <algorithm>
 #include <cmath>
+#include <span>
+#include <numeric>
+#include <type_traits>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace {
+
+struct Digit { char Value; };
+struct Operation { char Value; };
+using Action = std::variant<Digit, Operation, CalculatorKey>;
+
+consteval auto buildActions() {
+    std::vector<std::pair<CalculatorKey, Action>> definitions{
+        {CalculatorKey::Clear, CalculatorKey::Clear},
+        {CalculatorKey::Sign, CalculatorKey::Sign},
+        {CalculatorKey::Percent, CalculatorKey::Percent},
+        {CalculatorKey::Divide, Operation{'/'}},
+        {CalculatorKey::Multiply, Operation{'*'}},
+        {CalculatorKey::Subtract, Operation{'-'}},
+        {CalculatorKey::Add, Operation{'+'}},
+        {CalculatorKey::Backspace, CalculatorKey::Backspace},
+        {CalculatorKey::Decimal, CalculatorKey::Decimal},
+        {CalculatorKey::Equals, CalculatorKey::Equals}
+    };
+    constexpr auto digits = std::to_array<CalculatorKey>({CalculatorKey::Zero, CalculatorKey::One, CalculatorKey::Two, CalculatorKey::Three, CalculatorKey::Four, CalculatorKey::Five, CalculatorKey::Six, CalculatorKey::Seven, CalculatorKey::Eight, CalculatorKey::Nine});
+    for (std::size_t index = 0; index < digits.size(); ++index) definitions.emplace_back(digits[index], Digit{static_cast<char>('0' + index)});
+    std::array<std::size_t, static_cast<std::size_t>(CalculatorKey::Equals) + 1> order{};
+    std::iota(order.begin(), order.end(), std::size_t{0});
+    std::ranges::sort(order, {}, [&](std::size_t index) { return definitions[index].first; });
+    std::array<Action, static_cast<std::size_t>(CalculatorKey::Equals) + 1> actions{};
+    if (definitions.size() != actions.size()) throw "Incomplete calculator actions";
+    for (std::size_t index = 0; index < actions.size(); ++index) {
+        if (static_cast<std::size_t>(definitions[order[index]].first) != index) throw "Invalid calculator action ordering";
+        actions[index] = definitions[order[index]].second;
+    }
+    return actions;
+}
+
+constexpr auto Actions = buildActions();
 
 template<std::size_t TSize, typename... TArguments>
 void format(std::array<char, TSize>& destination, const char* pattern, TArguments... arguments) {
@@ -25,7 +64,7 @@ void Calculator::RestoreHistory(const CalculatorHistory& saved) {
     if (saved.Count > saved.Entries.size()) throw CalculatorError{"Invalid saved history count"};
     for (std::size_t i = 0; i < saved.Count; ++i) {
         const auto& text = saved.Entries[i];
-        if (text[0] == 0 || std::find(text.begin(), text.end(), 0) == text.end()) throw CalculatorError{"Invalid saved history text"};
+        if (text[0] == 0 || std::ranges::find(text, 0) == text.end()) throw CalculatorError{"Invalid saved history text"};
     }
     history = saved.Entries;
     historyCount = saved.Count;
@@ -85,7 +124,7 @@ void Calculator::updateExpression() {
 }
 
 void Calculator::addHistory(double left, char operation, double right) {
-    for (std::size_t index = history.size() - 1; index != 0; --index) history[index] = history[index - 1];
+    std::ranges::rotate(history, history.end() - 1);
     format(history[0], "%.12G %c %.12G = %s", left, operation, right, entry.data());
     historyCount = std::min(historyCount + 1, history.size());
 }
@@ -133,61 +172,60 @@ void Calculator::evaluate() {
 void Calculator::Press(CalculatorKey key) {
     if (error) clear();
     try {
-        switch (key) {
-        case CalculatorKey::Clear: clear(); break;
-        case CalculatorKey::Zero: digit('0'); break;
-        case CalculatorKey::One: digit('1'); break;
-        case CalculatorKey::Two: digit('2'); break;
-        case CalculatorKey::Three: digit('3'); break;
-        case CalculatorKey::Four: digit('4'); break;
-        case CalculatorKey::Five: digit('5'); break;
-        case CalculatorKey::Six: digit('6'); break;
-        case CalculatorKey::Seven: digit('7'); break;
-        case CalculatorKey::Eight: digit('8'); break;
-        case CalculatorKey::Nine: digit('9'); break;
-        case CalculatorKey::Add: operate('+'); break;
-        case CalculatorKey::Subtract: operate('-'); break;
-        case CalculatorKey::Multiply: operate('*'); break;
-        case CalculatorKey::Divide: operate('/'); break;
-        case CalculatorKey::Equals: evaluate(); break;
-        case CalculatorKey::Decimal:
-            if (completed) clear();
-            if (awaitingOperand) { entry.fill(0); entry[0] = '0'; awaitingOperand = false; }
-            if (Display().find('.') == std::string_view::npos && Display().find('E') == std::string_view::npos) {
-                const auto length = Display().size();
-                if (length + 1 >= entry.size()) throw CalculatorError{"NUMBER TOO LARGE"};
-                entry[length] = '.';
-                entry[length + 1] = 0;
-            }
-            break;
-        case CalculatorKey::Backspace:
-            if (completed || awaitingOperand) { entry.fill(0); entry[0] = '0'; completed = false; awaitingOperand = false; }
-            else if (Display().find('E') != std::string_view::npos) throw CalculatorError{"PRESS AC TO CLEAR"};
-            else {
-                entry[Display().size() - 1] = 0;
-                if (Display().empty() || Display() == "-") { entry.fill(0); entry[0] = '0'; }
-            }
-            break;
-        case CalculatorKey::Sign:
-            if (Display().front() == '-') std::move(entry.begin() + 1, entry.end(), entry.begin());
-            else {
-                const auto length = Display().size();
-                if (length + 1 >= entry.size()) throw CalculatorError{"NUMBER TOO LARGE"};
-                std::move_backward(entry.begin(), entry.begin() + length + 1, entry.begin() + length + 2);
-                entry[0] = '-';
-            }
-            awaitingOperand = false;
-            if (completed) accumulator = value();
-            break;
-        case CalculatorKey::Percent:
-            setValue((pending == '+' || pending == '-') ? accumulator * value() / 100 : value() / 100);
-            awaitingOperand = false;
-            if (completed) accumulator = value();
-            break;
-        }
+        const auto index = static_cast<std::size_t>(key);
+        const std::span<const Action> actions = Actions;
+        if (index >= actions.size()) throw CalculatorError{"Invalid calculator key"};
+        std::visit([this](const auto& action) {
+            using TAction = std::remove_cvref_t<decltype(action)>;
+            if constexpr (std::is_same_v<TAction, Digit>) digit(action.Value);
+            else if constexpr (std::is_same_v<TAction, Operation>) operate(action.Value);
+            else command(action);
+        }, actions[index]);
     } catch (const CalculatorError& failure) {
         clear();
         error = true;
         format(entry, "%s", failure.Message);
+    }
+}
+
+void Calculator::command(CalculatorKey key) {
+    switch (key) {
+    case CalculatorKey::Clear: clear(); break;
+    case CalculatorKey::Equals: evaluate(); break;
+    case CalculatorKey::Decimal:
+        if (completed) clear();
+        if (awaitingOperand) { entry.fill(0); entry[0] = '0'; awaitingOperand = false; }
+        if (Display().find('.') == std::string_view::npos && Display().find('E') == std::string_view::npos) {
+            const auto length = Display().size();
+            if (length + 1 >= entry.size()) throw CalculatorError{"NUMBER TOO LARGE"};
+            entry[length] = '.';
+            entry[length + 1] = 0;
+        }
+        break;
+    case CalculatorKey::Backspace:
+        if (completed || awaitingOperand) { entry.fill(0); entry[0] = '0'; completed = false; awaitingOperand = false; }
+        else if (Display().find('E') != std::string_view::npos) throw CalculatorError{"PRESS AC TO CLEAR"};
+        else {
+            entry[Display().size() - 1] = 0;
+            if (Display().empty() || Display() == "-") { entry.fill(0); entry[0] = '0'; }
+        }
+        break;
+    case CalculatorKey::Sign:
+        if (Display().front() == '-') std::move(entry.begin() + 1, entry.end(), entry.begin());
+        else {
+            const auto length = Display().size();
+            if (length + 1 >= entry.size()) throw CalculatorError{"NUMBER TOO LARGE"};
+            std::move_backward(entry.begin(), entry.begin() + length + 1, entry.begin() + length + 2);
+            entry[0] = '-';
+        }
+        awaitingOperand = false;
+        if (completed) accumulator = value();
+        break;
+    case CalculatorKey::Percent:
+        setValue((pending == '+' || pending == '-') ? accumulator * value() / 100 : value() / 100);
+        awaitingOperand = false;
+        if (completed) accumulator = value();
+        break;
+    default: throw CalculatorError{"Invalid calculator command"};
     }
 }
