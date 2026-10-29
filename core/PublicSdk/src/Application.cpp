@@ -16,7 +16,8 @@ void Application::Run(std::span<const std::string> arguments) {
 build --input linked.elf --app0 directory --output file --workspace new-directory
       --format ffpfsc|pkg <metadata> <elf> [self] [pfs or pkg keys]
   Post-link processing only. The ELF entry must point to application main.
-  Requires app0/sce_sys/icon0.png (512x512) and pic0.png (3840x2160).
+  Optional app0/sce_sys/icon0.png (512x512); generated when absent.
+  Optional app0/sce_sys/pic0.png (3840x2160); omitted when absent.
   Produces PS5 ELF, fake-signed SELF, param.json, BC7 DDS and the archive.
   Prepared app0 and application.elf remain in workspace. No compiler is launched.
   app0 must not already contain eboot.bin, param.json, icon0.dds, pic0.dds or keystone.

@@ -2,6 +2,8 @@
 #include "IO/Files.hpp"
 #include "FfpfscPackager.hpp"
 #include "IconBuilder.hpp"
+#include "DefaultIconGenerator.hpp"
+#include <optional>
 #include "KeystoneBuilder.hpp"
 #include "LibcModuleBuilder.hpp"
 #include <set>
@@ -26,16 +28,22 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     else passcode.fill(std::byte{'0'});
     const auto keystone = KeystoneBuilder::Build(passcode);
     const auto param = ParamBuilder::Build(options.Parameters);
-    const auto icon = IconBuilder::ReadPng(options.App0 / "sce_sys/icon0.png");
-    const auto background = IconBuilder::ReadPng(options.App0 / "sce_sys/pic0.png");
+    const auto iconPath = options.App0 / "sce_sys/icon0.png";
+    const auto backgroundPath = options.App0 / "sce_sys/pic0.png";
+    const bool generatedIcon = !std::filesystem::exists(iconPath);
+    const auto icon = generatedIcon ? DefaultIconGenerator::Generate() : IconBuilder::ReadPng(iconPath);
+    std::optional<std::vector<std::byte>> backgroundDds;
+    if (std::filesystem::exists(backgroundPath)) {
+        const auto background = IconBuilder::ReadPng(backgroundPath);
+        if (background.Width != 3840 || background.Height != 2160) throw std::invalid_argument("pic0.png must be 3840x2160");
+        backgroundDds = IconBuilder::EncodeDds(background);
+    }
     if (icon.Width != 512 || icon.Height != 512) throw std::invalid_argument("icon0.png must be 512x512");
-    if (background.Width != 3840 || background.Height != 2160) throw std::invalid_argument("pic0.png must be 3840x2160");
     const auto elf = Ps5ElfBuilder::Build(Files::Read(options.InputElf), options.Imports, options.Elf);
     const auto eboot = EbootPackager::Build(elf, options.Eboot);
     const auto libcElf = LibcModuleBuilder::Build(options.Imports, options.Elf);
     const auto libc = EbootPackager::Build(libcElf, options.Eboot);
     const auto iconDds = IconBuilder::EncodeDds(icon);
-    const auto backgroundDds = IconBuilder::EncodeDds(background);
     if (!std::filesystem::create_directory(workspace)) throw std::invalid_argument("Workspace must be new");
     const auto app0 = workspace / "app0";
     std::filesystem::create_directory(app0);
@@ -52,10 +60,12 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     std::filesystem::create_directories(app0 / "sce_module");
     Files::Write(app0 / "sce_module/libc.prx", libc);
     Files::Write(workspace / "libc.elf", libcElf);
+    std::filesystem::create_directories(app0 / "sce_sys");
+    if (generatedIcon) IconBuilder::WritePng(app0 / "sce_sys/icon0.png", icon);
     Files::Write(app0 / "sce_sys/keystone", keystone);
     Files::Write(app0 / "sce_sys/param.json", std::as_bytes(std::span(param)));
     Files::Write(app0 / "sce_sys/icon0.dds", iconDds);
-    Files::Write(app0 / "sce_sys/pic0.dds", backgroundDds);
+    if (backgroundDds) Files::Write(app0 / "sce_sys/pic0.dds", *backgroundDds);
     if (options.Format == PackageFormat::Ffpfsc) FfpfscPackager::PackDirectory(app0, output, workspace / "package", options.Pfs);
     else {
         PkgOptions pkg;
