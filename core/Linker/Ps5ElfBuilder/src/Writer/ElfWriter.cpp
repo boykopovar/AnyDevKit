@@ -86,6 +86,9 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     auto plt = image.Relocations(23, 2);
     validateRelocations(image, symbols, relocations);
     validateRelocations(image, symbols, plt);
+    const auto importedEnd = std::stable_partition(plt.begin(), plt.end(), [](const auto& relocation) { return static_cast<std::uint32_t>(relocation.Info) == 7; });
+    relocations.insert(relocations.end(), importedEnd, plt.end());
+    plt.erase(importedEnd, plt.end());
     std::uint64_t end = 0;
     for (const auto& segment : image.Segments()) if (segment.Type == 1) end = std::max(end, BinaryWriter::Add(segment.Address, segment.MemorySize));
     const auto codeAddress = BinaryWriter::Align(end, 0x4000);
