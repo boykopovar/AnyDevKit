@@ -39,3 +39,6 @@ target_include_directories(CppStandardLibrary SYSTEM PRIVATE "${runtimeRoot}/inc
 target_compile_options(CppStandardLibrary PRIVATE -nostdinc++ -fPIC -fno-stack-protector -fvisibility=hidden -Wall -Wextra -Wpedantic -Werror)
 target_link_options(CppStandardLibrary PRIVATE -nostdlib -fuse-ld=lld -shared "-Wl,--entry=main,--hash-style=sysv,--eh-frame-hdr,--no-undefined,-z,max-page-size=16384")
 target_link_libraries(CppStandardLibrary PRIVATE "${runtimeRoot}/lib/libc++.a" "${ANYDEVKIT_CPP_IMPORT_DIRECTORY}/libc.prx")
+file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTENT [=[
+{"titleId":"FAKE26102","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit C++ Standard Library"}}}
+]=])
