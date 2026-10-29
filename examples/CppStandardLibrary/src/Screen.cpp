@@ -1,4 +1,7 @@
 #include "Screen.hpp"
+#include "CalculatorError.hpp"
+#include "prx/libkernel/include/Api.hpp"
+#include <cstring>
 #include <algorithm>
 #include <stdexcept>
 
@@ -51,7 +54,18 @@ void render(std::span<std::uint32_t> pixels, std::span<const DrawCommand> comman
 
 }
 
-Screen::Screen() : display(Width, Height), canvas(Width, Height) { draw(); }
+Screen::Screen() : display(Width, Height), canvas(Width, Height) {
+    void* storage = nullptr;
+    const auto capacity = Canvas::StorageSize(Width, Height);
+    const auto result = sceKernelMapFlexibleMemory(&storage, capacity, 3, 0);
+    if (result < 0) throw CalculatorError{"sceKernelMapFlexibleMemory", result};
+    frame = std::span(static_cast<std::uint32_t*>(storage), capacity / sizeof(std::uint32_t));
+}
+
+Screen::~Screen() noexcept(false) {
+    const auto result = sceKernelMunmap(reinterpret_cast<std::uintptr_t>(frame.data()), frame.size_bytes());
+    if (result < 0) throw CalculatorError{"sceKernelMunmap", result};
+}
 
 void Screen::Begin(std::size_t index, std::string_view name) {
     rows.at(index) = {visible(name), "RUNNING"};
@@ -91,7 +105,9 @@ void Screen::draw() {
     }
     canvas.Text(120, 908, detail, 3, Red);
     canvas.Text(120, 994, "CLOSE THIS APPLICATION FROM THE SYSTEM MENU", 3, 0xff9caec2);
-    render(display.Acquire(), canvas.Commands());
+    render(frame, canvas.Commands());
+    const auto target = display.Acquire();
+    std::memcpy(target.data(), frame.data(), frame.size_bytes());
     display.Present();
 }
 

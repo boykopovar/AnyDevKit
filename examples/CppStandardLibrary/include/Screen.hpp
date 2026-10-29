@@ -9,6 +9,9 @@
 class Screen final {
 public:
     Screen();
+    ~Screen() noexcept(false);
+    Screen(const Screen&) = delete;
+    Screen& operator=(const Screen&) = delete;
     void Begin(std::size_t index, std::string_view name);
     void Finish(std::size_t index, bool passed, std::string_view detail);
     void Complete(unsigned failures);
@@ -20,6 +23,7 @@ private:
     void draw();
     Display display;
     Canvas canvas;
+    std::span<std::uint32_t> frame;
     std::array<Row, 15> rows;
     std::string summary = "STARTING CHECKS";
     std::string detail;
