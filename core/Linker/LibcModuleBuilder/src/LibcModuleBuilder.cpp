@@ -14,7 +14,7 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
     using Ps5::BinaryWriter;
     if (options.SdkVersion == 0 || options.CompanionSdkVersion == 0) throw std::invalid_argument("Libc module requires SDK versions");
     const auto allocator = imports.Resolve("_malloc_init");
-    if (allocator.Module != "libSceLibcInternal" || allocator.FileName != "libSceLibcInternal.sprx" || allocator.Type != 2) throw std::invalid_argument("Libc initialization requires the system allocator");
+    if (allocator.Module != "libSceLibcInternal" || allocator.FileName != "libSceLibcInternal.sprx") throw std::invalid_argument("Libc initialization requires the system allocator");
     constexpr std::uint64_t codeAddress = 0x10;
     constexpr std::uint64_t dataAddress = 0x4000;
     constexpr std::uint64_t writableAddress = 0x8000;

@@ -13,3 +13,5 @@ include(LodePng.cmake)
 set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
 set(JSON_Install OFF CACHE BOOL "" FORCE)
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rdparty/json" "${CMAKE_CURRENT_BINARY_DIR}/json" EXCLUDE_FROM_ALL)
+
+add_subdirectory("${PROJECT_SOURCE_DIR}/3rdparty/ps5-nid-map" "${CMAKE_CURRENT_BINARY_DIR}/ps5-nid-map" EXCLUDE_FROM_ALL)

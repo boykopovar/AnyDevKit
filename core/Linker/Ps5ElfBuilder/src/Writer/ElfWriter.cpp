@@ -131,7 +131,8 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         auto& symbol = symbols[i];
         if (symbol.Section != 0) continue;
         const auto imported = imports.Resolve(symbol.Name);
-        if ((symbol.Info & 15) != 0 && (symbol.Info & 15) != imported.Type) throw std::invalid_argument("PS5 import type mismatch: " + symbol.Name);
+        const auto type = symbol.Info & 15;
+        if (type != 1 && type != 2 && type != 6) throw std::invalid_argument("Missing or unsupported input ELF import type: " + symbol.Name);
         if (!moduleIds.contains(imported.Module)) {
             if (moduleIds.size() >= 65535) throw std::length_error("Too many PS5 import modules");
             moduleIds.emplace(imported.Module, static_cast<std::uint16_t>(moduleIds.size() + 1));
@@ -148,7 +149,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
             throw std::invalid_argument("Conflicting PS5 library versions");
         }
         symbol.Name = imported.Nid + "#" + identifier(libraryIds.at(key)) + "#" + identifier(moduleIds.at(imported.Module));
-        symbol.Info = static_cast<std::uint8_t>(0x10 | imported.Type);
+        symbol.Info = static_cast<std::uint8_t>(0x10 | type);
         symbol.Visibility = 0;
     }
     std::vector<std::byte> strings{std::byte{0}};

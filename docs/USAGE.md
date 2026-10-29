@@ -9,7 +9,7 @@ Extract the latest [AnyDevKit release](https://github.com/boykopovar/AnyDevKit/r
 ## Create
 
 ```sh
-adk init Calculator
+adk init Calculator --deps /path/to/dependencies
 cd Calculator
 ```
 
@@ -36,9 +36,8 @@ Set `ADK_DEPENDENCY_ROOT` and `ADK_SYSROOT` in `CMakePresets.json`.
 | `anycxx` | Extracted C++ platform package |
 | `imports` | Link-time import libraries |
 | `runtime` | Desktop AnyPS5 libraries and dependencies |
-| `modules` | PS5 modules for the import catalogue |
 
-Windows import files use `libName.a`; Linux and PS5 use `libName.prx`. Import libraries must be prepared separately; the template does not generate them. PS5 catalogue modules and desktop runtime binaries are distinct inputs.
+Windows import files use `libName.a`; Linux and PS5 use `libName.prx`. Import libraries must be prepared separately; the template does not generate them. PS5 import names are resolved through the bundled ps5-nid-map; original system modules are not required.
 
 `ADK_SYSROOT` points to MinGW on Windows or the target C-header sysroot for ELF builds.
 

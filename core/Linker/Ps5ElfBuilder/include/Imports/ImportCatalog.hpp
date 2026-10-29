@@ -17,19 +17,18 @@ struct Ps5Import {
     std::string Library;
     std::uint16_t ModuleVersion;
     std::uint16_t LibraryVersion;
-    std::uint8_t Type;
 };
 
 class ImportCatalog final {
 public:
     static std::vector<std::string> Dependencies(std::span<const std::byte> elf);
     const std::vector<Ps5Import>& Modules() const;
-    void AddModule(std::span<const std::byte> elf, const std::string& fileName);
+    void AddModule(const std::string& fileName);
     void Select(const std::string& symbol, const std::string& module, const std::string& library);
     Ps5Import Resolve(const std::string& symbol) const;
 private:
+    std::vector<Ps5Import> findCandidates(const std::string& nid) const;
     std::vector<Ps5Import> modules;
-    std::map<std::string, std::vector<Ps5Import>> imports;
     std::map<std::string, Ps5Import> selections;
 };
 

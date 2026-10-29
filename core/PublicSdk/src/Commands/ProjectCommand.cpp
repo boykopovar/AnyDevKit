@@ -24,6 +24,8 @@ void ProjectCommand::Init(const std::string& name, Arguments& arguments, const s
     if (name.empty() || name.size() > 64 || !std::ranges::all_of(name, [](char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'; }) || (name.front() >= '0' && name.front() <= '9')) throw std::invalid_argument("Project name must be a C++ identifier of at most 64 characters");
     const auto directory = Files::Path(arguments.Optional("directory", name));
     const auto sdk = std::filesystem::canonical(Files::Path(arguments.Optional("sdk", Files::Text(sdkRoot))));
+    const auto dependencyRoot = std::filesystem::canonical(Files::Path(arguments.Require("deps")));
+    if (!std::filesystem::is_directory(dependencyRoot)) throw std::invalid_argument("Dependency path must be a directory");
     std::uint32_t hash = 2166136261u;
     for (unsigned char c : name) hash = (hash ^ c) * 16777619u;
     auto suffix = std::to_string(hash % 100000);
@@ -51,12 +53,12 @@ void ProjectCommand::Init(const std::string& name, Arguments& arguments, const s
     presets["configurePresets"] = nlohmann::json::array();
     presets["buildPresets"] = nlohmann::json::array();
     for (const auto& target : {"windows", "linux", "ps5"}) {
-        const auto dependencies = std::string("${sourceDir}/.adk/dependencies/") + target;
+        const auto dependencies = Files::Text(dependencyRoot / target);
         const nlohmann::json cache{{"CMAKE_BUILD_TYPE", "Release"}, {"CMAKE_TOOLCHAIN_FILE", Files::Text(sdk / "lib/cmake/AnyDevKit/toolchains" / (std::string(target) + ".cmake"))}, {"AnyDevKit_DIR", Files::Text(sdk / "lib/cmake/AnyDevKit")}, {"ADK_DEPENDENCY_ROOT", dependencies}, {"ADK_SYSROOT", dependencies + "/sysroot"}};
         presets["configurePresets"].push_back({{"name", target}, {"generator", "Ninja"}, {"binaryDir", std::string("${sourceDir}/build/") + target}, {"cacheVariables", cache}});
         presets["buildPresets"].push_back({{"name", target}, {"configurePreset", target}});
     }
-    nlohmann::json options{{"input", "build/ps5/" + name + ".elf"}, {"app0", "app0"}, {"param", "app0/sce_sys/param.json"}, {"output", "dist/ps5/" + name + ".ffpfsc"}, {"workspace", "build/package"}, {"format", "ffpfsc"}, {"module-name", name}, {"file-name", name + ".elf"}, {"elf-sdk-version", "0x02000009"}, {"companion-sdk-version", "0x08050001"}, {"import-directory", ".adk/dependencies/ps5/modules"}, {"authority", "0x3100000000000002"}, {"application-version", "0"}, {"self-firmware-version", "0"}, {"timestamp", "0"}, {"select-import", nlohmann::json::array()}};
+    nlohmann::json options{{"input", "build/ps5/" + name + ".elf"}, {"app0", "app0"}, {"param", "app0/sce_sys/param.json"}, {"output", "dist/ps5/" + name + ".ffpfsc"}, {"workspace", "build/package"}, {"format", "ffpfsc"}, {"module-name", name}, {"file-name", name + ".elf"}, {"elf-sdk-version", "0x02000009"}, {"companion-sdk-version", "0x08050001"}, {"authority", "0x3100000000000002"}, {"application-version", "0"}, {"self-firmware-version", "0"}, {"timestamp", "0"}, {"select-import", nlohmann::json::array()}};
     const nlohmann::json config{{"schemaVersion", 1}, {"name", name}, {"targets", {{"ps5", options}}}};
     files.emplace("CMakePresets.json", presets.dump(2) + "\n");
     files.emplace("adk.json", config.dump(2) + "\n");
@@ -78,7 +80,7 @@ void ProjectCommand::Package(Arguments& arguments) {
     if (config.at("name").get<std::string>().empty()) throw std::invalid_argument("Empty project name");
     Json::Fields(config.at("targets"), {"ps5"});
     const auto& options = config.at("targets").at(target);
-    const std::set<std::string> paths{"input", "app0", "param", "output", "workspace", "import-directory", "passcode-moduli", "mount-modulus"};
+    const std::set<std::string> paths{"input", "app0", "param", "output", "workspace", "passcode-moduli", "mount-modulus"};
     std::set<std::string> allowed = paths;
     for (const auto& name : {"format", "module-name", "file-name", "elf-sdk-version", "companion-sdk-version", "select-import", "authority", "application-version", "self-firmware-version", "block-size", "timestamp", "case-insensitive", "passcode", "image-seed"}) allowed.insert(name);
     Json::Fields(options, allowed);

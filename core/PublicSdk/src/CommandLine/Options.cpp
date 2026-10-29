@@ -82,9 +82,7 @@ Ps5ElfOptions Options::Elf(Arguments& arguments) {
 }
 ImportCatalog Options::Imports(Arguments& arguments, const std::filesystem::path& input) {
     ImportCatalog catalog;
-    const auto directory = Files::Path(arguments.Require("import-directory"));
-    if (!std::filesystem::is_directory(directory)) throw std::invalid_argument("Import directory does not exist");
-    for (const auto& module : ImportCatalog::Dependencies(Files::Read(input))) catalog.AddModule(Files::Read(directory / module), module);
+    for (const auto& module : ImportCatalog::Dependencies(Files::Read(input))) catalog.AddModule(module);
     for (const auto& selection : arguments.Many("select-import")) {
         const auto first = selection.find(',');
         const auto second = first == std::string::npos ? first : selection.find(',', first + 1);

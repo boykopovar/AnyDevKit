@@ -65,3 +65,5 @@ install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/json/LICENSE.MIT" DESTINATION shar
 install(FILES "${PROJECT_SOURCE_DIR}/docs/USAGE.md" DESTINATION share/AnyDevKit/docs COMPONENT sdk)
 
 install(FILES "${PROJECT_SOURCE_DIR}/cmake/VerifyRuntimeImports.cmake" DESTINATION lib/cmake/AnyDevKit COMPONENT sdk)
+
+install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/ps5-nid-map/LICENSE" DESTINATION share/AnyDevKit/licenses/ps5-nid-map COMPONENT sdk)

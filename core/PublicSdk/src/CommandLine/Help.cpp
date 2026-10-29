@@ -7,7 +7,7 @@ namespace AnyDevKit::PublicSdk {
 void Help::Print(std::string_view command) {
     constexpr std::string_view text = R"HELP(adk <command> [options]
 
-init Name [--directory path] [--sdk path] [--title-id ID]
+init Name --deps directory [--directory path] [--sdk path] [--title-id ID]
   Creates editable CMake files, adk.json and app0/sce_sys/param.json.
 package --target ps5 [--project directory] [build options]
   Reads adk.json; CLI options override project settings. Does not compile.
@@ -64,7 +64,7 @@ metadata:
   [--flexible-memory bytes]
 elf:
   --module-name name --file-name name --elf-sdk-version uint32
-  --companion-sdk-version uint32 --import-directory directory
+  --companion-sdk-version uint32
   Dependencies come from ELF DT_NEEDED: libc.prx -> libSceLibcInternal.sprx; .prx -> .sprx.
   [--select-import symbol,module,library]...
 self:

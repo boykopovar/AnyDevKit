@@ -23,10 +23,20 @@ with tempfile.TemporaryDirectory(prefix="adk-project-") as temporary:
     root = Path(temporary)
     sdk = root / "sdk"
     shutil.copytree(options.templates, sdk / "share/AnyDevKit/templates")
+    dependencies = root / "dependencies with spaces"
+    dependencies.mkdir()
     project = root / "Demo"
-    run("init", "Demo", "--directory", project, "--sdk", sdk, "--title-id", "FAKE26109")
+    run("init", "Demo", "--directory", project, "--sdk", sdk, success=False)
+    assert not project.exists()
+    run("init", "Demo", "--directory", project, "--sdk", sdk, "--deps", dependencies, "--title-id", "FAKE26109")
     expected = ["CMakeLists.txt", "CMakePresets.json", "adk.json", "src/Main.cpp", "app0/sce_sys/param.json"]
     assert all((project / name).is_file() for name in expected)
+    presets = json.loads((project / "CMakePresets.json").read_text())
+    for preset in presets["configurePresets"]:
+        cache = preset["cacheVariables"]
+        assert Path(cache["ADK_DEPENDENCY_ROOT"]) == dependencies / preset["name"]
+        assert Path(cache["ADK_SYSROOT"]) == dependencies / preset["name"] / "sysroot"
+    assert "import-directory" not in json.loads((project / "adk.json").read_text())["targets"]["ps5"]
     metadata = project / "app0/sce_sys/param.json"
     original = metadata.read_bytes()
     run("param", "--param", metadata, "--output", root / "param.json")
