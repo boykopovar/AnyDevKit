@@ -4,6 +4,7 @@
 #include "Graphics/DrawCommand.hpp"
 #include <cstddef>
 #include <span>
+#include <memory>
 #include <string_view>
 
 class Canvas final {
@@ -19,7 +20,7 @@ public:
 
 private:
     DrawCommand& append(int x, int y, int width, int height, std::uint32_t color);
-    std::array<DrawCommand, Capacity> commands;
+    std::unique_ptr<DrawCommand[]> commands;
     std::size_t count = 0;
     int width;
     int height;

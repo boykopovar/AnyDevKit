@@ -58,7 +58,10 @@ std::array<unsigned, 7> glyph(char character) {
 
 }
 
-Canvas::Canvas(int width, int height) : width(width), height(height) { StorageSize(width, height); }
+Canvas::Canvas(int width, int height) : width(width), height(height) {
+    StorageSize(width, height);
+    commands = std::make_unique<DrawCommand[]>(Capacity);
+}
 
 std::size_t Canvas::StorageSize(int width, int height) {
     if (width <= 0 || height <= 0 || width > 16384 || height > 16384) throw CalculatorError{"Invalid canvas extent"};
@@ -66,7 +69,7 @@ std::size_t Canvas::StorageSize(int width, int height) {
 }
 
 void Canvas::Clear() { count = 0; }
-std::span<const DrawCommand> Canvas::Commands() const { return {commands.data(), count}; }
+std::span<const DrawCommand> Canvas::Commands() const { return {commands.get(), count}; }
 
 DrawCommand& Canvas::append(int x, int y, int rectangleWidth, int rectangleHeight, std::uint32_t color) {
     if (x < 0 || y < 0 || rectangleWidth < 0 || rectangleHeight < 0 || x > width || y > height || rectangleWidth > width - x || rectangleHeight > height - y) throw CalculatorError{"Rectangle outside canvas"};

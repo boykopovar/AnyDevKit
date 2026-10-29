@@ -4,6 +4,8 @@
 #include <array>
 #include <cstddef>
 #include <string_view>
+#include <string>
+#include <vector>
 
 enum class CalculatorKey { Clear, Sign, Percent, Divide, Seven, Eight, Nine, Multiply, Four, Five, Six, Subtract, One, Two, Three, Add, Backspace, Zero, Decimal, Equals };
 
@@ -15,6 +17,7 @@ struct CalculatorHistory {
 
 class Calculator final {
 public:
+    Calculator();
     void Press(CalculatorKey key);
     std::string_view Display() const;
     std::string_view Expression() const;
@@ -26,6 +29,7 @@ public:
 
 private:
     void clear();
+    void command(CalculatorKey key);
     void digit(char value);
     void operate(char operation);
     void evaluate();
@@ -34,10 +38,9 @@ private:
     double value() const;
     void updateExpression();
     void addHistory(double left, char operation, double right);
-    std::array<char, 32> entry{'0', '\0'};
-    std::array<char, 80> expression{};
-    std::array<std::array<char, 80>, 2> history{};
-    std::size_t historyCount = 0;
+    std::string entry = "0";
+    std::string expression;
+    std::vector<std::string> history;
     double accumulator = 0;
     double repeatedOperand = 0;
     char pending = 0;

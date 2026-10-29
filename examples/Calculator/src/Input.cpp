@@ -1,10 +1,10 @@
+#include "prx/libkernel/Time/include/Time.hpp"
+#include "prx/libkernel/include/Api.hpp"
 #include "Input.hpp"
 #include "CalculatorError.hpp"
 #include "prx/libScePad/libScePad.hpp"
 #include "prx/libSceSysmodule/libSceSysmodule.hpp"
 #include "prx/libSceUserService/libSceUserService.hpp"
-#include "prx/libkernel/Time/include/Time.hpp"
-#include "prx/libkernel/include/Api.hpp"
 
 namespace {
 

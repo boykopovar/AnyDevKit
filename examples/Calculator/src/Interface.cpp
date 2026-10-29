@@ -1,7 +1,7 @@
 #include "Interface.hpp"
 #include "Settings.hpp"
 #include "CalculatorError.hpp"
-#include "prx/libc/include/Api.hpp"
+#include <cstdio>
 
 #include <algorithm>
 #include <array>
@@ -109,7 +109,7 @@ void Interface::Draw(Canvas& canvas) {
         if (focused) canvas.RoundedRectangle(margin - 8, top - 8, panelWidth + 16, height * 8 / 100, 12, editingSlider ? 0xff356455 : 0xff294c58);
         canvas.Text(margin + 12, top + 4, sliderLabels[index], 2, focused ? Mint : Ink);
         char value[24];
-        const int length = snprintf_nid_postfix(value, sizeof(value), index == 0 ? "%d MS" : "%d / 255", state.Vibration[index]);
+        const int length = std::snprintf(value, sizeof(value), index == 0 ? "%d MS" : "%d / 255", state.Vibration[index]);
         if (length < 0 || static_cast<std::size_t>(length) >= sizeof(value)) throw CalculatorError{"Vibration value formatting failed"};
         canvas.Text(margin + panelWidth - length * 12 - 12, top + 4, value, 2, Muted);
         const int trackX = margin + 20;

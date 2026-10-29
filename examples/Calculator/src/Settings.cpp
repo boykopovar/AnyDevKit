@@ -1,11 +1,11 @@
+#include "prx/libkernel/include/Api.hpp"
 #include "Settings.hpp"
 #include "CalculatorError.hpp"
 #include "prx/libkernel/File/include/File.hpp"
 #include "prx/libkernel/File/include/FileFlags.hpp"
-#include "prx/libkernel/include/Api.hpp"
 #include "prx/libSceSaveData.native/libSceSaveData.native.hpp"
 #include "prx/libSceSysmodule/libSceSysmodule.hpp"
-#include "prx/libc/include/Api.hpp"
+#include <cstdio>
 
 #include <cstdint>
 #include <algorithm>
@@ -120,7 +120,7 @@ void makePath(char (&path)[64], const SaveDataMountPoint& mount, const char* fil
     std::size_t length = 0;
     while (length < sizeof(mount.data) && mount.data[length] != 0) ++length;
     if (length == 0 || length == sizeof(mount.data)) throw CalculatorError{"Invalid SaveData mount point"};
-    const int count = snprintf_nid_postfix(path, sizeof(path), "%s/%s", mount.data, filename);
+    const int count = std::snprintf(path, sizeof(path), "%s/%s", mount.data, filename);
     if (count < 0 || static_cast<std::size_t>(count) >= sizeof(path)) throw CalculatorError{"SaveData path exceeds capacity"};
 }
 

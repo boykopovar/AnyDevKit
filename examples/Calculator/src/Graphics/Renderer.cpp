@@ -1,11 +1,12 @@
+#include "prx/libkernel/Time/include/Time.hpp"
+#include "prx/libkernel/include/Api.hpp"
 #include "Graphics/Renderer.hpp"
 #include "CalculatorShaders.hpp"
 #include "CalculatorError.hpp"
 #include "Canvas.hpp"
 #include "prx/libSceAgc/libSceAgc.hpp"
 #include "prx/libSceAgcDriver/Submit/include/Dcb.hpp"
-#include "prx/libkernel/libkernel.hpp"
-#include "prx/libc/include/Api.hpp"
+#include <cstring>
 
 #include <atomic>
 #include <bit>
@@ -24,7 +25,7 @@ void check(int result, const char* operation) {
 template<typename TValue>
 TValue read(const void* base, std::size_t offset) {
     TValue result;
-    memcpy_nid_postfix(&result, static_cast<const std::byte*>(base) + offset, sizeof(result));
+    std::memcpy(&result, static_cast<const std::byte*>(base) + offset, sizeof(result));
     return result;
 }
 
@@ -46,7 +47,7 @@ Renderer::Renderer(int width, int height) : width(width), height(height) {
     memory = static_cast<std::byte*>(address);
     try {
         if ((reinterpret_cast<std::uintptr_t>(memory) >> 32) != 2 || ((reinterpret_cast<std::uintptr_t>(memory) + MemorySize - 1) >> 32) != 2) throw CalculatorError{"AGC requires memory in the shader address aperture"};
-        memset_nid_postfix(memory, 0, MemorySize);
+        std::memset(memory, 0, MemorySize);
         commands = static_cast<std::uint32_t*>(allocate(CommandWords * 4, 256));
         fence = static_cast<std::uint64_t*>(allocate(sizeof(std::uint64_t), 64));
         constants = static_cast<float*>(allocate(16, 16));
@@ -84,8 +85,8 @@ void* Renderer::allocate(std::size_t bytes, std::size_t alignment) {
 Shader* Renderer::createShader(const ShaderAsset& asset) {
     auto* header = allocate(asset.Header.size(), 8);
     auto* code = allocate(asset.Code.size(), 256);
-    memcpy_nid_postfix(header, asset.Header.data(), asset.Header.size());
-    memcpy_nid_postfix(code, asset.Code.data(), asset.Code.size());
+    std::memcpy(header, asset.Header.data(), asset.Header.size());
+    std::memcpy(code, asset.Code.data(), asset.Code.size());
     Shader* shader = nullptr;
     check(sceAgcCreateShader(&shader, header, code), "sceAgcCreateShader");
     if (!shader || !shader->cx_registers || !shader->sh_registers) throw CalculatorError{"AGC returned an incomplete shader"};
@@ -162,7 +163,7 @@ void Renderer::Draw(std::span<std::uint32_t> pixels, float seconds, const Canvas
     }
     const auto draws = canvas.Commands();
     if (draws.size() > Canvas::Capacity) throw CalculatorError{"Too many interface draws"};
-    memcpy_nid_postfix(interfaceCommands, draws.data(), draws.size_bytes());
+    std::memcpy(interfaceCommands, draws.data(), draws.size_bytes());
     constants[0] = static_cast<float>(width);
     constants[1] = static_cast<float>(height);
     constants[2] = seconds;
