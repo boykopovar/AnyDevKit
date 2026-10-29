@@ -6,8 +6,9 @@
 #include <functional>
 
 int main(int argc, char** argv) {
-    if (argc != 1 && (argc != 3 || std::strcmp(argv[1], "--report") != 0)) return 2;
-    auto* report = argc == 3 ? std::fopen(argv[2], "w") : stdout;
+    if (argc > 1 && (argc != 3 || std::strcmp(argv[1], "--report") != 0)) return 2;
+    const auto* reportPath = argc == 3 ? argv[2] : "CppStandardLibrary-results.txt";
+    auto* report = std::fopen(reportPath, "w");
     if (report == nullptr) return 2;
     struct Check { const char* Name; std::function<void()> Run; };
     const auto checks = std::to_array<Check>({
@@ -16,7 +17,7 @@ int main(int argc, char** argv) {
         {"strings", CheckStrings}, {"numeric", CheckNumeric},
         {"exceptions", CheckExceptions}, {"coroutines", CheckCoroutines},
         {"atomics", CheckAtomics}, {"locale", CheckLocale},
-        {"streams", CheckStreams}, {"file streams", [&] { CheckFileStreams(argc == 3 ? argv[2] : nullptr); }}, {"regex", CheckRegex},
+        {"streams", CheckStreams}, {"file streams", [&] { CheckFileStreams(reportPath); }}, {"regex", CheckRegex},
         {"formatting", CheckFormatting}, {"c compatibility", CheckCCompatibility}
     });
     unsigned failures = 0;
@@ -36,6 +37,6 @@ int main(int argc, char** argv) {
     }
     std::fprintf(report, "CppStandardLibrary: %zu groups, %u failures\n", checks.size(), failures);
     if (std::fflush(report) != 0) return 2;
-    if (argc == 3 && std::fclose(report) != 0) return 2;
+    if (std::fclose(report) != 0) return 2;
     return failures == 0 ? 0 : 1;
 }

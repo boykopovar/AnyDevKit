@@ -2,6 +2,7 @@
 #include <version>
 #if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION
 #include <sstream>
+#include <iostream>
 #include <fstream>
 #include <cstdio>
 #include <iomanip>
@@ -12,6 +13,9 @@ void CheckStreams() {
 #if defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_LOCALIZATION
     throw std::runtime_error("libc++ localization is disabled; required component unavailable");
 #else
+    std::cout << "libc++ standard output" << std::endl;
+    std::wcout << L"libc++ wide output" << std::endl;
+    Require(std::cout.good() && std::wcout.good(), "Standard output streams");
     std::stringstream stream;
     stream << std::hex << 255 << ' ' << std::quoted("two words");
     int value = 0; std::string text; stream >> std::hex >> value >> std::quoted(text);

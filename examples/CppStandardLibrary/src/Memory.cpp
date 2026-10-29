@@ -7,6 +7,11 @@
 #include <vector>
 
 void CheckMemory() {
+    const auto handler = +[] { throw std::bad_alloc(); };
+    const auto previousHandler = std::set_new_handler(handler);
+    const auto activeHandler = std::get_new_handler();
+    std::set_new_handler(previousHandler);
+    Require(activeHandler == handler, "Allocation handler");
     struct alignas(64) Value { int Data = 42; };
     auto unique = std::make_unique<Value>();
     Require(reinterpret_cast<std::uintptr_t>(unique.get()) % 64 == 0 && unique->Data == 42, "Aligned unique pointer");
