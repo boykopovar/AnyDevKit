@@ -4,6 +4,8 @@ layout(location = 0) out vec4 color;
 layout(push_constant) uniform Frame {
     vec2 resolution;
     float seconds;
+    vec4 positions[8];
+    vec4 orientations[4];
 } frame;
 
 mat3 rotation(float angle) {
@@ -66,24 +68,33 @@ void main() {
     for (int index = 0; index < 8; ++index) {
         float phase = float(index) * 1.73;
         float angle = frame.seconds * 0.12 + phase;
-        vec3 center = vec3(sin(angle) * 4.4, cos(angle * 0.7 + phase) * 2.8, 5.0 + 1.5 * sin(angle * 0.6));
-        mat3 basis = rotation(angle) * mat3(1.0, 0.0, 0.0, 0.0, cos(angle * 0.7), sin(angle * 0.7), 0.0, -sin(angle * 0.7), cos(angle * 0.7));
-        vec3 origin = transpose(basis) * -center;
-        vec3 ray = transpose(basis) * direction;
+        vec3 center = frame.positions[index].xyz;
         vec3 normal;
-        float distance = cube(origin, ray, normal);
+        float distance;
         if ((index & 1) == 1) {
             float b = dot(-center, direction);
             float discriminant = b * b - dot(center, center) + 0.42;
             distance = discriminant > 0.0 ? -b - sqrt(discriminant) : 1000.0;
             normal = normalize(direction * distance - center);
-        } else normal = basis * normal;
+        } else {
+            vec4 q = frame.orientations[index / 2];
+            mat3 basis = mat3(
+                1.0 - 2.0 * (q.y * q.y + q.z * q.z), 2.0 * (q.x * q.y + q.z * q.w), 2.0 * (q.x * q.z - q.y * q.w),
+                2.0 * (q.x * q.y - q.z * q.w), 1.0 - 2.0 * (q.x * q.x + q.z * q.z), 2.0 * (q.y * q.z + q.x * q.w),
+                2.0 * (q.x * q.z + q.y * q.w), 2.0 * (q.y * q.z - q.x * q.w), 1.0 - 2.0 * (q.x * q.x + q.y * q.y));
+            vec3 origin = transpose(basis) * -center;
+            vec3 ray = transpose(basis) * direction;
+            distance = cube(origin, ray, normal);
+            normal = basis * normal;
+        }
         if (distance > 0.0 && distance < closest) {
             closest = distance;
             float light = 0.25 + 0.75 * max(0.0, dot(normal, normalize(vec3(-0.4, 0.8, -1.0))));
             vec3 tint = (index & 1) == 0 ? vec3(0.07, 0.22, 0.24) : vec3(0.15, 0.12, 0.28);
             surface = tint * light + vec3(0.018, 0.025, 0.035);
         }
+        center = vec3(sin(angle) * 4.4, cos(angle * 0.7 + phase) * 2.8, 5.0 + 1.5 * sin(angle * 0.6));
+        mat3 basis = rotation(angle) * mat3(1.0, 0.0, 0.0, 0.0, cos(angle * 0.7), sin(angle * 0.7), 0.0, -sin(angle * 0.7), cos(angle * 0.7));
         vec3 textCenter = center + vec3(-1.0, 0.9, -0.8);
         vec3 textNormal = basis[2];
         float denominator = dot(direction, textNormal);

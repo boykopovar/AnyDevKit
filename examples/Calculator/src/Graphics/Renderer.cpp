@@ -50,7 +50,7 @@ Renderer::Renderer(int width, int height) : width(width), height(height) {
         std::memset(memory, 0, MemorySize);
         commands = static_cast<std::uint32_t*>(allocate(CommandWords * 4, 256));
         fence = static_cast<std::uint64_t*>(allocate(sizeof(std::uint64_t), 64));
-        constants = static_cast<float*>(allocate(16, 16));
+        constants = static_cast<float*>(allocate((4 + BackgroundPhysics::Scene::TransformFloats) * sizeof(float), 16));
         context = static_cast<ShaderRegister*>(allocate(RegisterCapacity * sizeof(ShaderRegister), 256));
         primitive = static_cast<ShaderRegister*>(allocate(3 * sizeof(ShaderRegister), 256));
         vertex = createShader(CalculatorShaders::Vertex);
@@ -167,6 +167,8 @@ void Renderer::Draw(std::span<std::uint32_t> pixels, float seconds, const Canvas
     constants[0] = static_cast<float>(width);
     constants[1] = static_cast<float>(height);
     constants[2] = seconds;
+    physics.Update(seconds);
+    physics.WriteTransforms(std::span<float, BackgroundPhysics::Scene::TransformFloats>{constants + 4, BackgroundPhysics::Scene::TransformFloats});
     std::atomic_ref completion(*fence);
     completion.store(0, std::memory_order_release);
     CommandBuffer buffer{commands, commands + CommandWords, commands, commands + CommandWords, exhausted, nullptr, 0};

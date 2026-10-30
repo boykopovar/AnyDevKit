@@ -2,6 +2,7 @@
 #define ANYDEVKIT_CALCULATOR_GRAPHICS_RENDERER_HPP
 
 #include "Graphics/ShaderAsset.hpp"
+#include "Physics/Scene.hpp"
 #include "Canvas.hpp"
 #include "SceShaders.hpp"
 #include <cstddef>
@@ -40,6 +41,7 @@ private:
     ShaderRegister* interfacePrimitive = nullptr;
     DrawCommand* interfaceCommands = nullptr;
     bool pending = false;
+    BackgroundPhysics::Scene physics;
 };
 
 #endif

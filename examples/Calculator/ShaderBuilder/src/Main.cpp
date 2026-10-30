@@ -45,7 +45,7 @@ int main(int count, char** arguments) {
         output.exceptions(std::ios::failbit | std::ios::badbit);
         output << "#ifndef ANYDEVKIT_CALCULATOR_GENERATED_SHADERS_HPP\n#define ANYDEVKIT_CALCULATOR_GENERATED_SHADERS_HPP\n#include \"Graphics/ShaderAsset.hpp\"\nnamespace CalculatorShaders {\n";
         compile(output, arguments[1], PSBC_STAGE_VERTEX, "Vertex", 12, target);
-        compile(output, arguments[2], PSBC_STAGE_FRAGMENT, "Fragment", 12, target);
+        compile(output, arguments[2], PSBC_STAGE_FRAGMENT, "Fragment", 208, target);
         compile(output, arguments[3], PSBC_STAGE_VERTEX, "InterfaceVertex", 64, target);
         compile(output, arguments[4], PSBC_STAGE_FRAGMENT, "InterfaceFragment", 64, target);
         output << "}\n#endif\n";
