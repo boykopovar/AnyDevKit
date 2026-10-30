@@ -18,8 +18,9 @@ add_custom_command(OUTPUT "${shaderHeader}"
     COMMAND "$<TARGET_FILE:CalculatorShaderBuilder>" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.frag" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.frag" "${shaderHeader}" --target "${ANYDEVKIT_CALCULATOR_SHADER_TARGET}"
     DEPENDS CalculatorShaderBuilder shaders/Background.vert shaders/Background.frag shaders/Interface.vert shaders/Interface.frag
     VERBATIM)
-add_executable(Calculator src/Main.cpp src/Canvas.cpp src/Calculator.cpp src/Interface.cpp src/Input.cpp src/Display.cpp src/Settings.cpp src/Graphics/Renderer.cpp "${shaderHeader}")
+add_executable(Calculator src/Main.cpp src/Canvas.cpp src/Calculator.cpp src/Interface.cpp src/Input.cpp src/Display.cpp src/Settings.cpp src/Graphics/Renderer.cpp src/Physics/Scene.cpp "${shaderHeader}")
 target_compile_features(Calculator PRIVATE cxx_std_20)
+target_compile_options(Calculator PRIVATE -fno-math-errno)
 target_compile_definitions(Calculator PRIVATE ANYDEVKIT_CALCULATOR_WIDTH=${ANYDEVKIT_CALCULATOR_WIDTH})
 set_target_properties(Calculator PROPERTIES CXX_EXTENSIONS OFF)
 target_include_directories(Calculator PRIVATE include "${CMAKE_CURRENT_BINARY_DIR}/generated")
