@@ -77,7 +77,10 @@ keys:
   --passcode-moduli file (7 concatenated big-endian 384-byte RSA public moduli)
   --mount-modulus file (one big-endian 384-byte RSA public modulus)
   --passcode hex32 --image-seed hex32
-shader options:
+shader options (also shader-pipeline):
+  [--target windows|linux|ps5 (default ps5)]
+  [--omit-implicit-primitive-id true|false (default true for all targets)]
+  Set false when the next stage needs the implicit PrimitiveID.
   [--entry name (default main)] [--address32-hi uint32 (default 2)]
   [--primitive-type uint32 (default 4)] [--samples uint32 (default 1)]
   [--color-format uint32 (default 9 for fragment, 0 for vertex)]

@@ -16,7 +16,7 @@ struct ShaderSource {
 
 class ShaderCompiler {
 public:
-    static PsbcCompileOptions CreateOptions(PsbcStage stage);
+    static PsbcCompileOptions CreateOptions(PsbcStage stage, std::string_view target = "ps5");
     static AgcShaderPackage Compile(std::string_view source, std::string_view sourceName, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories = {});
     static std::array<AgcShaderPackage, 2> CompileTessellation(const ShaderSource& vertex, const ShaderSource& control, const ShaderSource& evaluation, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories = {});
     static AgcShaderPackage CompileGeometry(const ShaderSource& vertex, const ShaderSource& geometry, const PsbcCompileOptions& options, std::span<const std::filesystem::path> includeDirectories = {});

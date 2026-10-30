@@ -1,6 +1,7 @@
 #include "Commands/ShaderCommand.hpp"
 #include "IO/Files.hpp"
 #include "ShaderCompiler.hpp"
+#include "CommandLine/Options.hpp"
 #include "Shader/ShaderMetadata.hpp"
 #include "Backend/PsbcCompiler.hpp"
 #include <stdexcept>
@@ -33,7 +34,7 @@ void ShaderCommand::Run(std::string_view command, Arguments& arguments) {
     if (std::filesystem::weakly_canonical(metadataPath) == std::filesystem::weakly_canonical(header) || std::filesystem::weakly_canonical(metadataPath) == std::filesystem::weakly_canonical(code)) throw std::invalid_argument("Shader outputs must differ");
     const auto stage = arguments.Require("stage");
     if (stage != "vertex" && stage != "fragment" && stage != "compute") throw std::invalid_argument("Supported stages: vertex, fragment, compute");
-    auto options = ShaderCompiler::CreateOptions(stage == "vertex" ? PSBC_STAGE_VERTEX : stage == "fragment" ? PSBC_STAGE_FRAGMENT : PSBC_STAGE_COMPUTE);
+    auto options = Options::Shader(arguments, stage == "vertex" ? PSBC_STAGE_VERTEX : stage == "fragment" ? PSBC_STAGE_FRAGMENT : PSBC_STAGE_COMPUTE);
     const auto entry = arguments.Optional("entry", "main");
     options.entrypoint = entry.c_str();
     options.address32_hi = Arguments::Number32(arguments.Optional("address32-hi", "2"));

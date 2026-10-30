@@ -10,10 +10,12 @@ if(NOT ANYDEVKIT_CALCULATOR_WIDTH MATCHES "^[0-9]+$")
 endif()
 
 add_subdirectory(ShaderBuilder)
+string(TOLOWER "${CMAKE_SYSTEM_NAME}" calculatorShaderTarget)
+set(ANYDEVKIT_CALCULATOR_SHADER_TARGET "${calculatorShaderTarget}" CACHE STRING "Calculator shader target: windows, linux or ps5")
 set(shaderHeader "${CMAKE_CURRENT_BINARY_DIR}/generated/CalculatorShaders.hpp")
 add_custom_command(OUTPUT "${shaderHeader}"
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
-    COMMAND "$<TARGET_FILE:CalculatorShaderBuilder>" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.frag" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.frag" "${shaderHeader}"
+    COMMAND "$<TARGET_FILE:CalculatorShaderBuilder>" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.frag" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.frag" "${shaderHeader}" --target "${ANYDEVKIT_CALCULATOR_SHADER_TARGET}"
     DEPENDS CalculatorShaderBuilder shaders/Background.vert shaders/Background.frag shaders/Interface.vert shaders/Interface.frag
     VERBATIM)
 add_executable(Calculator src/Main.cpp src/Canvas.cpp src/Calculator.cpp src/Interface.cpp src/Input.cpp src/Display.cpp src/Settings.cpp src/Graphics/Renderer.cpp "${shaderHeader}")

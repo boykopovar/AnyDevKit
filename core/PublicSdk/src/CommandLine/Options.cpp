@@ -1,10 +1,18 @@
 #include "CommandLine/Options.hpp"
+#include "ShaderCompiler.hpp"
 #include "IO/Files.hpp"
 #include "Project/Metadata.hpp"
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
 namespace AnyDevKit::PublicSdk {
+PsbcCompileOptions Options::Shader(Arguments& arguments, PsbcStage stage) {
+    auto options = ShaderCompiler::CreateOptions(stage, arguments.Optional("target", "ps5"));
+    const auto omit = arguments.Optional("omit-implicit-primitive-id", options.omit_implicit_primitive_id ? "true" : "false");
+    if (omit != "true" && omit != "false") throw std::invalid_argument("Invalid --omit-implicit-primitive-id value");
+    options.omit_implicit_primitive_id = omit == "true";
+    return options;
+}
 ApplicationParameters Options::Parameters(Arguments& arguments) {
     const auto param = arguments.Optional("param");
     if (!param.empty()) arguments.MergeDefaults(Metadata::Read(Files::Path(param)));

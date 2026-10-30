@@ -2,12 +2,14 @@
 #define ANYDEVKIT_PUBLICSDK_OPTIONS_HPP
 #include "CommandLine/Arguments.hpp"
 #include "EbootPackager.hpp"
+#include "AgcPackager.hpp"
 #include "PfsBuilder.hpp"
 #include "PkgPackager.hpp"
 #include "Ps5ElfBuilder.hpp"
 namespace AnyDevKit::PublicSdk {
 class Options final {
 public:
+    static PsbcCompileOptions Shader(Arguments& arguments, PsbcStage stage);
     static ApplicationParameters Parameters(Arguments& arguments);
     static Pkg::PackageKeys Keys(Arguments& arguments);
     static PfsOptions Pfs(Arguments& arguments);

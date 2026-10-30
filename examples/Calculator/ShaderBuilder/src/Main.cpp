@@ -18,8 +18,8 @@ void writeBytes(std::ostream& output, std::string_view name, std::span<const std
     output << "\n};\n";
 }
 
-void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage stage, const std::string& name, std::uint32_t constantSize) {
-    auto options = AnyDevKit::ShaderCompiler::CreateOptions(stage);
+void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage stage, const std::string& name, std::uint32_t constantSize, std::string_view target) {
+    auto options = AnyDevKit::ShaderCompiler::CreateOptions(stage, target);
     if (stage == PSBC_STAGE_FRAGMENT) options.spi_shader_col_format = 4;
     const auto shader = AnyDevKit::ShaderCompiler::CompileFile(path, options);
     const auto& metadata = shader.GetBindingMetadata();
@@ -38,14 +38,16 @@ void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage 
 
 int main(int count, char** arguments) {
     try {
-        if (count != 6) throw std::invalid_argument("Expected background vertex/fragment, interface vertex/fragment and output header");
+        if (count != 6 && count != 8) throw std::invalid_argument("Expected background vertex/fragment, interface vertex/fragment and output header");
+        if (count == 8 && std::string_view(arguments[6]) != "--target") throw std::invalid_argument("Expected --target");
+        const std::string_view target = count == 8 ? arguments[7] : "ps5";
         std::ofstream output(arguments[5], std::ios::binary | std::ios::trunc);
         output.exceptions(std::ios::failbit | std::ios::badbit);
         output << "#ifndef ANYDEVKIT_CALCULATOR_GENERATED_SHADERS_HPP\n#define ANYDEVKIT_CALCULATOR_GENERATED_SHADERS_HPP\n#include \"Graphics/ShaderAsset.hpp\"\nnamespace CalculatorShaders {\n";
-        compile(output, arguments[1], PSBC_STAGE_VERTEX, "Vertex", 12);
-        compile(output, arguments[2], PSBC_STAGE_FRAGMENT, "Fragment", 12);
-        compile(output, arguments[3], PSBC_STAGE_VERTEX, "InterfaceVertex", 64);
-        compile(output, arguments[4], PSBC_STAGE_FRAGMENT, "InterfaceFragment", 64);
+        compile(output, arguments[1], PSBC_STAGE_VERTEX, "Vertex", 12, target);
+        compile(output, arguments[2], PSBC_STAGE_FRAGMENT, "Fragment", 12, target);
+        compile(output, arguments[3], PSBC_STAGE_VERTEX, "InterfaceVertex", 64, target);
+        compile(output, arguments[4], PSBC_STAGE_FRAGMENT, "InterfaceFragment", 64, target);
         output << "}\n#endif\n";
         output.close();
         return 0;

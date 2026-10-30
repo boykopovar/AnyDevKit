@@ -1,5 +1,6 @@
 #include "Commands/ShaderPipelineCommand.hpp"
 #include "ShaderCompiler.hpp"
+#include "CommandLine/Options.hpp"
 #include "Shader/ShaderMetadata.hpp"
 #include "IO/Files.hpp"
 #include <stdexcept>
@@ -26,7 +27,7 @@ void ShaderPipelineCommand::Run(std::string_view command, Arguments& arguments) 
     Files::RequireNew(output);
     const bool geometry = !geometryPath.empty();
     if (geometry ? !controlPath.empty() || !evaluationPath.empty() : controlPath.empty() || evaluationPath.empty()) throw std::invalid_argument("Specify vertex + geometry or vertex + control + evaluation");
-    auto options = ShaderCompiler::CreateOptions(geometry ? PSBC_STAGE_GEOMETRY : PSBC_STAGE_TESS_CTRL);
+    auto options = Options::Shader(arguments, geometry ? PSBC_STAGE_GEOMETRY : PSBC_STAGE_TESS_CTRL);
     const auto entry = arguments.Optional("entry", "main");
     options.entrypoint = entry.c_str();
     options.address32_hi = Arguments::Number32(arguments.Optional("address32-hi", "2"));
