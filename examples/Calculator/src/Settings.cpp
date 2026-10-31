@@ -2,7 +2,6 @@
 #include "Settings.hpp"
 #include "CalculatorError.hpp"
 #include "prx/libkernel/File/include/File.hpp"
-#include "prx/libkernel/File/include/FileFlags.hpp"
 #include "prx/libSceSaveData.native/libSceSaveData.native.hpp"
 #include "prx/libSceSysmodule/libSceSysmodule.hpp"
 #include <cstdio>
@@ -12,6 +11,9 @@
 #include <span>
 
 namespace {
+
+constexpr int readOnly = 0;
+constexpr int writeCreateTruncate = 0x601;
 
 int check(int result, const char* operation) {
     if (result < 0) throw CalculatorError{operation, result};
@@ -42,7 +44,7 @@ void readExact(int file, std::span<std::uint8_t> bytes) {
 }
 
 Settings::Data readFile(const char* path) {
-    const int file = check(sceKernelOpen(path, SCE_KERNEL_O_RDONLY, 0), "Open calculator settings");
+    const int file = check(sceKernelOpen(path, readOnly, 0), "Open calculator settings");
     Settings::Data values{};
     try {
         std::array<std::uint8_t, 8> header{};
@@ -63,7 +65,7 @@ Settings::Data readFile(const char* path) {
 }
 
 void readHistory(const char* path, Settings::Data& values) {
-    const int file = check(sceKernelOpen(path, SCE_KERNEL_O_RDONLY, 0), "Open calculator history");
+    const int file = check(sceKernelOpen(path, readOnly, 0), "Open calculator history");
     try {
         std::array<std::uint8_t, 166> bytes{};
         readExact(file, bytes);
@@ -85,7 +87,7 @@ void readHistory(const char* path, Settings::Data& values) {
 }
 
 void writeFile(const char* path, const char* temporaryPath, std::span<const std::uint8_t> bytes) {
-    const int file = check(sceKernelOpen(temporaryPath, SCE_KERNEL_O_WRONLY | SCE_KERNEL_O_CREAT | SCE_KERNEL_O_TRUNC, 0666), "Create calculator settings");
+    const int file = check(sceKernelOpen(temporaryPath, writeCreateTruncate, 0666), "Create calculator settings");
     try {
         std::size_t offset = 0;
         while (offset < bytes.size()) {

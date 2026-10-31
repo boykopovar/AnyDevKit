@@ -23,6 +23,7 @@ target_compile_features(AnyDevKitAgcPackager PUBLIC cxx_std_20)
 set_target_properties(AnyDevKitAgcPackager PROPERTIES CXX_EXTENSIONS OFF)
 target_include_directories(AnyDevKitAgcPackager PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${anydevkitRoot}/3rdparty/AnyPS5/core/libs"
     "${anydevkitRoot}/3rdparty/opengnm-psbc"
 )
+
+target_include_directories(AnyDevKitAgcPackager PRIVATE "${anydevkitRoot}/3rdparty/AnyPS5/core/libs")

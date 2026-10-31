@@ -1,3 +1,5 @@
+include("${CMAKE_CURRENT_LIST_DIR}/ReleaseHeaders.cmake")
+
 set(ANYDEVKIT_RUNTIME_DIRECTORY "" CACHE PATH "Directory containing patched AnyPS5 runtime libraries")
 
 function(anydevkit_link_runtime_library target library)
@@ -28,7 +30,7 @@ function(anydevkit_configure_windows_executable target)
     set(CMAKE_CXX_STANDARD_LIBRARIES "" PARENT_SCOPE)
     target_compile_options(${target} PRIVATE -fdwarf-exceptions -fno-stack-protector -fno-stack-check -mno-stack-arg-probe)
     target_link_options(${target} PRIVATE -nostdlib -fuse-ld=lld -Wl,--entry,AnyDevKitEntry -Wl,--subsystem,windows)
-    target_include_directories(${target} SYSTEM PRIVATE "${sdkRoot}/3rdparty/AnyPS5/core/libs")
+    anydevkit_use_release_headers(${target})
     set(startupObject "${CMAKE_CURRENT_BINARY_DIR}/${target}-startup.obj")
     add_custom_command(OUTPUT "${startupObject}"
         COMMAND "$<TARGET_FILE:AnyDevKitWindowsStartupGenerator>" "${startupObject}"
