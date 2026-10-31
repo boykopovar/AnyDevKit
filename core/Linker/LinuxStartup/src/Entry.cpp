@@ -11,6 +11,9 @@ extern void (*__fini_array_end[])();
 void* __dso_handle = &__dso_handle;
 }
 namespace {
+struct StartupError {
+    const char* Message;
+};
 void finalize() {
     auto current = __fini_array_end;
     while (current != __fini_array_start) (*--current)();
@@ -23,8 +26,8 @@ void AnyDevKitLinuxEntry(int argc, char** argv) {
     libcParameters[6] = reinterpret_cast<std::uintptr_t>(allocator.data());
     processParameters[7] = reinterpret_cast<std::uintptr_t>(libcParameters.data());
     ApplicationHeapInitialize_nid_no_patch(processParameters.data());
-    if (atexit_nid_postfix(finalize) != 0) throw "Cannot register process finalization";
+    if (atexit_nid_postfix(finalize) != 0) throw StartupError{"Cannot register process finalization"};
     for (auto current = __init_array_start; current != __init_array_end; ++current) (*current)();
     exit_nid_postfix(AnyDevKitLinuxMain(argc, argv));
-    throw "Process exit returned";
+    throw StartupError{"Process exit returned"};
 }
