@@ -2,7 +2,7 @@
 
 Extract the latest [SDK](https://github.com/boykopovar/AnyDevKit/releases/latest). Add its `bin` directory to `PATH`. Install Python 3.11+, CMake 3.22+, Ninja, Clang and LLD.
 
-`adk setup` is not implemented. `tools/setup.py` downloads the latest [AnyPS5](https://github.com/boykopovar/AnyPS5/releases/latest) and [C++ runtime](https://github.com/boykopovar/llvm-cxx-ps/releases/latest) releases and prepares C headers and import libraries. To use manually downloaded archives, pass `--cache <directory>`.
+`adk setup` is not implemented. `tools/setup.py` downloads [AnyPS5 v0.1.4](https://github.com/boykopovar/AnyPS5/releases/tag/v0.1.4) and [C++ runtime v0.1.3](https://github.com/boykopovar/llvm-cxx-ps/releases/tag/v0.1.3) and prepares C headers and import libraries. To use manually downloaded archives, pass `--cache <directory>`.
 
 ```sh
 python tools/setup.py D:/AdkDependencies
