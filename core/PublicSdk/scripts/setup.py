@@ -68,7 +68,7 @@ def prepare(target, root, scratch, cache, anyps5, anycxx):
     if target != "ps5":
         runtime = scratch / (platform + "-runtime")
         unpack_asset(anyps5, f"prx-{platform}-{anyps5['tag_name']}.zip", cache, runtime)
-        shutil.copytree(runtime / "libs", directory / "runtime")
+        (runtime / "libs").rename(directory / "runtime")
     suffix = "zip" if target == "windows" else "tar.gz"
     version = anycxx["tag_name"].removeprefix("v")
     unpack_asset(anycxx, f"llvm-cxx-ps-{version}-{target}-x86_64.{suffix}", cache, directory / "anycxx")
