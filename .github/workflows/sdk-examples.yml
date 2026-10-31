@@ -1,0 +1,88 @@
+name: build sdk examples
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  examples:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [windows, linux, ps5]
+        example: [Calculator, CppStandardLibrary]
+        include:
+          - target: windows
+            os: windows-2022
+            host: windows
+          - target: linux
+            os: ubuntu-24.04
+            host: linux
+          - target: ps5
+            os: ubuntu-24.04
+            host: linux
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: adk-${{ matrix.host }}
+          path: artifacts
+      - name: Install Linux tools
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 ninja-build
+          echo /usr/lib/llvm-18/bin >> "$GITHUB_PATH"
+      - name: Install Windows tools
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-clang
+            mingw-w64-ucrt-x86_64-llvm-tools
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+      - name: Configure Windows tool paths
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $toolRoot = Join-Path $env:RUNNER_TEMP 'msys64/ucrt64/bin'
+          if (-not (Test-Path "$toolRoot/clang.exe")) { throw 'Missing UCRT64 compiler' }
+          $toolRoot >> $env:GITHUB_PATH
+      - name: Extract SDK
+        shell: bash
+        run: python tools/ci/ExtractSdk.py --packages artifacts --directory "build/sdk"
+      - name: Install release dependencies
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TARGET: ${{ matrix.target }}
+        run: python build/sdk/tools/setup.py build/dependencies --target "$TARGET"
+      - name: Initialize and build example
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          EXAMPLE: ${{ matrix.example }}
+        run: python tools/ci/BuildExample.py --sdk build/sdk --deps build/dependencies --directory "build/example" --target "$TARGET" --example "$EXAMPLE"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: example-${{ matrix.target }}-${{ matrix.example }}
+          path: |
+            build/example/dist/
+            build/example/logs/
+          if-no-files-found: error
+          compression-level: 0

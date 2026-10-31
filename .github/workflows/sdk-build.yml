@@ -1,0 +1,108 @@
+name: build sdk
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux
+            shell: bash
+          - os: windows-2022
+            platform: windows
+            shell: 'msys2 {0}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          submodules: true
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.11'
+      - name: Install Linux tools
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 ninja-build python3-venv
+          echo /usr/lib/llvm-18/bin >> "$GITHUB_PATH"
+          python3 -m venv .venv
+          .venv/bin/python -m pip install -r cmake/dependencies/requirements.txt
+          echo "SDK_PYTHON=$PWD/.venv/bin/python" >> "$GITHUB_ENV"
+      - name: Prepare Windows Python
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.venv/Scripts/python.exe -m pip install -r cmake/dependencies/requirements.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "SDK_PYTHON=$((Resolve-Path .venv/Scripts/python.exe).Path.Replace('\', '/'))" >> $env:GITHUB_ENV
+      - name: Install Windows tools
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-clang
+            mingw-w64-ucrt-x86_64-llvm-tools
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+      - name: Select package version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$REF_TYPE" = tag ]; then
+            version="${REF_NAME#v}"
+          else
+            version="dev-${GITHUB_SHA:0:12}"
+          fi
+          if [[ ! "$version" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+            echo "Invalid package version" >&2
+            exit 1
+          fi
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+      - name: Configure
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DPython3_EXECUTABLE="$SDK_PYTHON" \
+            -DBUILD_TESTING=ON \
+            -DANYDEVKIT_PACKAGE_VERSION="$PACKAGE_VERSION"
+      - name: Build
+        run: cmake --build build --parallel 4
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --parallel 2 --timeout 120
+      - name: Package
+        run: cmake --build build --target package_sdk
+      - name: Verify installed SDK
+        run: |
+          set -euo pipefail
+          "$SDK_PYTHON" core/PublicSdk/tests/InstalledSdk.py --packages build/sdk-package --directory "build/relocated sdk"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: adk-${{ matrix.platform }}
+          path: |
+            build/sdk-package/AnyDevKit-*.zip
+            build/sdk-package/AnyDevKit-*.tar.gz
+            build/sdk-package/AnyDevKit-*.sha256
+          if-no-files-found: error
+          compression-level: 0
