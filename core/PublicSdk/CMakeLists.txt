@@ -73,3 +73,20 @@ install(FILES "${PROJECT_SOURCE_DIR}/cmake/VerifyRuntimeImports.cmake" DESTINATI
 install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/ps5-nid-map/LICENSE" DESTINATION share/AnyDevKit/licenses/ps5-nid-map COMPONENT sdk)
 
 install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/AnyPS5/core/libs/prx/libc/include/ApplicationHeap.hpp" DESTINATION share/AnyDevKit/startup/include/prx/libc/include COMPONENT sdk)
+
+if(WIN32)
+    set(sdkArchive AnyDevKit-windows-x86_64.zip)
+    set(sdkArchiveFormat zip)
+else()
+    set(sdkArchive AnyDevKit-linux-x86_64.tar)
+    set(sdkArchiveFormat gnutar)
+endif()
+set(sdkDependencies adk)
+if(TARGET AnyDevKitWindowsStartup)
+    list(APPEND sdkDependencies AnyDevKitWindowsStartup)
+endif()
+add_custom_target(package_sdk
+    COMMAND "${CMAKE_COMMAND}" "-DBUILD_DIRECTORY=${PROJECT_BINARY_DIR}" "-DPACKAGE_DIRECTORY=${PROJECT_BINARY_DIR}/sdk-package" "-DPACKAGE_NAME=${sdkArchive}" "-DARCHIVE_FORMAT=${sdkArchiveFormat}" -P "${PROJECT_SOURCE_DIR}/cmake/PackageSdk.cmake"
+    DEPENDS ${sdkDependencies}
+    VERBATIM)
+install(FILES "${PROJECT_SOURCE_DIR}/LICENSE" DESTINATION . COMPONENT sdk)

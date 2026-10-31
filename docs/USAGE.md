@@ -1,16 +1,16 @@
 # Usage
 
-> Planned workflow. Not yet available.
+Extract the latest [SDK](https://github.com/boykopovar/AnyDevKit/releases/latest). Add its `bin` directory to `PATH`. Install Python 3.11+, CMake 3.22+, Ninja, Clang and LLD.
 
-Extract the latest [SDK](https://github.com/boykopovar/AnyDevKit/releases/latest). Add its `bin` directory to `PATH`. Install Python, CMake, Ninja, Clang and LLD.
-
-`adk` does not download dependencies yet. Use `tools/setup.py` or download the latest [AnyPS5](https://github.com/boykopovar/AnyPS5/releases/latest) and [C++ runtime](https://github.com/boykopovar/llvm-cxx-ps/releases/latest) releases manually.
+`adk setup` is not implemented. `tools/setup.py` downloads the latest [AnyPS5](https://github.com/boykopovar/AnyPS5/releases/latest) and [C++ runtime](https://github.com/boykopovar/llvm-cxx-ps/releases/latest) releases and prepares C headers and import libraries. To use manually downloaded archives, pass `--cache <directory>`.
 
 ```sh
 python tools/setup.py D:/AdkDependencies
-adk init MyApp --dependencies D:/AdkDependencies
+adk init MyApp --deps D:/AdkDependencies
 cd MyApp
 ```
+
+Without `--target`, setup prepares all three platforms. The destination must not exist.
 
 Edit `src/Main.cpp` and `app0/sce_sys/param.json`.
 
@@ -32,3 +32,5 @@ adk package --target ps5
 ```
 
 Output: `dist/ps5/MyApp.ffpfsc`.
+
+An absent `app0/sce_sys/icon0.png` is generated. `pic0.png` is optional.
