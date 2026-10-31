@@ -74,19 +74,32 @@ install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/ps5-nid-map/LICENSE" DESTINATION s
 
 install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/AnyPS5/core/libs/prx/libc/include/ApplicationHeap.hpp" DESTINATION share/AnyDevKit/startup/include/prx/libc/include COMPONENT sdk)
 
+set(ANYDEVKIT_PACKAGE_VERSION "dev" CACHE STRING "SDK archive version")
+if(NOT ANYDEVKIT_PACKAGE_VERSION MATCHES "^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    message(FATAL_ERROR "Invalid SDK archive version")
+endif()
 if(WIN32)
-    set(sdkArchive AnyDevKit-windows-x86_64.zip)
+    set(sdkArchive "AnyDevKit-${ANYDEVKIT_PACKAGE_VERSION}-windows-x86_64.zip")
     set(sdkArchiveFormat zip)
 else()
-    set(sdkArchive AnyDevKit-linux-x86_64.tar.gz)
+    set(sdkArchive "AnyDevKit-${ANYDEVKIT_PACKAGE_VERSION}-linux-x86_64.tar.gz")
     set(sdkArchiveFormat gnutar)
 endif()
 set(sdkDependencies adk)
-if(TARGET AnyDevKitWindowsStartup)
-    list(APPEND sdkDependencies AnyDevKitWindowsStartup)
-endif()
+foreach(startup AnyDevKitWindowsStartup AnyDevKitLinuxStartup)
+    if(TARGET ${startup})
+        list(APPEND sdkDependencies ${startup})
+    endif()
+endforeach()
 add_custom_target(package_sdk
     COMMAND "${CMAKE_COMMAND}" "-DBUILD_DIRECTORY=${PROJECT_BINARY_DIR}" "-DPACKAGE_DIRECTORY=${PROJECT_BINARY_DIR}/sdk-package" "-DPACKAGE_NAME=${sdkArchive}" "-DARCHIVE_FORMAT=${sdkArchiveFormat}" -P "${PROJECT_SOURCE_DIR}/cmake/PackageSdk.cmake"
     DEPENDS ${sdkDependencies}
     VERBATIM)
 install(FILES "${PROJECT_SOURCE_DIR}/LICENSE" DESTINATION . COMPONENT sdk)
+
+foreach(dependency AnyPS5 lodepng opengnm-psbc opengnm SPIRV-Headers)
+    install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/${dependency}/LICENSE" DESTINATION "share/AnyDevKit/licenses/${dependency}" COMPONENT sdk)
+endforeach()
+install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/glslang/LICENSE.txt" DESTINATION share/AnyDevKit/licenses/glslang COMPONENT sdk)
+install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/Vulkan-Headers/LICENSE.md" DESTINATION share/AnyDevKit/licenses/Vulkan-Headers COMPONENT sdk)
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/3rdparty/Vulkan-Headers/LICENSES/" DESTINATION share/AnyDevKit/licenses/Vulkan-Headers COMPONENT sdk)
