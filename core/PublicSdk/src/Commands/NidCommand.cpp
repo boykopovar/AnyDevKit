@@ -1,5 +1,6 @@
 #include "Commands/NidCommand.hpp"
 #include "IO/Files.hpp"
+#include "WindowsStartupBuilder.hpp"
 #include <nid/BinaryPatcherFactory.hpp>
 #include <nid/ExportExclusions.hpp>
 #include <cstring>
@@ -18,6 +19,8 @@ void NidCommand::Run(std::string_view command, Arguments& arguments) {
     Nid::PatchOptions options;
     options.executable = arguments.Flag("exec");
     options.onlySce = arguments.Flag("only-sce");
+    const bool windowsStartup = arguments.Flag("windows-startup");
+    if (windowsStartup && !options.executable) throw std::invalid_argument("--windows-startup requires --exec");
     if (options.onlySce && !options.executable) throw std::invalid_argument("--only-sce requires --exec");
     const auto library = options.executable ? arguments.Optional("library") : arguments.Require("library");
     std::unordered_set<std::string> excluded;
@@ -33,6 +36,7 @@ void NidCommand::Run(std::string_view command, Arguments& arguments) {
     const auto source = Files::Read(Files::Path(input));
     std::vector<std::uint8_t> bytes(source.size());
     if (!bytes.empty()) std::memcpy(bytes.data(), source.data(), source.size());
+    if (windowsStartup) WindowsStartupBuilder::PrepareExecutable(std::as_writable_bytes(std::span(bytes)));
     const auto patcher = Nid::MakePatcher(bytes);
     if (!patcher) throw std::invalid_argument("Unsupported binary format");
     patcher->PatchNids(bytes, library, excluded, options);

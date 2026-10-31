@@ -25,7 +25,7 @@ build --input linked.elf --app0 directory --output file --workspace new-director
   Prepared app0 and application.elf remain in workspace. No compiler is launched.
   app0 must not already contain eboot.bin, param.json, icon0.dds, pic0.dds or keystone.
 
-nid --input binary --output binary [--exec [--only-sce]] [--library name]
+nid --input binary --output binary [--exec [--only-sce] [--windows-startup]] [--library name]
     [--preserve-exports binary]... [--preserve-export-list text]...
   Automatically detects PE, ELF or Mach-O. Library mode requires --library.
   Uses AnyPS5 NID rules. Source remains unchanged.

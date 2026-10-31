@@ -1,4 +1,4 @@
-add_library(AnyDevKitWindowsStartupBuilder STATIC src/WindowsStartupBuilder.cpp)
+add_library(AnyDevKitWindowsStartupBuilder STATIC src/WindowsStartupBuilder.cpp src/Executable.cpp)
 add_library(AnyDevKit::WindowsStartupBuilder ALIAS AnyDevKitWindowsStartupBuilder)
 target_include_directories(AnyDevKitWindowsStartupBuilder PUBLIC include)
 target_compile_features(AnyDevKitWindowsStartupBuilder PUBLIC cxx_std_20)
