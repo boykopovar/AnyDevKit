@@ -77,12 +77,29 @@ jobs:
           TARGET: ${{ matrix.target }}
           EXAMPLE: ${{ matrix.example }}
         run: python tools/ci/BuildExample.py --sdk build/sdk --deps build/dependencies --directory "build/example" --target "$TARGET" --example "$EXAMPLE"
+      - name: Package example release
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          EXAMPLE: ${{ matrix.example }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="dev-${GITHUB_SHA:0:12}"
+          fi
+          python tools/ci/PackageExample.py --project build/example --deps build/dependencies --directory build/example-release --target "$TARGET" --example "$EXAMPLE" --version "$version"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: example-release-${{ matrix.target }}-${{ matrix.example }}
+          path: build/example-release/
+          if-no-files-found: error
+          compression-level: 0
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: example-${{ matrix.target }}-${{ matrix.example }}
-          path: |
-            build/example/dist/
-            build/example/logs/
+          name: example-logs-${{ matrix.target }}-${{ matrix.example }}
+          path: build/example/logs/
           if-no-files-found: error
           compression-level: 0

@@ -18,6 +18,11 @@ jobs:
           pattern: adk-*
           path: artifacts
           merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: example-release-*
+          path: artifacts
+          merge-multiple: true
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
@@ -27,4 +32,4 @@ jobs:
           set -euo pipefail
           cd artifacts
           sha256sum --check *.sha256
-          gh release create "$RELEASE_TAG" *.zip *.tar.gz *.sha256 --verify-tag --title "$RELEASE_TAG" --generate-notes
+          gh release create "$RELEASE_TAG" *.zip *.tar.gz *.ffpfsc *.sha256 --verify-tag --title "$RELEASE_TAG" --generate-notes
