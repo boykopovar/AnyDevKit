@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 from pathlib import Path
 import shutil
 import tempfile
@@ -80,6 +81,12 @@ def prepare(target, root, scratch, cache, anyps5, anycxx):
     print(f"Prepared {target}", flush=True)
 
 
+def require_runtime(info):
+    version = re.fullmatch(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", info["tag_name"])
+    if not version or tuple(map(int, version.groups())) < (0, 1, 3):
+        raise ValueError("llvm-cxx-ps v0.1.3 or newer is required for ELF RTTI and libc errno imports")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Install release libraries and C headers for AnyDevKit. No target selects all platforms.")
     parser.add_argument("directory", type=Path)
@@ -96,6 +103,8 @@ def main():
     targets = list(dict.fromkeys(options.target or ["windows", "linux", "ps5"]))
     anyps5 = release("boykopovar/AnyPS5", options.anyps5_version)
     anycxx = release("boykopovar/llvm-cxx-ps", options.anycxx_version)
+    require_runtime(anycxx)
+    print(f"Using AnyPS5 {anyps5['tag_name']} and llvm-cxx-ps {anycxx['tag_name']}", flush=True)
     with tempfile.TemporaryDirectory(prefix="adk-setup-", dir=root.parent) as temporary:
         scratch = Path(temporary)
         staging = scratch / "dependencies"
