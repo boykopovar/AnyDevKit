@@ -41,7 +41,7 @@ def asset(release_info, name):
         raise ValueError(f"Missing or ambiguous release asset: {name}")
     item = matches[0]
     digest = item.get("digest", "")
-    if not digest.startswith("sha256:") or len(digest) != 71:
+    if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
         raise ValueError(f"Missing SHA-256 for release asset: {name}")
     return {"url": item["browser_download_url"], "sha256": digest[7:], "size": item["size"]}
 

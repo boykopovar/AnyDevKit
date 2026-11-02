@@ -13,7 +13,7 @@ from dependency_setup.elf_imports import prepare_elf_import
 def windows_headers(cache, destination):
     version = "15.2.0posix-14.0.0-ucrt-r7"
     name = "winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64ucrt-14.0.0-r7.zip"
-    source = {"url": f"https://github.com/brechtsanders/winlibs_mingw/releases/download/{version}/{name}", "sha256": "cb2fbad6162540cdf5e1facdce08d4dac359e8cf64f7f696a99274291763b815", "size": 267593703}
+    source = asset(release("brechtsanders/winlibs_mingw", version), name)
     archive = download(source, cache)
     with zipfile.ZipFile(archive) as entries:
         for entry in entries.infolist():
