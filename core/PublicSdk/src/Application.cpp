@@ -3,6 +3,7 @@
 #include "CommandLine/Arguments.hpp"
 #include "Commands/BuildCommand.hpp"
 #include "Commands/ProjectCommand.hpp"
+#include "Commands/SetupCommand.hpp"
 #include "Commands/MetadataCommand.hpp"
 #include "Commands/NidCommand.hpp"
 #include "Commands/PackagingCommand.hpp"
@@ -24,7 +25,8 @@ void Application::Run(std::span<const std::string> arguments, const std::filesys
         ProjectCommand::Init(arguments[1], options, sdkRoot);
         return;
     }
-    if (arguments.front() == "package" || arguments.front() == "setup" || arguments.front() == "update") {
+    if (arguments.front() == "setup") { SetupCommand::Run(arguments.subspan(1), sdkRoot); return; }
+    if (arguments.front() == "package" || arguments.front() == "update") {
         Arguments options(arguments.subspan(1));
         if (arguments.front() == "package") ProjectCommand::Package(options);
         else ProjectCommand::Dependencies(arguments.front(), options);

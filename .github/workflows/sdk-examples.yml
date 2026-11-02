@@ -70,7 +70,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           TARGET: ${{ matrix.target }}
-        run: python build/sdk/tools/setup.py build/dependencies --target "$TARGET"
+        run: build/sdk/bin/adk setup build/dependencies --target "$TARGET"
       - name: Initialize and build example
         shell: bash
         env:

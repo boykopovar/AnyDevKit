@@ -11,8 +11,8 @@ init Name --deps directory [--directory path] [--sdk path] [--title-id ID]
   Creates editable CMake files, adk.json and app0/sce_sys/param.json.
 package --target ps5 [--project directory] [build options]
   Reads adk.json; CLI options override project settings. Does not compile.
-setup --target windows|linux|ps5 [--project directory]
-  Not implemented. Always fails; install release dependencies manually.
+setup directory [--target windows|linux|ps5]... [--cache directory] [--anyps5-version tag] [--anycxx-version tag]
+  Runs tools/setup.py with system Python 3.11+. No target selects all platforms.
 update [--project directory]
   Not implemented. Always fails; no lock file or downloads are created.
 

@@ -5,6 +5,7 @@ add_library(AnyDevKitPublicSdk STATIC
     src/CommandLine/Help.cpp
     src/CommandLine/Arguments.cpp
     src/CommandLine/Options.cpp
+    src/Commands/SetupCommand.cpp
     src/Commands/ProjectCommand.cpp
     src/Commands/BuildCommand.cpp
     src/Commands/MetadataCommand.cpp

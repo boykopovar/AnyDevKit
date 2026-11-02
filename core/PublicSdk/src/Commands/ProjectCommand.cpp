@@ -106,10 +106,7 @@ void ProjectCommand::Package(Arguments& arguments) {
     BuildCommand::Run("build", arguments);
 }
 void ProjectCommand::Dependencies(std::string_view command, Arguments& arguments) {
-    if (command == "setup") {
-        const auto target = arguments.Require("target");
-        if (target != "windows" && target != "linux" && target != "ps5") throw std::invalid_argument("Unknown setup target: " + target);
-    } else if (command != "update") throw std::invalid_argument("Unknown dependency command");
+    if (command != "update") throw std::invalid_argument("Unknown dependency command");
     static_cast<void>(arguments.Optional("project", "."));
     arguments.Finish();
     throw std::runtime_error(std::string(command) + " is not implemented; install release packages manually and configure CMakePresets.json");

@@ -29,6 +29,9 @@ for path in [adk, sdk / "lib" / startup, sdk / "LICENSE", sdk / "tools/setup.py"
         raise RuntimeError(f"Missing installed file: {path}")
 subprocess.run([adk, "--help"], check=True, cwd=root)
 subprocess.run([sys.executable, sdk / "tools/setup.py", "--help"], check=True, cwd=root)
+result = subprocess.run([adk, "setup", str(root), "--target", "ps5"], capture_output=True, text=True, cwd=root)
+if result.returncode == 0 or "Dependency directory already exists" not in result.stderr:
+    raise RuntimeError("Installed adk setup did not run tools/setup.py: " + result.stderr)
 dependencies = root / "dependencies"
 dependencies.mkdir()
 subprocess.run([adk, "init", "Smoke", "--deps", dependencies], check=True, cwd=root)
