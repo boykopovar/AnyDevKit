@@ -103,6 +103,5 @@ jobs:
           path: |
             build/sdk-package/AnyDevKit-*.zip
             build/sdk-package/AnyDevKit-*.tar.gz
-            build/sdk-package/AnyDevKit-*.sha256
           if-no-files-found: error
           compression-level: 0

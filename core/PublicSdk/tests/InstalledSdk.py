@@ -1,5 +1,4 @@
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -11,13 +10,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--packages", type=Path, required=True)
 parser.add_argument("--directory", type=Path, required=True)
 options = parser.parse_args()
-checksums = list(options.packages.glob("AnyDevKit-*.sha256"))
-if len(checksums) != 1:
-    raise RuntimeError("Expected one SDK archive checksum")
-digest, name = checksums[0].read_text().strip().split("  ", 1)
-archive = options.packages / name
-if archive.name != name or hashlib.sha256(archive.read_bytes()).hexdigest() != digest:
-    raise RuntimeError("Invalid SDK archive checksum")
+archives = list(options.packages.glob("AnyDevKit-*.zip")) + list(options.packages.glob("AnyDevKit-*.tar.gz"))
+if len(archives) != 1:
+    raise RuntimeError("Expected one SDK archive")
+archive = archives[0]
 root = options.directory.resolve()
 root.mkdir(parents=True, exist_ok=False)
 sdk = root / "sdk"

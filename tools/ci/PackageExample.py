@@ -1,5 +1,4 @@
 import argparse
-import hashlib
 from pathlib import Path
 import re
 import shutil
@@ -55,7 +54,4 @@ else:
                 archive.add(path, arcname=destination)
 if package.stat().st_size == 0:
     raise RuntimeError("Empty example package")
-with package.open("rb") as stream:
-    digest = hashlib.file_digest(stream, "sha256").hexdigest()
-package.with_name(package.name + ".sha256").write_text(f"{digest}  {package.name}\n")
 print(package)

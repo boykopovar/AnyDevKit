@@ -13,6 +13,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.11'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           pattern: adk-*
@@ -26,10 +32,11 @@ jobs:
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          cd artifacts
-          sha256sum --check *.sha256
-          gh release create "$RELEASE_TAG" *.zip *.tar.gz *.ffpfsc *.sha256 --verify-tag --title "$RELEASE_TAG" --generate-notes
+          gh release create "$RELEASE_TAG" artifacts/*.zip artifacts/*.tar.gz artifacts/*.ffpfsc --draft --verify-tag --title "$RELEASE_TAG" --generate-notes
+          python tools/ci/VerifyRelease.py --repository "$GH_REPO" --tag "$RELEASE_TAG" --directory artifacts
+          gh release edit "$RELEASE_TAG" --draft=false
