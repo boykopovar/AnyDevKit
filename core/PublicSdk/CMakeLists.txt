@@ -67,7 +67,7 @@ if(BUILD_TESTING)
 endif()
 
 install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/json/LICENSE.MIT" DESTINATION share/AnyDevKit/licenses/json COMPONENT sdk)
-install(FILES "${PROJECT_SOURCE_DIR}/docs/USAGE.md" DESTINATION share/AnyDevKit/docs COMPONENT sdk)
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/docs/user/" DESTINATION share/AnyDevKit/docs COMPONENT sdk FILES_MATCHING PATTERN "*.md")
 
 install(FILES "${PROJECT_SOURCE_DIR}/cmake/VerifyRuntimeImports.cmake" DESTINATION lib/cmake/AnyDevKit COMPONENT sdk)
 
