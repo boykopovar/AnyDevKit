@@ -40,6 +40,16 @@ with tempfile.TemporaryDirectory(prefix="adk-project-", dir=Path(adk).parent) as
     assert result.returncode != 0 and 'exited with code 7' in result.stderr
     result = subprocess.run([installed, 'setup', 'deps'], env=dict(os.environ, PATH=str(root)), capture_output=True, text=True)
     assert result.returncode != 0 and 'Python 3.11+ not found' in result.stderr
+    if sys.platform == "win32":
+        launcher = root / "python launcher"
+        launcher.mkdir()
+        shutil.copy2(sys._base_executable, launcher / "py.exe")
+        for library in Path(sys.base_prefix).glob("*.dll"):
+            shutil.copy2(library, launcher / library.name)
+        launcherEnvironment = dict(os.environ, PATH=str(launcher), PYTHONHOME=sys.base_prefix)
+        result = subprocess.run([installed, 'setup', *forwarded], env=launcherEnvironment, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert json.loads(result.stdout) == forwarded
     script.unlink()
     result = subprocess.run([installed, 'setup', 'deps'], env=environment, capture_output=True, text=True)
     assert result.returncode != 0 and 'Missing SDK tools/setup.py' in result.stderr

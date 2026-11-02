@@ -80,7 +80,6 @@ void SetupCommand::Run(std::span<const std::string> arguments, const std::filesy
             const auto executable = std::filesystem::absolute(std::filesystem::path(paths.substr(start, end - start)) / name);
             if (std::filesystem::is_regular_file(executable)) {
                 std::vector<std::string> prefix;
-                if (name == "py.exe") prefix.emplace_back("-3");
                 auto probe = prefix;
                 probe.insert(probe.end(), {"-c", "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)"});
                 if (run(executable, probe) == 0) {
