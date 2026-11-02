@@ -16,7 +16,7 @@ Zero overhead and abstraction on PS5. On Windows and Linux, performance is limit
 
 C++20 [standard library support](https://github.com/boykopovar/llvm-cxx-ps/releases/latest) is available; functionality provided by PS5 libraries other than libc is disabled.
 
-[Usage](docs/user/USAGE.md).
+Documentation is not yet available. [Usage instructions](docs/user/USAGE.md) are available.
 
 ### Shader compilation and AGC packaging support
 
