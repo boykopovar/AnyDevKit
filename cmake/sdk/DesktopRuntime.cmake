@@ -1,6 +1,7 @@
 function(adk_windows_runtime_manifest target)
     find_program(ADK_RC NAMES llvm-rc REQUIRED)
-    file(GLOB modules CONFIGURE_DEPENDS RELATIVE "${ADK_DEPENDENCY_ROOT}/runtime" "${ADK_DEPENDENCY_ROOT}/runtime/*.prx" "${ADK_DEPENDENCY_ROOT}/runtime/*.dll")
+    file(TO_CMAKE_PATH "${ADK_DEPENDENCY_ROOT}/runtime" runtimeDirectory)
+    file(GLOB modules CONFIGURE_DEPENDS RELATIVE "${runtimeDirectory}" "${runtimeDirectory}/*.prx" "${runtimeDirectory}/*.dll")
     if(NOT modules)
         message(FATAL_ERROR "Missing Windows runtime modules")
     endif()
