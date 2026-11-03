@@ -3,3 +3,7 @@ foreach(name header.bin code.bin bindings.adk)
     file(REMOVE "${DIRECTORY}/${name}")
 endforeach()
 execute_process(COMMAND "${ADK}" shader --input "${INPUT}" --stage "${STAGE}" --header "${DIRECTORY}/header.bin" --code "${DIRECTORY}/code.bin" --metadata "${DIRECTORY}/bindings.adk" ${OPTIONS} COMMAND_ERROR_IS_FATAL ANY)
+
+if(HEADER)
+    include("${CMAKE_CURRENT_LIST_DIR}/EmbedShader.cmake")
+endif()
