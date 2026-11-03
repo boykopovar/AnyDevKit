@@ -25,7 +25,7 @@ else:
     suffix = ".exe" if options.target == "windows" else ""
     if not (source / (options.example + suffix)).is_file():
         raise RuntimeError("Missing desktop executable")
-    if not (source / "libc.prx").is_file():
+    if not (source / "libs/libc.prx").is_file():
         raise RuntimeError("Missing desktop runtime")
     parameter = options.project / "app0/sce_sys/param.json"
     if not parameter.is_file():

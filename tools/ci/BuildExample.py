@@ -93,4 +93,12 @@ else:
     output = project / "dist" / options.target / (options.example + suffix)
 if not output.is_file() or output.stat().st_size == 0:
     raise RuntimeError(f"Missing output: {output}")
+if options.target != "ps5":
+    libraries = output.parent / "libs"
+    if not (libraries / "libc.prx").is_file():
+        raise RuntimeError("Missing runtime in libs directory")
+    if any(path.is_file() and (path.suffix in {".prx", ".dll", ".so"} or ".so." in path.name) for path in output.parent.iterdir()):
+        raise RuntimeError("Runtime library outside libs directory")
+    if options.target == "windows" and not (libraries / "libs.manifest").is_file():
+        raise RuntimeError("Missing Windows runtime manifest")
 print(f"Built {options.example} for {options.target}: {output}", flush=True)
