@@ -1,0 +1,30 @@
+#ifndef @NAME@_Graphics_Renderer_hpp
+#define @NAME@_Graphics_Renderer_hpp
+#include "Graphics/Memory.hpp"
+#include "Graphics/Pipeline.hpp"
+#include <array>
+#include <memory>
+#include <span>
+#include <string_view>
+class Renderer final {
+public:
+    Renderer(int width, int height, std::string_view title);
+    void Draw(void* target, std::array<float, 2> position, float scale);
+private:
+    struct alignas(16) Frame {
+        std::array<float, 4> rectangle;
+        std::array<float, 4> color;
+        std::array<float, 4> viewport;
+        std::array<std::uint32_t, 4> glyph;
+    };
+    Shader* createShader(std::span<const std::uint8_t> header, std::span<const std::uint8_t> code);
+    Memory memory;
+    std::unique_ptr<Pipeline> pipeline;
+    Shader* vertex;
+    Shader* fragment;
+    std::uint32_t* commands;
+    std::uint64_t* fence;
+    Frame* frames;
+    std::size_t titleLength;
+};
+#endif

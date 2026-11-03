@@ -1,0 +1,6 @@
+#ifndef @NAME@_Graphics_Font_hpp
+#define @NAME@_Graphics_Font_hpp
+#include <array>
+#include <cstdint>
+std::array<std::uint32_t, 4> EncodeGlyph(char character);
+#endif

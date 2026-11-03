@@ -1,0 +1,87 @@
+#include "Graphics/Font.hpp"
+#include "Error.hpp"
+namespace {
+std::array<unsigned, 7> glyph(char character) {
+    switch (character) {
+    case '0': return {14, 17, 19, 21, 25, 17, 14};
+    case '1': return {4, 12, 4, 4, 4, 4, 14};
+    case '2': return {14, 17, 1, 2, 4, 8, 31};
+    case '3': return {30, 1, 1, 14, 1, 1, 30};
+    case '4': return {2, 6, 10, 18, 31, 2, 2};
+    case '5': return {31, 16, 16, 30, 1, 1, 30};
+    case '6': return {14, 16, 16, 30, 17, 17, 14};
+    case '7': return {31, 1, 2, 4, 8, 8, 8};
+    case '8': return {14, 17, 17, 14, 17, 17, 14};
+    case '9': return {14, 17, 17, 15, 1, 1, 14};
+    case 'A': return {14, 17, 17, 31, 17, 17, 17};
+    case 'B': return {30, 17, 17, 30, 17, 17, 30};
+    case 'F': return {31, 16, 16, 30, 16, 16, 16};
+    case 'G': return {14, 17, 16, 23, 17, 17, 15};
+    case 'H': return {17, 17, 17, 31, 17, 17, 17};
+    case 'J': return {7, 2, 2, 2, 18, 18, 12};
+    case 'M': return {17, 27, 21, 21, 17, 17, 17};
+    case 'P': return {30, 17, 17, 30, 16, 16, 16};
+    case 'Q': return {14, 17, 17, 17, 21, 18, 13};
+    case 'S': return {15, 16, 16, 14, 1, 1, 30};
+    case 'W': return {17, 17, 17, 21, 21, 27, 17};
+    case 'X': return {17, 17, 10, 4, 10, 17, 17};
+    case 'Z': return {31, 1, 2, 4, 8, 16, 31};
+    case '_': return {0, 0, 0, 0, 0, 0, 31};
+    case '%': return {25, 25, 2, 4, 8, 19, 19};
+    case ':': return {0, 6, 6, 0, 6, 6, 0};
+    case 'C': return {14, 17, 16, 16, 16, 17, 14};
+    case 'D': return {30, 17, 17, 17, 17, 17, 30};
+    case 'E': return {31, 16, 16, 30, 16, 16, 31};
+    case 'I': return {14, 4, 4, 4, 4, 4, 14};
+    case 'K': return {17, 18, 20, 24, 20, 18, 17};
+    case 'L': return {16, 16, 16, 16, 16, 16, 31};
+    case 'N': return {17, 25, 25, 21, 19, 19, 17};
+    case 'O': return {14, 17, 17, 17, 17, 17, 14};
+    case 'R': return {30, 17, 17, 30, 20, 18, 17};
+    case 'T': return {31, 4, 4, 4, 4, 4, 4};
+    case 'U': return {17, 17, 17, 17, 17, 17, 14};
+    case 'V': return {17, 17, 17, 17, 17, 10, 4};
+    case 'Y': return {17, 17, 10, 4, 4, 4, 4};
+    case '+': return {0, 4, 4, 31, 4, 4, 0};
+    case '-': return {0, 0, 0, 31, 0, 0, 0};
+    case '*': return {0, 17, 10, 4, 10, 17, 0};
+    case '/': return {1, 2, 2, 4, 8, 8, 16};
+    case '=': return {0, 0, 31, 0, 31, 0, 0};
+    case '.': return {0, 0, 0, 0, 0, 6, 6};
+    case ' ': return {};
+    case 'a': return {0, 0, 14, 1, 15, 17, 15};
+    case 'b': return {16, 16, 30, 17, 17, 17, 30};
+    case 'c': return {0, 0, 14, 17, 16, 17, 14};
+    case 'd': return {1, 1, 15, 17, 17, 17, 15};
+    case 'e': return {0, 0, 14, 17, 31, 16, 14};
+    case 'f': return {6, 9, 8, 28, 8, 8, 8};
+    case 'g': return {0, 15, 17, 17, 15, 1, 14};
+    case 'h': return {16, 16, 30, 17, 17, 17, 17};
+    case 'i': return {4, 0, 12, 4, 4, 4, 14};
+    case 'j': return {2, 0, 6, 2, 2, 18, 12};
+    case 'k': return {16, 16, 18, 20, 24, 20, 18};
+    case 'l': return {12, 4, 4, 4, 4, 4, 14};
+    case 'm': return {0, 0, 26, 21, 21, 21, 21};
+    case 'n': return {0, 0, 30, 17, 17, 17, 17};
+    case 'o': return {0, 0, 14, 17, 17, 17, 14};
+    case 'p': return {0, 30, 17, 17, 30, 16, 16};
+    case 'q': return {0, 15, 17, 17, 15, 1, 1};
+    case 'r': return {0, 0, 22, 25, 16, 16, 16};
+    case 's': return {0, 0, 15, 16, 14, 1, 30};
+    case 't': return {8, 8, 28, 8, 8, 9, 6};
+    case 'u': return {0, 0, 17, 17, 17, 19, 13};
+    case 'v': return {0, 0, 17, 17, 17, 10, 4};
+    case 'w': return {0, 0, 17, 17, 21, 21, 10};
+    case 'x': return {0, 0, 17, 10, 4, 10, 17};
+    case 'y': return {0, 17, 17, 17, 15, 1, 14};
+    case 'z': return {0, 0, 31, 2, 4, 8, 31};
+    default: throw Error{"Unsupported glyph"};
+    }
+}
+}
+std::array<std::uint32_t, 4> EncodeGlyph(char character) {
+    const auto rows = glyph(character);
+    std::array<std::uint32_t, 4> result{};
+    for (std::size_t row = 0; row < rows.size(); ++row) result[row / 4] |= rows[row] << ((row % 4) * 5);
+    return result;
+}

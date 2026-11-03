@@ -1,0 +1,8 @@
+#ifndef @NAME@_Error_hpp
+#define @NAME@_Error_hpp
+struct Error final {
+    const char* Message;
+    int Code = 1;
+};
+int Check(int result, const char* operation);
+#endif

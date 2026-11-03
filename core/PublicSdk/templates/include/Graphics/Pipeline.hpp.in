@@ -1,0 +1,15 @@
+#ifndef @NAME@_Graphics_Pipeline_hpp
+#define @NAME@_Graphics_Pipeline_hpp
+#include "Graphics/Memory.hpp"
+#include "SceShaders.hpp"
+struct CommandBuffer;
+class Pipeline final {
+public:
+    Pipeline(Memory& memory, int width, int height, Shader* vertex, Shader* fragment);
+    void Bind(CommandBuffer& buffer, void* target);
+private:
+    ShaderRegister* context;
+    ShaderRegister* primitive;
+    std::uint32_t contextCount = 0;
+};
+#endif

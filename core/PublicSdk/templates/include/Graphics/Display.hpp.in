@@ -1,0 +1,23 @@
+#ifndef @NAME@_Graphics_Display_hpp
+#define @NAME@_Graphics_Display_hpp
+#include "Graphics/Memory.hpp"
+#include <array>
+class Display final {
+public:
+    Display(int width, int height);
+    ~Display() noexcept(false);
+    Display(const Display&) = delete;
+    Display& operator=(const Display&) = delete;
+    void* Acquire();
+    void Present();
+private:
+    void wait();
+    Memory memory;
+    int handle = -1;
+    int back = 0;
+    std::int64_t sequence = 0;
+    std::uint64_t* labels = nullptr;
+    bool acquired = false;
+    std::array<void*, 2> buffers{};
+};
+#endif

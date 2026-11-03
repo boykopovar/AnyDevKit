@@ -1,0 +1,27 @@
+#include "Application.hpp"
+#include "Animation/BouncingTitle.hpp"
+#include "Graphics/Display.hpp"
+#include "Graphics/Renderer.hpp"
+#include "Error.hpp"
+#include "prx/libkernel/Time/include/Time.hpp"
+#include "prx/libkernel/include/Api.hpp"
+#include "prx/libSceAgc/libSceAgc.hpp"
+void Application::Run() {
+    constexpr int Width = 1920;
+    constexpr int Height = 1080;
+    constexpr auto Title = "@NAME@";
+    Display display(Width, Height);
+    Renderer renderer(Width, Height, Title);
+    BouncingTitle title(Title, Width, Height);
+    auto previous = sceKernelGetProcessTime();
+    for (;;) {
+        const auto now = sceKernelGetProcessTime();
+        title.Update(static_cast<double>(now - previous) / 1000000.0);
+        previous = now;
+        renderer.Draw(display.Acquire(), title.Position(), title.Scale());
+        display.Present();
+        const auto beforeSuspend = sceKernelGetProcessTime();
+        Check(sceAgcSuspendPoint(), "sceAgcSuspendPoint");
+        previous += sceKernelGetProcessTime() - beforeSuspend;
+    }
+}

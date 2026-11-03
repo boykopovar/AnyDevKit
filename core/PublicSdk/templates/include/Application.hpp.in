@@ -1,0 +1,7 @@
+#ifndef @NAME@_Application_hpp
+#define @NAME@_Application_hpp
+class Application final {
+public:
+    void Run();
+};
+#endif

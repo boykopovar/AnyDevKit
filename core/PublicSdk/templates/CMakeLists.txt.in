@@ -1,5 +1,18 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(@NAME@ LANGUAGES C CXX)
 find_package(AnyDevKit CONFIG REQUIRED)
-adk_add_executable(@NAME@ src/Main.cpp)
-adk_link_libraries(@NAME@ libc libkernel)
+adk_add_executable(@NAME@
+    src/Main.cpp
+    src/Application.cpp
+    src/Error.cpp
+    src/Animation/BouncingTitle.cpp
+    src/Graphics/Display.cpp
+    src/Graphics/Font.cpp
+    src/Graphics/Memory.cpp
+    src/Graphics/Pipeline.cpp
+    src/Graphics/Renderer.cpp
+)
+target_include_directories(@NAME@ PRIVATE include)
+adk_link_libraries(@NAME@ libc libkernel libSceVideoOut libSceAgc libSceAgcDriver)
+adk_add_shaders(@NAME@ shaders/Screen.vert HEADER ScreenVertex)
+adk_add_shaders(@NAME@ shaders/Screen.frag HEADER ScreenFragment COLOR_FORMAT 4)

@@ -44,11 +44,17 @@ void ProjectCommand::Init(const std::string& name, Arguments& arguments, const s
     const auto metadata = ParamBuilder::Build(parameters);
     Files::RequireNew(directory);
     std::map<std::filesystem::path, std::string> files;
-    for (const auto& file : {"CMakeLists.txt", "src/Main.cpp", ".gitignore"}) {
-        auto text = read(sdk / "share/AnyDevKit/templates" / (std::string(file) + ".in"));
+    const auto templates = sdk / "share/AnyDevKit/templates";
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(templates)) {
+        if (!entry.is_regular_file()) continue;
+        if (entry.path().extension() != ".in") throw std::invalid_argument("Unexpected project template: " + entry.path().string());
+        auto relative = std::filesystem::relative(entry.path(), templates);
+        relative.replace_extension();
+        auto text = read(entry.path());
         replace(text, "@NAME@", name);
-        files.emplace(file, std::move(text));
+        files.emplace(relative, std::move(text));
     }
+    if (files.empty()) throw std::invalid_argument("Project templates are empty");
     nlohmann::json presets{{"version", 3}, {"cmakeMinimumRequired", {{"major", 3}, {"minor", 22}, {"patch", 1}}}};
     presets["configurePresets"] = nlohmann::json::array();
     presets["buildPresets"] = nlohmann::json::array();
@@ -58,7 +64,7 @@ void ProjectCommand::Init(const std::string& name, Arguments& arguments, const s
         presets["configurePresets"].push_back({{"name", target}, {"generator", "Ninja"}, {"binaryDir", std::string("${sourceDir}/build/") + target}, {"cacheVariables", cache}});
         presets["buildPresets"].push_back({{"name", target}, {"configurePreset", target}});
     }
-    nlohmann::json options{{"input", "build/ps5/" + name + ".elf"}, {"app0", "app0"}, {"param", "app0/sce_sys/param.json"}, {"output", "dist/ps5/" + name + ".ffpfsc"}, {"workspace", "build/package"}, {"format", "ffpfsc"}, {"module-name", name}, {"file-name", name + ".elf"}, {"elf-sdk-version", "0x02000009"}, {"companion-sdk-version", "0x08050001"}, {"authority", "0x3100000000000002"}, {"application-version", "0"}, {"self-firmware-version", "0"}, {"timestamp", "0"}, {"select-import", nlohmann::json::array()}};
+    nlohmann::json options{{"input", "build/ps5/" + name + ".elf"}, {"app0", "app0"}, {"param", "app0/sce_sys/param.json"}, {"output", "dist/ps5/" + name + ".ffpfsc"}, {"workspace", "build/package"}, {"format", "ffpfsc"}, {"module-name", name}, {"file-name", name + ".elf"}, {"elf-sdk-version", "0x02000009"}, {"companion-sdk-version", "0x08050001"}, {"authority", "0x3100000000000002"}, {"application-version", "0"}, {"self-firmware-version", "0"}, {"timestamp", "0"}, {"select-import", nlohmann::json::array({"sceKernelMapDirectMemory,libkernel,libkernel"})}};
     const nlohmann::json config{{"schemaVersion", 1}, {"name", name}, {"targets", {{"ps5", options}}}};
     files.emplace("CMakePresets.json", presets.dump(2) + "\n");
     files.emplace("adk.json", config.dump(2) + "\n");

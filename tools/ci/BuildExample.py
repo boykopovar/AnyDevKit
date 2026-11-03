@@ -30,13 +30,15 @@ configuration.write_text(json.dumps(settings, indent=2) + "\n")
 logs = project / "logs"
 logs.mkdir()
 example = repository / "examples" / options.example
+for name in ["src", "include", "shaders"]:
+    shutil.rmtree(project / name)
 shutil.copytree(example / "src", project / "src", dirs_exist_ok=True)
 shutil.copytree(example / "include", project / "include")
 sources = sorted(path.relative_to(project).as_posix() for path in (project / "src").rglob("*.cpp"))
 includes = ["include"]
 if options.example == "Calculator":
     libraries = ["libc", "libkernel", "libSceVideoOut", "libScePad", "libSceSysmodule", "libSceSaveData.native", "libSceUserService", "libSceAgc", "libSceAgcDriver"]
-    shutil.copytree(example / "shaders", project / "shaders", dirs_exist_ok=True)
+    shutil.copytree(example / "shaders", project / "shaders")
     generate(adk, project, options.target)
     includes.append("generated")
     definitions = "ANYDEVKIT_CALCULATOR_WIDTH=1920"
@@ -49,12 +51,9 @@ else:
         sources.append("src/" + name)
     includes.append("shared/include")
     definitions = "ANYDEVKIT_CPP_HEADLESS=0"
-cmake = (project / "CMakeLists.txt").read_text()
-for expected in [f"adk_add_executable({options.example} src/Main.cpp)", f"adk_link_libraries({options.example} libc libkernel)"]:
-    if cmake.count(expected) != 1:
-        raise RuntimeError("Unexpected initialized project template")
-cmake = cmake.replace(f"adk_add_executable({options.example} src/Main.cpp)", f"adk_add_executable({options.example}\n" + "\n".join("    " + source for source in sources) + ")")
-cmake = cmake.replace(f"adk_link_libraries({options.example} libc libkernel)", f"adk_link_libraries({options.example} " + " ".join(libraries) + ")")
+cmake = f"cmake_minimum_required(VERSION 3.22.1)\nproject({options.example} LANGUAGES C CXX)\nfind_package(AnyDevKit CONFIG REQUIRED)\n"
+cmake += f"adk_add_executable({options.example}\n" + "\n".join("    " + source for source in sources) + ")\n"
+cmake += f"adk_link_libraries({options.example} " + " ".join(libraries) + ")\n"
 cmake += f"target_include_directories({options.example} PRIVATE " + " ".join(includes) + ")\n"
 cmake += f"target_compile_definitions({options.example} PRIVATE {definitions})\n"
 cmake += f"target_compile_options({options.example} PRIVATE -fno-math-errno)\n"
