@@ -27,8 +27,6 @@ std::array<unsigned, 7> glyph(char character) {
     case 'X': return {17, 17, 10, 4, 10, 17, 17};
     case 'Z': return {31, 1, 2, 4, 8, 16, 31};
     case '_': return {0, 0, 0, 0, 0, 0, 31};
-    case '%': return {25, 25, 2, 4, 8, 19, 19};
-    case ':': return {0, 6, 6, 0, 6, 6, 0};
     case 'C': return {14, 17, 16, 16, 16, 17, 14};
     case 'D': return {30, 17, 17, 17, 17, 17, 30};
     case 'E': return {31, 16, 16, 30, 16, 16, 31};
@@ -42,13 +40,6 @@ std::array<unsigned, 7> glyph(char character) {
     case 'U': return {17, 17, 17, 17, 17, 17, 14};
     case 'V': return {17, 17, 17, 17, 17, 10, 4};
     case 'Y': return {17, 17, 10, 4, 4, 4, 4};
-    case '+': return {0, 4, 4, 31, 4, 4, 0};
-    case '-': return {0, 0, 0, 31, 0, 0, 0};
-    case '*': return {0, 17, 10, 4, 10, 17, 0};
-    case '/': return {1, 2, 2, 4, 8, 8, 16};
-    case '=': return {0, 0, 31, 0, 31, 0, 0};
-    case '.': return {0, 0, 0, 0, 0, 6, 6};
-    case ' ': return {};
     case 'a': return {0, 0, 14, 1, 15, 17, 15};
     case 'b': return {16, 16, 30, 17, 17, 17, 30};
     case 'c': return {0, 0, 14, 17, 16, 17, 14};
