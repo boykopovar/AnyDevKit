@@ -74,8 +74,9 @@ with tempfile.TemporaryDirectory(prefix="adk-project-", dir=Path(adk).parent) as
     run("init", "Demo", "--directory", project, "--sdk", sdk, "--deps", dependencies, "--title-id", "FAKE26109")
     expected = ["CMakeLists.txt", "CMakePresets.json", "adk.json", "src/Main.cpp", "app0/sce_sys/param.json"]
     assert all((project / name).is_file() for name in expected)
-    for template in Path(options.templates).rglob("*.in"):
-        output = project / template.relative_to(options.templates).with_suffix("")
+    templateRoot = Path(options.templates) / "BouncingTitle"
+    for template in templateRoot.rglob("*.in"):
+        output = project / template.relative_to(templateRoot).with_suffix("")
         assert output.read_text() == template.read_text().replace("@NAME@", "Demo")
     assert (project / "shaders/Screen.vert").is_file()
     assert (project / "shaders/Screen.frag").is_file()

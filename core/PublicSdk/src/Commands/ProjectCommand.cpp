@@ -44,7 +44,7 @@ void ProjectCommand::Init(const std::string& name, Arguments& arguments, const s
     const auto metadata = ParamBuilder::Build(parameters);
     Files::RequireNew(directory);
     std::map<std::filesystem::path, std::string> files;
-    const auto templates = sdk / "share/AnyDevKit/templates";
+    const auto templates = sdk / "share/AnyDevKit/templates/BouncingTitle";
     for (const auto& entry : std::filesystem::recursive_directory_iterator(templates)) {
         if (!entry.is_regular_file()) continue;
         if (entry.path().extension() != ".in") throw std::invalid_argument("Unexpected project template: " + entry.path().string());
