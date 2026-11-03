@@ -19,7 +19,7 @@ ProcessImage ProcessBuilder::Build(std::uint64_t address, const Ps5ElfOptions& o
     pointer(0x40, 0x108);
     pointer(0x48, 0x140);
     set(0x60, 0xa8);
-    set(0x68, 0x10000000e);
+    set(0x68, options.HeapSize ? 0xe : 0x10000000e);
     if (options.HeapSize) {
         pointer(0x70, 0x2c0);
         pointer(0x80, 0x2c8);
