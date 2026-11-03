@@ -77,6 +77,12 @@ jobs:
           TARGET: ${{ matrix.target }}
           EXAMPLE: ${{ matrix.example }}
         run: python tools/ci/BuildExample.py --sdk build/sdk --deps build/dependencies --directory "build/example" --target "$TARGET" --example "$EXAMPLE"
+      - name: Build initialized starter
+        if: matrix.example == 'Calculator'
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: python tools/ci/BuildExample.py --sdk build/sdk --deps build/dependencies --directory build/starter --target "$TARGET" --example Starter
       - name: Package example release
         shell: bash
         env:
@@ -100,6 +106,8 @@ jobs:
         if: always()
         with:
           name: example-logs-${{ matrix.target }}-${{ matrix.example }}
-          path: build/example/logs/
+          path: |
+            build/example/logs/
+            build/starter/logs/
           if-no-files-found: error
           compression-level: 0

@@ -12,7 +12,7 @@ parser.add_argument("--sdk", type=Path, required=True)
 parser.add_argument("--deps", type=Path, required=True)
 parser.add_argument("--directory", type=Path, required=True)
 parser.add_argument("--target", choices=["windows", "linux", "ps5"], required=True)
-parser.add_argument("--example", choices=["Calculator", "CppStandardLibrary"], required=True)
+parser.add_argument("--example", choices=["Calculator", "CppStandardLibrary", "Starter"], required=True)
 options = parser.parse_args()
 repository = Path(__file__).resolve().parents[2]
 sdk = options.sdk.resolve(strict=True)
@@ -29,35 +29,39 @@ settings["targets"]["ps5"]["select-import"] = ["sceKernelMapDirectMemory,libkern
 configuration.write_text(json.dumps(settings, indent=2) + "\n")
 logs = project / "logs"
 logs.mkdir()
-example = repository / "examples" / options.example
-for name in ["src", "include", "shaders"]:
-    shutil.rmtree(project / name)
-shutil.copytree(example / "src", project / "src", dirs_exist_ok=True)
-shutil.copytree(example / "include", project / "include")
-sources = sorted(path.relative_to(project).as_posix() for path in (project / "src").rglob("*.cpp"))
-includes = ["include"]
-if options.example == "Calculator":
-    libraries = ["libc", "libkernel", "libSceVideoOut", "libScePad", "libSceSysmodule", "libSceSaveData.native", "libSceUserService", "libSceAgc", "libSceAgcDriver"]
-    shutil.copytree(example / "shaders", project / "shaders")
-    generate(adk, project, options.target)
-    includes.append("generated")
-    definitions = "ANYDEVKIT_CALCULATOR_WIDTH=1920"
+if options.example == "Starter":
+    sources = sorted(path.relative_to(project).as_posix() for path in (project / "src").rglob("*.cpp"))
 else:
-    libraries = ["libc", "libkernel", "libSceVideoOut"]
-    calculator = repository / "examples/Calculator"
-    shutil.copytree(calculator / "include", project / "shared/include")
-    for name in ["Canvas.cpp", "Display.cpp"]:
-        shutil.copy2(calculator / "src" / name, project / "src" / name)
-        sources.append("src/" + name)
-    includes.append("shared/include")
-    definitions = "ANYDEVKIT_CPP_HEADLESS=0"
-cmake = f"cmake_minimum_required(VERSION 3.22.1)\nproject({options.example} LANGUAGES C CXX)\nfind_package(AnyDevKit CONFIG REQUIRED)\n"
-cmake += f"adk_add_executable({options.example}\n" + "\n".join("    " + source for source in sources) + ")\n"
-cmake += f"adk_link_libraries({options.example} " + " ".join(libraries) + ")\n"
-cmake += f"target_include_directories({options.example} PRIVATE " + " ".join(includes) + ")\n"
-cmake += f"target_compile_definitions({options.example} PRIVATE {definitions})\n"
-cmake += f"target_compile_options({options.example} PRIVATE -fno-math-errno)\n"
-(project / "CMakeLists.txt").write_text(cmake)
+    example = repository / "examples" / options.example
+    for name in ["src", "include", "shaders"]:
+        shutil.rmtree(project / name)
+    shutil.copytree(example / "src", project / "src", dirs_exist_ok=True)
+    shutil.copytree(example / "include", project / "include")
+    sources = sorted(path.relative_to(project).as_posix() for path in (project / "src").rglob("*.cpp"))
+    includes = ["include"]
+    if options.example == "Calculator":
+        libraries = ["libc", "libkernel", "libSceVideoOut", "libScePad", "libSceSysmodule", "libSceSaveData.native", "libSceUserService", "libSceAgc", "libSceAgcDriver"]
+        shutil.copytree(example / "shaders", project / "shaders")
+        generate(adk, project, options.target)
+        includes.append("generated")
+        definitions = "ANYDEVKIT_CALCULATOR_WIDTH=1920"
+    else:
+        libraries = ["libc", "libkernel", "libSceVideoOut"]
+        calculator = repository / "examples/Calculator"
+        shutil.copytree(calculator / "include", project / "shared/include")
+        for name in ["Canvas.cpp", "Display.cpp"]:
+            shutil.copy2(calculator / "src" / name, project / "src" / name)
+            sources.append("src/" + name)
+        includes.append("shared/include")
+        definitions = "ANYDEVKIT_CPP_HEADLESS=0"
+    cmake = f"cmake_minimum_required(VERSION 3.22.1)\nproject({options.example} LANGUAGES C CXX)\nfind_package(AnyDevKit CONFIG REQUIRED)\n"
+    cmake += f"adk_add_executable({options.example}\n" + "\n".join("    " + source for source in sources) + ")\n"
+    cmake += f"adk_link_libraries({options.example} " + " ".join(libraries) + ")\n"
+    cmake += f"target_include_directories({options.example} PRIVATE " + " ".join(includes) + ")\n"
+    cmake += f"target_compile_definitions({options.example} PRIVATE {definitions})\n"
+    cmake += f"target_compile_options({options.example} PRIVATE -fno-math-errno)\n"
+    (project / "CMakeLists.txt").write_text(cmake)
+
 
 
 def run(name, command):

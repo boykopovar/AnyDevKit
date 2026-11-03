@@ -74,6 +74,15 @@ with tempfile.TemporaryDirectory(prefix="adk-project-", dir=Path(adk).parent) as
     run("init", "Demo", "--directory", project, "--sdk", sdk, "--deps", dependencies, "--title-id", "FAKE26109")
     expected = ["CMakeLists.txt", "CMakePresets.json", "adk.json", "src/Main.cpp", "app0/sce_sys/param.json"]
     assert all((project / name).is_file() for name in expected)
+    for template in Path(options.templates).rglob("*.in"):
+        output = project / template.relative_to(options.templates).with_suffix("")
+        assert output.read_text() == template.read_text().replace("@NAME@", "Demo")
+    assert (project / "shaders/Screen.vert").is_file()
+    assert (project / "shaders/Screen.frag").is_file()
+    assert not list((project / "src").rglob("*.hpp"))
+    for header in (project / "include").rglob("*.hpp"):
+        assert (project / "src" / header.relative_to(project / "include").with_suffix(".cpp")).is_file()
+
     presets = json.loads((project / "CMakePresets.json").read_text())
     for preset in presets["configurePresets"]:
         cache = preset["cacheVariables"]
