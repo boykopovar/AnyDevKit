@@ -6,6 +6,7 @@
 namespace AnyDevKit::PublicSdk {
 void Help::Print(std::string_view command) {
     constexpr std::string_view text = R"HELP(adk <command> [options]
+adk --version
 
 init Name --deps directory [--directory path] [--sdk path] [--title-id ID]
   Creates editable CMake files, adk.json and app0/sce_sys/param.json.

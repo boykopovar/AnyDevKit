@@ -3,38 +3,35 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cstdlib>
 #include <filesystem>
 #include <stdexcept>
-namespace {
-std::filesystem::path executable(const char* name) {
-    const std::filesystem::path path(name);
-    if (path.has_parent_path()) return std::filesystem::canonical(path);
-    const auto* environment = std::getenv("PATH");
-    if (!environment) throw std::runtime_error("PATH is not set");
-    std::string paths(environment);
+#include <system_error>
 #ifdef _WIN32
-    constexpr char Separator = ';';
-#else
-    constexpr char Separator = ':';
+#include <windows.h>
 #endif
-    std::size_t start = 0;
-    while (start <= paths.size()) {
-        const auto end = paths.find(Separator, start);
-        const auto candidate = std::filesystem::path(paths.substr(start, end - start)) / path;
-        if (std::filesystem::is_regular_file(candidate)) return std::filesystem::canonical(candidate);
-        if (end == std::string::npos) break;
-        start = end + 1;
+namespace {
+std::filesystem::path executable() {
+#ifdef _WIN32
+    std::vector<wchar_t> buffer(512);
+    for (;;) {
+        const auto length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+        if (length == 0) throw std::system_error(GetLastError(), std::system_category(), "Cannot get executable path");
+        if (length < buffer.size()) return std::filesystem::path(std::wstring(buffer.data(), length));
+        if (buffer.size() >= 32768) throw std::runtime_error("Executable path exceeds Windows path limit");
+        buffer.resize(buffer.size() * 2);
     }
-    throw std::runtime_error("Cannot locate adk executable");
+#else
+    return std::filesystem::read_symlink("/proc/self/exe");
+#endif
 }
 }
 
 int main(int argc, char** argv) {
     try {
+        if (argc == 2 && std::string(argv[1]) == "--version") { std::cout << "adk " << ANYDEVKIT_VERSION << '\n'; return 0; }
         std::vector<std::string> arguments;
         for (int i = 1; i < argc; ++i) arguments.emplace_back(argv[i]);
-        AnyDevKit::PublicSdk::Application::Run(arguments, executable(argv[0]).parent_path().parent_path());
+        AnyDevKit::PublicSdk::Application::Run(arguments, executable().parent_path().parent_path());
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "adk: " << error.what() << '\n';
