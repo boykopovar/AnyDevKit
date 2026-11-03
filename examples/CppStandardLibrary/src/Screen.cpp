@@ -1,5 +1,5 @@
 #include "Screen.hpp"
-#include "CalculatorError.hpp"
+#include "Calculator3DError.hpp"
 #include "prx/libkernel/include/Api.hpp"
 #include <cstring>
 #include <algorithm>
@@ -58,13 +58,13 @@ Screen::Screen() : display(Width, Height), canvas(Width, Height) {
     void* storage = nullptr;
     const auto capacity = Canvas::StorageSize(Width, Height);
     const auto result = sceKernelMapFlexibleMemory(&storage, capacity, 3, 0);
-    if (result < 0) throw CalculatorError{"sceKernelMapFlexibleMemory", result};
+    if (result < 0) throw Calculator3DError{"sceKernelMapFlexibleMemory", result};
     frame = std::span(static_cast<std::uint32_t*>(storage), capacity / sizeof(std::uint32_t));
 }
 
 Screen::~Screen() noexcept(false) {
     const auto result = sceKernelMunmap(reinterpret_cast<std::uintptr_t>(frame.data()), frame.size_bytes());
-    if (result < 0) throw CalculatorError{"sceKernelMunmap", result};
+    if (result < 0) throw Calculator3DError{"sceKernelMunmap", result};
 }
 
 void Screen::Begin(std::size_t index, std::string_view name) {

@@ -27,7 +27,7 @@ include(cmake/WindowsExecutable.cmake)
 
 option(ANYDEVKIT_BUILD_EXAMPLES "Build examples" OFF)
 if(ANYDEVKIT_BUILD_EXAMPLES)
-    add_subdirectory(examples/Calculator)
+    add_subdirectory(examples/Calculator3D)
 endif()
 
 option(ANYDEVKIT_BUILD_CPP_STANDARD_LIBRARY "Build the PS5 standard library example" OFF)

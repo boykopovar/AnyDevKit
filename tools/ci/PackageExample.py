@@ -10,7 +10,7 @@ parser.add_argument("--project", type=Path, required=True)
 parser.add_argument("--deps", type=Path, required=True)
 parser.add_argument("--directory", type=Path, required=True)
 parser.add_argument("--target", choices=["windows", "linux", "ps5"], required=True)
-parser.add_argument("--example", choices=["Calculator", "CppStandardLibrary"], required=True)
+parser.add_argument("--example", choices=["Calculator3D", "CppStandardLibrary"], required=True)
 parser.add_argument("--version", required=True)
 options = parser.parse_args()
 if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", options.version):

@@ -12,7 +12,7 @@ Zero overhead and abstraction on PS5. On Windows and Linux, performance is limit
 
 ![anydevkit_3dcalc](https://gist.github.com/user-attachments/assets/64808b84-7edf-4598-a253-20efb1e1992e)
 
-[3D calculator](examples/Calculator) (compiled from source) with buttons, vibration feedback, save data and **[AGC shaders](examples/Calculator/shaders)** installs via ffpfsc and works (include two images when building). All rendering runs on GPU.
+[Calculator3D](examples/Calculator3D) (compiled from source) with buttons, vibration feedback, save data and **[AGC shaders](examples/Calculator3D/shaders)** installs via ffpfsc and works (include two images when building). All rendering runs on GPU.
 
 C++20 [standard library support](https://github.com/boykopovar/llvm-cxx-ps/releases/latest) is available; functionality provided by PS5 libraries other than libc is disabled.
 

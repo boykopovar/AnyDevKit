@@ -13,8 +13,8 @@ include("${ANYDEVKIT_LIBCXX_BUILD}/AnyLibcxxConfig.cmake")
 add_executable(CppStandardLibrary
     src/Main.cpp
     src/Screen.cpp
-    ../Calculator/src/Canvas.cpp
-    ../Calculator/src/Display.cpp
+    ../Calculator3D/src/Canvas.cpp
+    ../Calculator3D/src/Display.cpp
     src/Containers.cpp
     src/Memory.cpp
     src/Algorithms.cpp
@@ -33,7 +33,7 @@ option(ANYDEVKIT_CPP_HEADLESS "Run standard library checks without a window" OFF
 target_compile_definitions(CppStandardLibrary PRIVATE ANYDEVKIT_CPP_HEADLESS=$<BOOL:${ANYDEVKIT_CPP_HEADLESS}>)
 target_compile_features(CppStandardLibrary PRIVATE cxx_std_20)
 set_target_properties(CppStandardLibrary PROPERTIES CXX_EXTENSIONS OFF)
-target_include_directories(CppStandardLibrary PRIVATE include ../Calculator/include)
+target_include_directories(CppStandardLibrary PRIVATE include ../Calculator3D/include)
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/ReleaseHeaders.cmake")
 anydevkit_use_release_headers(CppStandardLibrary)
 target_link_libraries(CppStandardLibrary PRIVATE AnyLibcxx::Runtime)

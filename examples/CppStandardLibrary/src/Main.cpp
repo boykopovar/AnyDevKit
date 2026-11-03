@@ -1,6 +1,6 @@
 #include "Checks.hpp"
 #include "Screen.hpp"
-#include "CalculatorError.hpp"
+#include "Calculator3DError.hpp"
 #include <memory>
 #include <array>
 #include <cstdio>
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
         if (report) std::fclose(report);
         if (screen) { screen->Error(error.what()); screen->KeepOpen(); }
         return 2;
-    } catch (const CalculatorError& error) {
+    } catch (const Calculator3DError& error) {
         if (report) std::fclose(report);
         if (screen) { screen->Error(error.Message); screen->KeepOpen(); }
         return 2;

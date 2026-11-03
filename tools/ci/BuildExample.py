@@ -5,14 +5,14 @@ import shutil
 import subprocess
 import sys
 
-from CalculatorShaders import generate
+from Calculator3DShaders import generate
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--sdk", type=Path, required=True)
 parser.add_argument("--deps", type=Path, required=True)
 parser.add_argument("--directory", type=Path, required=True)
 parser.add_argument("--target", choices=["windows", "linux", "ps5"], required=True)
-parser.add_argument("--example", choices=["Calculator", "CppStandardLibrary", "BouncingTitle"], required=True)
+parser.add_argument("--example", choices=["Calculator3D", "CppStandardLibrary", "BouncingTitle"], required=True)
 options = parser.parse_args()
 repository = Path(__file__).resolve().parents[2]
 sdk = options.sdk.resolve(strict=True)
@@ -39,18 +39,18 @@ else:
     shutil.copytree(example / "include", project / "include")
     sources = sorted(path.relative_to(project).as_posix() for path in (project / "src").rglob("*.cpp"))
     includes = ["include"]
-    if options.example == "Calculator":
+    if options.example == "Calculator3D":
         libraries = ["libc", "libkernel", "libSceVideoOut", "libScePad", "libSceSysmodule", "libSceSaveData.native", "libSceUserService", "libSceAgc", "libSceAgcDriver"]
         shutil.copytree(example / "shaders", project / "shaders")
         generate(adk, project, options.target)
         includes.append("generated")
-        definitions = "ANYDEVKIT_CALCULATOR_WIDTH=1920"
+        definitions = "ANYDEVKIT_CALCULATOR3D_WIDTH=1920"
     else:
         libraries = ["libc", "libkernel", "libSceVideoOut"]
-        calculator = repository / "examples/Calculator"
-        shutil.copytree(calculator / "include", project / "shared/include")
+        calculator3D = repository / "examples/Calculator3D"
+        shutil.copytree(calculator3D / "include", project / "shared/include")
         for name in ["Canvas.cpp", "Display.cpp"]:
-            shutil.copy2(calculator / "src" / name, project / "src" / name)
+            shutil.copy2(calculator3D / "src" / name, project / "src" / name)
             sources.append("src/" + name)
         includes.append("shared/include")
         definitions = "ANYDEVKIT_CPP_HEADLESS=0"

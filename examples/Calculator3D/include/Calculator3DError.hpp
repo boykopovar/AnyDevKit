@@ -1,0 +1,9 @@
+#ifndef ANYDEVKIT_EXAMPLES_CALCULATOR3D_INCLUDE_CALCULATOR3DERROR_HPP
+#define ANYDEVKIT_EXAMPLES_CALCULATOR3D_INCLUDE_CALCULATOR3DERROR_HPP
+
+struct Calculator3DError final {
+    const char* Message;
+    int Code = 1;
+};
+
+#endif
