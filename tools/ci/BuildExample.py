@@ -12,7 +12,7 @@ parser.add_argument("--sdk", type=Path, required=True)
 parser.add_argument("--deps", type=Path, required=True)
 parser.add_argument("--directory", type=Path, required=True)
 parser.add_argument("--target", choices=["windows", "linux", "ps5"], required=True)
-parser.add_argument("--example", choices=["Calculator", "CppStandardLibrary", "Starter"], required=True)
+parser.add_argument("--example", choices=["Calculator", "CppStandardLibrary", "BouncingTitle"], required=True)
 options = parser.parse_args()
 repository = Path(__file__).resolve().parents[2]
 sdk = options.sdk.resolve(strict=True)
@@ -29,7 +29,7 @@ settings["targets"]["ps5"]["select-import"] = ["sceKernelMapDirectMemory,libkern
 configuration.write_text(json.dumps(settings, indent=2) + "\n")
 logs = project / "logs"
 logs.mkdir()
-if options.example == "Starter":
+if options.example == "BouncingTitle":
     sources = sorted(path.relative_to(project).as_posix() for path in (project / "src").rglob("*.cpp"))
 else:
     example = repository / "examples" / options.example
