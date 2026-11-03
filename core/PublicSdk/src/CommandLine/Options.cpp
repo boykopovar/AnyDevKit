@@ -3,6 +3,8 @@
 #include "IO/Files.hpp"
 #include "Project/Metadata.hpp"
 #include <algorithm>
+#include <array>
+#include <map>
 #include <limits>
 #include <stdexcept>
 namespace AnyDevKit::PublicSdk {
@@ -11,6 +13,37 @@ PsbcCompileOptions Options::Shader(Arguments& arguments, PsbcStage stage) {
     const auto omit = arguments.Optional("omit-implicit-primitive-id", options.omit_implicit_primitive_id ? "true" : "false");
     if (omit != "true" && omit != "false") throw std::invalid_argument("Invalid --omit-implicit-primitive-id value");
     options.omit_implicit_primitive_id = omit == "true";
+    for (const auto& value : arguments.Many("descriptor")) {
+        std::array<std::string, 6> fields;
+        std::size_t begin = 0;
+        for (std::size_t index = 0; index < fields.size(); ++index) {
+            const auto end = value.find(',', begin);
+            if ((end == std::string::npos) != (index == fields.size() - 1)) throw std::invalid_argument("Expected --descriptor set,binding,type,count,offset,stride");
+            fields[index] = value.substr(begin, end == std::string::npos ? end : end - begin);
+            if (fields[index].empty()) throw std::invalid_argument("Empty descriptor field");
+            begin = end == std::string::npos ? value.size() : end + 1;
+        }
+        const std::map<std::string, PsbcDescriptorType> types{
+            {"uniform-buffer", PSBC_DESCRIPTOR_UNIFORM_BUFFER}, {"storage-buffer", PSBC_DESCRIPTOR_STORAGE_BUFFER},
+            {"uniform-texel-buffer", PSBC_DESCRIPTOR_UNIFORM_TEXEL_BUFFER}, {"storage-texel-buffer", PSBC_DESCRIPTOR_STORAGE_TEXEL_BUFFER},
+            {"combined-image-sampler", PSBC_DESCRIPTOR_COMBINED_IMAGE_SAMPLER}, {"sampled-image", PSBC_DESCRIPTOR_SAMPLED_IMAGE},
+            {"storage-image", PSBC_DESCRIPTOR_STORAGE_IMAGE}, {"sampler", PSBC_DESCRIPTOR_SAMPLER}, {"input-attachment", PSBC_DESCRIPTOR_INPUT_ATTACHMENT}
+        };
+        const auto type = types.find(fields[2]);
+        if (type == types.end()) throw std::invalid_argument("Unknown descriptor type: " + fields[2]);
+        const auto set = Arguments::Number32(fields[0]);
+        const auto binding = Arguments::Number32(fields[1]);
+        if (set >= PSBC_MAX_DESCRIPTOR_SETS || binding > 255 || options.descriptor_binding_count == PSBC_MAX_DESCRIPTOR_BINDINGS) throw std::invalid_argument("Descriptor exceeds layout capacity");
+        const auto count = Arguments::Number32(fields[3]);
+        const auto offset = Arguments::Number32(fields[4]);
+        const auto stride = Arguments::Number32(fields[5]);
+        if (!count || !stride || offset % 4 || stride % 4 || count > (std::numeric_limits<std::uint32_t>::max() - offset) / stride) throw std::invalid_argument("Invalid descriptor extent");
+        for (std::uint32_t index = 0; index < options.descriptor_binding_count; ++index) {
+            const auto& previous = options.descriptor_bindings[index];
+            if (previous.set == set && (previous.binding == binding || (offset < previous.offset + previous.array_size * previous.stride && previous.offset < offset + count * stride))) throw std::invalid_argument("Duplicate or overlapping descriptor");
+        }
+        options.descriptor_bindings[options.descriptor_binding_count++] = {static_cast<std::uint8_t>(set), static_cast<std::uint8_t>(binding), type->second, count, offset, stride};
+    }
     return options;
 }
 ApplicationParameters Options::Parameters(Arguments& arguments) {

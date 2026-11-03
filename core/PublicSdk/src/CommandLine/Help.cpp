@@ -54,7 +54,9 @@ agc --input machine-code.bin --metadata bindings.adk --header header.bin --code 
   shader compiles GLSL; spirv compiles SPIR-V. Both use the AGC packager.
   agc only packages machine code and the versioned text binding metadata.
   Header and code are separate; runtime alignment requirements are 8 and 256.
-  Advanced resource layouts remain available through the C++ ShaderCompiler API.
+  --descriptor set,binding,type,count,offset,stride declares a resource layout; repeat for each binding.
+  Offsets and strides are bytes. Types: uniform-buffer, storage-buffer, uniform-texel-buffer,
+  storage-texel-buffer, combined-image-sampler, sampled-image, storage-image, sampler, input-attachment.
 
 metadata:
   --title-id ID --content-id ID --concept-id ID
