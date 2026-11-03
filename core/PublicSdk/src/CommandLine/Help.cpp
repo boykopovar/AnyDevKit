@@ -68,6 +68,7 @@ metadata:
 elf:
   --module-name name --file-name name --elf-sdk-version uint32
   --companion-sdk-version uint32
+  [--heap-size bytes (positive multiple of 64 KiB, enables heap growth)]
   Dependencies come from ELF DT_NEEDED: libc.prx -> libSceLibcInternal.sprx; .prx -> .sprx.
   [--select-import symbol,module,library]...
 self:

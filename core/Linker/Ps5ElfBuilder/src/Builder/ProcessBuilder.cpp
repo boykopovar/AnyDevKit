@@ -1,10 +1,12 @@
 #include "Builder/ProcessBuilder.hpp"
 #include "Writer/BinaryWriter.hpp"
+#include <stdexcept>
 
 namespace AnyDevKit::Ps5 {
 
 ProcessImage ProcessBuilder::Build(std::uint64_t address, const Ps5ElfOptions& options) {
-    ProcessImage result{std::vector<std::byte>(0x2c0), {}};
+    if (options.HeapSize && (*options.HeapSize == 0 || *options.HeapSize > 0x7fffffffffff0000 || *options.HeapSize % 0x10000 != 0)) throw std::invalid_argument("PS5 heap size must be a positive multiple of 64 KiB within the address range");
+    ProcessImage result{std::vector<std::byte>(options.HeapSize ? 0x2d0 : 0x2c0), {}};
     auto set = [&](std::size_t offset, std::uint64_t value, std::size_t size = 8) { BinaryWriter::Set(result.Bytes, offset, value, size); };
     auto pointer = [&](std::size_t offset, std::size_t target) { result.Relocations.push_back({BinaryWriter::Add(address, offset), 8, BinaryWriter::Add(address, target)}); };
     set(0, 0x60);
@@ -18,6 +20,12 @@ ProcessImage ProcessBuilder::Build(std::uint64_t address, const Ps5ElfOptions& o
     pointer(0x48, 0x140);
     set(0x60, 0xa8);
     set(0x68, 0x10000000e);
+    if (options.HeapSize) {
+        pointer(0x70, 0x2c0);
+        pointer(0x80, 0x2c8);
+        set(0x2c0, *options.HeapSize);
+        set(0x2c8, 1, 4);
+    }
     set(0x108, 0x38);
     set(0x140, 0x10);
     pointer(0x90, 0x150);

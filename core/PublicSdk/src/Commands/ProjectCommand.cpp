@@ -88,7 +88,7 @@ void ProjectCommand::Package(Arguments& arguments) {
     const auto& options = config.at("targets").at(target);
     const std::set<std::string> paths{"input", "app0", "param", "output", "workspace", "passcode-moduli", "mount-modulus"};
     std::set<std::string> allowed = paths;
-    for (const auto& name : {"format", "module-name", "file-name", "elf-sdk-version", "companion-sdk-version", "select-import", "authority", "application-version", "self-firmware-version", "block-size", "timestamp", "case-insensitive", "passcode", "image-seed"}) allowed.insert(name);
+    for (const auto& name : {"format", "module-name", "file-name", "elf-sdk-version", "companion-sdk-version", "heap-size", "select-import", "authority", "application-version", "self-firmware-version", "block-size", "timestamp", "case-insensitive", "passcode", "image-seed"}) allowed.insert(name);
     Json::Fields(options, allowed);
     std::map<std::string, std::vector<std::string>> defaults;
     for (const auto& [name, value] : options.items()) {

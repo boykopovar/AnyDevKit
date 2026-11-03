@@ -119,6 +119,8 @@ Ps5ElfOptions Options::Elf(Arguments& arguments) {
     result.FileName = arguments.Require("file-name");
     result.SdkVersion = Arguments::Number32(arguments.Require("elf-sdk-version"));
     result.CompanionSdkVersion = Arguments::Number32(arguments.Require("companion-sdk-version"));
+    const auto heapSize = arguments.Optional("heap-size");
+    if (!heapSize.empty()) result.HeapSize = Arguments::Number(heapSize);
     return result;
 }
 ImportCatalog Options::Imports(Arguments& arguments, const std::filesystem::path& input) {

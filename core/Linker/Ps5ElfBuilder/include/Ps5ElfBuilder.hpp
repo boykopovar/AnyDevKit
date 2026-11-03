@@ -4,6 +4,7 @@
 #include "Imports/ImportCatalog.hpp"
 
 #include <filesystem>
+#include <optional>
 #include <vector>
 
 namespace AnyDevKit {
@@ -13,6 +14,7 @@ struct Ps5ElfOptions {
     std::string FileName;
     std::uint32_t SdkVersion = 0;
     std::uint32_t CompanionSdkVersion = 0;
+    std::optional<std::uint64_t> HeapSize;
 };
 
 class Ps5ElfBuilder final {
