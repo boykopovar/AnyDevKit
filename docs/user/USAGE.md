@@ -37,6 +37,8 @@ An absent `app0/sce_sys/icon0.png` is generated. `pic0.png` is optional.
 
 ## Complete example
 
+`adk init` creates a project from the [BouncingTitle](../../core/PublicSdk/templates/BouncingTitle) template, which renders the project name on the GPU and animates it bouncing across the screen.
+
 ```bat
 adk setup .adk
 adk init MyApp --deps .adk
