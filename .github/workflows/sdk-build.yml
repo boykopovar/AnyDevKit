@@ -20,6 +20,12 @@ jobs:
             shell: 'msys2 {0}'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 1G
     defaults:
       run:
         shell: ${{ matrix.shell }}
@@ -36,7 +42,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 ninja-build python3-venv
+          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 ninja-build ccache python3-venv
           echo /usr/lib/llvm-18/bin >> "$GITHUB_PATH"
           python3 -m venv .venv
           .venv/bin/python -m pip install -r cmake/dependencies/requirements.txt
@@ -61,6 +67,17 @@ jobs:
             mingw-w64-ucrt-x86_64-llvm-tools
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-ccache
+      - name: Restore compiler cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-v1-sdk-${{ runner.os }}-${{ github.sha }}
+          restore-keys: ccache-v1-sdk-${{ runner.os }}-
+      - name: Initialize compiler cache
+        run: |
+          ccache --version
+          ccache --zero-stats
       - name: Select package version
         env:
           REF_TYPE: ${{ github.ref_type }}
@@ -105,3 +122,6 @@ jobs:
             build/sdk-package/AnyDevKit-*.tar.gz
           if-no-files-found: error
           compression-level: 0
+      - name: Compiler cache statistics
+        if: always()
+        run: ccache --show-stats

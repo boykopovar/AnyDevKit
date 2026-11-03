@@ -25,6 +25,12 @@ jobs:
             host: linux
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 256M
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -42,7 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 ninja-build
+          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 ninja-build ccache
           echo /usr/lib/llvm-18/bin >> "$GITHUB_PATH"
       - name: Install Windows tools
         if: runner.os == 'Windows'
@@ -55,6 +61,7 @@ jobs:
             mingw-w64-ucrt-x86_64-llvm-tools
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-ccache
       - name: Configure Windows tool paths
         if: runner.os == 'Windows'
         shell: pwsh
@@ -62,6 +69,17 @@ jobs:
           $toolRoot = Join-Path $env:RUNNER_TEMP 'msys64/ucrt64/bin'
           if (-not (Test-Path "$toolRoot/clang.exe")) { throw 'Missing UCRT64 compiler' }
           $toolRoot >> $env:GITHUB_PATH
+      - name: Restore compiler cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-v1-examples-${{ runner.os }}-${{ matrix.target }}-${{ matrix.example }}-${{ github.sha }}
+          restore-keys: ccache-v1-examples-${{ runner.os }}-${{ matrix.target }}-${{ matrix.example }}-
+      - name: Initialize compiler cache
+        shell: bash
+        run: |
+          ccache --version
+          ccache --zero-stats
       - name: Extract SDK
         shell: bash
         run: python tools/ci/ExtractSdk.py --packages artifacts --directory "build/sdk"
@@ -113,3 +131,7 @@ jobs:
             build/bouncing-title/logs/
           if-no-files-found: error
           compression-level: 0
+      - name: Compiler cache statistics
+        if: always()
+        shell: bash
+        run: ccache --show-stats
