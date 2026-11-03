@@ -84,6 +84,7 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: python tools/ci/BuildExample.py --sdk build/sdk --deps build/dependencies --directory build/starter --target "$TARGET" --example Starter
       - name: Package example release
+        if: matrix.example == 'Calculator'
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
@@ -97,6 +98,7 @@ jobs:
           fi
           python tools/ci/PackageExample.py --project build/example --deps build/dependencies --directory build/example-release --target "$TARGET" --example "$EXAMPLE" --version "$version"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: matrix.example == 'Calculator'
         with:
           name: example-release-${{ matrix.target }}-${{ matrix.example }}
           path: build/example-release/
