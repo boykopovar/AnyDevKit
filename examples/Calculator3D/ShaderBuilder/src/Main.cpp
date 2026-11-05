@@ -49,7 +49,7 @@ int main(int count, char** arguments) {
         std::ofstream output(arguments[5], std::ios::binary | std::ios::trunc);
         output.exceptions(std::ios::failbit | std::ios::badbit);
         output << "#ifndef ANYDEVKIT_CALCULATOR3D_GENERATED_SHADERS_HPP\n#define ANYDEVKIT_CALCULATOR3D_GENERATED_SHADERS_HPP\n#include \"Graphics/ShaderAsset.hpp\"\nnamespace Calculator3DShaders {\n";
-        compile(output, arguments[1], PSBC_STAGE_VERTEX, "Vertex", 12, target);
+        compile(output, arguments[1], PSBC_STAGE_VERTEX, "Vertex", 208, target);
         compile(output, arguments[2], PSBC_STAGE_FRAGMENT, "Fragment", 208, target);
         compile(output, arguments[3], PSBC_STAGE_VERTEX, "InterfaceVertex", 0, target);
         compile(output, arguments[4], PSBC_STAGE_FRAGMENT, "InterfaceFragment", 64, target);

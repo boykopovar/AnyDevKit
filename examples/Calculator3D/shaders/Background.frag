@@ -1,18 +1,11 @@
 #version 450
 
 layout(location = 0) out vec4 color;
-layout(push_constant) uniform Frame {
-    vec2 resolution;
-    float seconds;
-    vec4 positions[8];
-    vec4 orientations[4];
-} frame;
-
-mat3 rotation(float angle) {
-    float c = cos(angle);
-    float s = sin(angle);
-    return mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c);
-}
+layout(location = 0) flat in vec2 resolution;
+layout(location = 1) flat in vec4 positions[8];
+layout(location = 9) flat in vec4 orientations[4];
+layout(location = 13) flat in vec4 textCenters[8];
+layout(location = 21) flat in vec4 textRotations[8];
 
 float cube(vec3 origin, vec3 direction, out vec3 normal) {
     vec3 inverse = 1.0 / direction;
@@ -58,17 +51,15 @@ float formula(vec2 uv, int variation) {
 }
 
 void main() {
-    vec2 uv = gl_FragCoord.xy / frame.resolution;
-    vec2 screen = (uv * 2.0 - 1.0) * vec2(frame.resolution.x / frame.resolution.y, -1.0);
+    vec2 uv = gl_FragCoord.xy / resolution;
+    vec2 screen = (uv * 2.0 - 1.0) * vec2(resolution.x / resolution.y, -1.0);
     vec3 direction = normalize(vec3(screen, 2.3));
     vec3 background = mix(vec3(0.025, 0.050, 0.080), vec3(0.045, 0.085, 0.12), uv.y);
     background += 0.012 * pow(max(0.0, 1.0 - length(screen * 0.55)), 2.0);
     float closest = 1000.0;
     vec3 surface = background;
     for (int index = 0; index < 8; ++index) {
-        float phase = float(index) * 1.73;
-        float angle = frame.seconds * 0.12 + phase;
-        vec3 center = frame.positions[index].xyz;
+        vec3 center = positions[index].xyz;
         vec3 normal;
         float distance;
         if ((index & 1) == 1) {
@@ -77,7 +68,7 @@ void main() {
             distance = discriminant > 0.0 ? -b - sqrt(discriminant) : 1000.0;
             normal = normalize(direction * distance - center);
         } else {
-            vec4 q = frame.orientations[index / 2];
+            vec4 q = orientations[index / 2];
             mat3 basis = mat3(
                 1.0 - 2.0 * (q.y * q.y + q.z * q.z), 2.0 * (q.x * q.y + q.z * q.w), 2.0 * (q.x * q.z - q.y * q.w),
                 2.0 * (q.x * q.y - q.z * q.w), 1.0 - 2.0 * (q.x * q.x + q.z * q.z), 2.0 * (q.y * q.z + q.x * q.w),
@@ -93,9 +84,9 @@ void main() {
             vec3 tint = (index & 1) == 0 ? vec3(0.07, 0.22, 0.24) : vec3(0.15, 0.12, 0.28);
             surface = tint * light + vec3(0.018, 0.025, 0.035);
         }
-        center = vec3(sin(angle) * 4.4, cos(angle * 0.7 + phase) * 2.8, 5.0 + 1.5 * sin(angle * 0.6));
-        mat3 basis = rotation(angle) * mat3(1.0, 0.0, 0.0, 0.0, cos(angle * 0.7), sin(angle * 0.7), 0.0, -sin(angle * 0.7), cos(angle * 0.7));
-        vec3 textCenter = center + vec3(-1.0, 0.9, -0.8);
+        vec4 r = textRotations[index];
+        mat3 basis = mat3(r.x, 0.0, r.y, 0.0, 1.0, 0.0, -r.y, 0.0, r.x) * mat3(1.0, 0.0, 0.0, 0.0, r.z, r.w, 0.0, -r.w, r.z);
+        vec3 textCenter = textCenters[index].xyz;
         vec3 textNormal = basis[2];
         float denominator = dot(direction, textNormal);
         if (abs(denominator) > 0.001) {
