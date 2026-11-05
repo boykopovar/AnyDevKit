@@ -170,8 +170,9 @@ void Renderer::createPipeline(ShaderRegister* context, std::uint32_t& contextCou
     for (const auto value : state) context[contextCount++] = value;
 }
 
-void Renderer::Draw(std::span<std::uint32_t> pixels, float seconds, const Canvas& canvas) {
+void Renderer::Draw(Display& display, float seconds, const Canvas& canvas) {
     if (pending) throw Calculator3DError{"Previous AGC submission is still pending"};
+    const auto pixels = display.Acquire();
     const auto address = reinterpret_cast<std::uintptr_t>(pixels.data());
     if (pixels.size_bytes() != Canvas::StorageSize(width, height) || address % Alignment != 0 || address >> 48 != 0) throw Calculator3DError{"Invalid AGC display target"};
     for (auto* registers : {context, interfaceContext}) {
@@ -216,6 +217,8 @@ void Renderer::Draw(std::span<std::uint32_t> pixels, float seconds, const Canvas
     bind(Calculator3DShaders::InterfaceVertex, 0x8c, interfaceCommands, interfaceDescriptor);
     bind(Calculator3DShaders::InterfaceFragment, 0xc, interfaceCommands, interfaceDescriptor);
     sceAgcDcbDrawIndexAuto(&buffer, static_cast<std::uint32_t>(draws.size() * 6), 0);
+    const auto flip = display.PrepareFlip();
+    sceAgcDcbSetFlip(&buffer, flip.Handle, flip.BufferIndex, 1, flip.Argument);
     sceAgcCbReleaseMem(&buffer, 0x2d, 0x70f, 0, 0, reinterpret_cast<Label*>(fence), 2, 1, 0, 0, 3, 0);
     const Packet packet{commands, static_cast<std::uint32_t>(buffer.cursor_up - commands), 0, {}};
     std::atomic_thread_fence(std::memory_order_seq_cst);

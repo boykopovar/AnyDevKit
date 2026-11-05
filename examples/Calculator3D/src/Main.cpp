@@ -36,8 +36,7 @@ int main() {
             const auto seconds = static_cast<float>(sceKernelGetProcessTime() - start) / 1000000.0f;
             canvas.Clear();
             interface.Draw(canvas);
-            renderer.Draw(display.Acquire(), seconds, canvas);
-            display.Present();
+            renderer.Draw(display, seconds, canvas);
             check(sceAgcSuspendPoint(), "sceAgcSuspendPoint");
         }
     } catch (const Calculator3DError& error) {

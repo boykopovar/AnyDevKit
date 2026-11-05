@@ -58,12 +58,18 @@ std::span<std::uint32_t> Display::Acquire() {
     return buffers[back];
 }
 
-void Display::Present() {
+Display::Flip Display::PrepareFlip() {
     if (!acquired) throw Calculator3DError{"Display buffer has not been acquired"};
     std::atomic_ref label(labels[back]);
     std::atomic_thread_fence(std::memory_order_seq_cst);
     label.store(1, std::memory_order_release);
-    check(sceVideoOutSubmitFlip(handle, back, 1, ++sequence), "sceVideoOutSubmitFlip");
+    const Flip flip{handle, back, ++sequence};
     back = (back + 1) % static_cast<int>(buffers.size());
     acquired = false;
+    return flip;
+}
+
+void Display::Present() {
+    const auto flip = PrepareFlip();
+    check(sceVideoOutSubmitFlip(flip.Handle, flip.BufferIndex, 1, flip.Argument), "sceVideoOutSubmitFlip");
 }

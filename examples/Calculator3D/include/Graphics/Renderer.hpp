@@ -5,6 +5,7 @@
 #include "Graphics/BackgroundVisibility.hpp"
 #include "Physics/Scene.hpp"
 #include "Canvas.hpp"
+#include "Display.hpp"
 #include "SceShaders.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -16,7 +17,7 @@ public:
     ~Renderer() noexcept(false);
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
-    void Draw(std::span<std::uint32_t> pixels, float seconds, const Canvas& canvas);
+    void Draw(Display& display, float seconds, const Canvas& canvas);
 
 private:
     void* allocate(std::size_t bytes, std::size_t alignment);

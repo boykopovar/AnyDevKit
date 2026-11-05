@@ -6,10 +6,17 @@
 
 class Display final {
 public:
+    struct Flip {
+        int Handle;
+        int BufferIndex;
+        std::int64_t Argument;
+    };
+
     Display(int width, int height);
     Display(const Display&) = delete;
     Display& operator=(const Display&) = delete;
     std::span<std::uint32_t> Acquire();
+    Flip PrepareFlip();
     void Present();
     void Wait();
 
