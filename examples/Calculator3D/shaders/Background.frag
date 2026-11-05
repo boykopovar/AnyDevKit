@@ -89,17 +89,22 @@ void main() {
             vec3 tint = (index & 1) == 0 ? vec3(0.07, 0.22, 0.24) : vec3(0.15, 0.12, 0.28);
             surface = tint * light + vec3(0.018, 0.025, 0.035);
         }
-        mat3 basis = orientation(textRotations[index]);
-        vec3 textCenter = textCenters[index].xyz - basis[0] * textCenters[index].w + basis[1] * (7.0 / 45.0);
-        vec3 textNormal = basis[2];
-        float denominator = dot(direction, textNormal);
-        if (abs(denominator) > 0.001) {
-            float planeDistance = dot(textCenter, textNormal) / denominator;
-            vec3 local = transpose(basis) * (direction * planeDistance - textCenter);
-            vec2 textUv = vec2(local.x / 2.0, -local.y / 0.4);
-            if (planeDistance > 0.0 && planeDistance < closest && formula(textUv, index & 1) > 0.0) {
-                closest = planeDistance;
-                surface = vec3(0.13, 0.34, 0.32);
+        vec3 formulaCenter = textCenters[index].xyz;
+        float formulaProjection = dot(formulaCenter, direction);
+        float formulaRadiusSquared = textCenters[index].w * textCenters[index].w + (7.0 / 45.0) * (7.0 / 45.0) + 0.001;
+        if (formulaProjection * formulaProjection - dot(formulaCenter, formulaCenter) + formulaRadiusSquared > 0.0) {
+            mat3 basis = orientation(textRotations[index]);
+            vec3 textCenter = textCenters[index].xyz - basis[0] * textCenters[index].w + basis[1] * (7.0 / 45.0);
+            vec3 textNormal = basis[2];
+            float denominator = dot(direction, textNormal);
+            if (abs(denominator) > 0.001) {
+                float planeDistance = dot(textCenter, textNormal) / denominator;
+                vec3 local = transpose(basis) * (direction * planeDistance - textCenter);
+                vec2 textUv = vec2(local.x / 2.0, -local.y / 0.4);
+                if (planeDistance > 0.0 && planeDistance < closest && formula(textUv, index & 1) > 0.0) {
+                    closest = planeDistance;
+                    surface = vec3(0.13, 0.34, 0.32);
+                }
             }
         }
     }
