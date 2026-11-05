@@ -92,7 +92,7 @@ def main():
     parser.add_argument("directory", type=Path)
     parser.add_argument("--target", choices=("windows", "linux", "ps5"), action="append")
     parser.add_argument("--anyps5-version", default="v0.1.4", help="AnyPS5 release tag (default: %(default)s)")
-    parser.add_argument("--anycxx-version", default="v0.1.3", help="C++ runtime release tag (default: %(default)s)")
+    parser.add_argument("--anycxx-version", default="v0.1.6", help="C++ runtime release tag (default: %(default)s)")
     parser.add_argument("--cache", type=Path)
     options = parser.parse_args()
     root = options.directory.resolve()
