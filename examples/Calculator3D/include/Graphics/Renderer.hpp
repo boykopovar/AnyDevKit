@@ -39,6 +39,7 @@ private:
     ShaderRegister* interfaceContext = nullptr;
     std::uint32_t interfaceContextCount = 0;
     ShaderRegister* interfacePrimitive = nullptr;
+    std::uint32_t* interfaceDescriptor = nullptr;
     DrawCommand* interfaceCommands = nullptr;
     bool pending = false;
     BackgroundPhysics::Scene physics;

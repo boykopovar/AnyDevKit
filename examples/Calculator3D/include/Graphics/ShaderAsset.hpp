@@ -11,6 +11,7 @@ struct ShaderAsset {
     std::array<std::uint32_t, 16> UserData;
     std::uint32_t UserDataCount;
     int PushConstantSlot;
+    int DescriptorSlot;
 };
 
 #endif

@@ -21,9 +21,14 @@ void writeBytes(std::ostream& output, std::string_view name, std::span<const std
 void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage stage, const std::string& name, std::uint32_t constantSize, std::string_view target) {
     auto options = AnyDevKit::ShaderCompiler::CreateOptions(stage, target);
     if (stage == PSBC_STAGE_FRAGMENT) options.spi_shader_col_format = 4;
+    if (name == "InterfaceVertex") {
+        options.descriptor_binding_count = 1;
+        options.descriptor_bindings[0] = {0, 0, PSBC_DESCRIPTOR_STORAGE_BUFFER, 1, 0, 16};
+    }
     const auto shader = AnyDevKit::ShaderCompiler::CompileFile(path, options);
     const auto& metadata = shader.GetBindingMetadata();
-    if (metadata.descriptor_binding_count || metadata.vertex_buffer_table_valid || metadata.view_index_valid || metadata.draw_id_valid || metadata.start_instance_valid) throw std::runtime_error("Unexpected calculator3D shader resource layout");
+    if (metadata.vertex_buffer_table_valid || metadata.view_index_valid || metadata.draw_id_valid || metadata.start_instance_valid) throw std::runtime_error("Unexpected calculator3D shader resource layout");
+    if (metadata.descriptor_binding_count != options.descriptor_binding_count || metadata.descriptor_set0_valid != (name == "InterfaceVertex")) throw std::runtime_error("Unexpected calculator3D descriptor layout");
     std::array<std::uint32_t, 16> data{};
     if (metadata.ngg_lds_layout_valid) data.at(metadata.ngg_lds_layout_user_data_dword) = metadata.ngg_lds_layout;
     if (metadata.push_constants_valid && metadata.push_constant_size > constantSize) throw std::runtime_error("Unexpected calculator3D push constant size");
@@ -31,7 +36,7 @@ void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage 
     writeBytes(output, name + "Code", shader.GetCodeBytes());
     output << "inline constexpr ShaderAsset " << name << '{' << name << "Header, " << name << "Code, {";
     for (const auto value : data) output << value << ", ";
-    output << "}, " << metadata.user_sgpr_count << ", " << (metadata.push_constants_valid ? static_cast<int>(metadata.push_constants_user_data_dword) : -1) << "};\n";
+    output << "}, " << metadata.user_sgpr_count << ", " << (metadata.push_constants_valid ? static_cast<int>(metadata.push_constants_user_data_dword) : -1) << ", " << (metadata.descriptor_set0_valid ? static_cast<int>(metadata.descriptor_set0_user_data_dword) : -1) << "};\n";
 }
 
 }
@@ -46,7 +51,7 @@ int main(int count, char** arguments) {
         output << "#ifndef ANYDEVKIT_CALCULATOR3D_GENERATED_SHADERS_HPP\n#define ANYDEVKIT_CALCULATOR3D_GENERATED_SHADERS_HPP\n#include \"Graphics/ShaderAsset.hpp\"\nnamespace Calculator3DShaders {\n";
         compile(output, arguments[1], PSBC_STAGE_VERTEX, "Vertex", 12, target);
         compile(output, arguments[2], PSBC_STAGE_FRAGMENT, "Fragment", 208, target);
-        compile(output, arguments[3], PSBC_STAGE_VERTEX, "InterfaceVertex", 64, target);
+        compile(output, arguments[3], PSBC_STAGE_VERTEX, "InterfaceVertex", 0, target);
         compile(output, arguments[4], PSBC_STAGE_FRAGMENT, "InterfaceFragment", 64, target);
         output << "}\n#endif\n";
         output.close();
