@@ -19,7 +19,7 @@ private:
     std::int64_t sequence = 0;
     std::uint64_t* labels = nullptr;
     bool acquired = false;
-    std::array<std::span<std::uint32_t>, 2> buffers;
+    std::array<std::span<std::uint32_t>, 3> buffers;
 };
 
 #endif
