@@ -1,6 +1,7 @@
 #ifndef @NAME@_Graphics_Renderer_hpp
 #define @NAME@_Graphics_Renderer_hpp
 #include "Graphics/Memory.hpp"
+#include "Graphics/Display.hpp"
 #include "Graphics/Pipeline.hpp"
 #include <array>
 #include <memory>
@@ -9,7 +10,7 @@
 class Renderer final {
 public:
     Renderer(int width, int height, std::string_view title);
-    void Draw(void* target, std::array<float, 2> position, float scale);
+    void Draw(Display& display, std::array<float, 2> position, float scale);
 private:
     struct alignas(16) Frame {
         std::array<float, 4> rectangle;

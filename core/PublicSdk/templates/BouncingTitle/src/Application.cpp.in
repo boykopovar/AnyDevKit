@@ -18,8 +18,7 @@ void Application::Run() {
         const auto now = sceKernelGetProcessTime();
         title.Update(static_cast<double>(now - previous) / 1000000.0);
         previous = now;
-        renderer.Draw(display.Acquire(), title.Position(), title.Scale());
-        display.Present();
+        renderer.Draw(display, title.Position(), title.Scale());
         const auto beforeSuspend = sceKernelGetProcessTime();
         Check(sceAgcSuspendPoint(), "sceAgcSuspendPoint");
         previous += sceKernelGetProcessTime() - beforeSuspend;

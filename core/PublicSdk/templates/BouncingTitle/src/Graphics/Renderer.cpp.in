@@ -60,7 +60,7 @@ Shader* Renderer::createShader(std::span<const std::uint8_t> header, std::span<c
     if (!shader || !shader->cx_registers || !shader->sh_registers) throw Error{"Incomplete shader"};
     return shader;
 }
-void Renderer::Draw(void* target, std::array<float, 2> position, float scale) {
+void Renderer::Draw(Display& display, std::array<float, 2> position, float scale) {
     for (std::size_t index = 1; index <= titleLength; ++index) {
         frames[index].rectangle = {position[0] + static_cast<float>(index - 1) * 6 * scale, position[1], 5 * scale, 7 * scale};
         frames[index].viewport[2] = scale;
@@ -70,12 +70,14 @@ void Renderer::Draw(void* target, std::array<float, 2> position, float scale) {
     CommandBuffer buffer{commands, commands + CommandWords, commands, commands + CommandWords, exhausted, nullptr, 0};
     sceAgcDcbContextStateOp(&buffer, 0);
     sceAgcDcbAcquireMem(&buffer, 1, 0, 0x4381, memory.Data(), memory.Size(), 40);
-    pipeline->Bind(buffer, target);
+    pipeline->Bind(buffer, display.Acquire());
     for (const auto* shader : {vertex, fragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
     sceAgcDcbSetNumInstances(&buffer, 1);
     bindShader(buffer, 0x8c, AdkShaders::ScreenVertex::UserData, AdkShaders::ScreenVertex::UserDataCount, AdkShaders::ScreenVertex::DescriptorSetSlots[0], descriptor);
     bindShader(buffer, 0xc, AdkShaders::ScreenFragment::UserData, AdkShaders::ScreenFragment::UserDataCount, -1, nullptr);
     sceAgcDcbDrawIndexAuto(&buffer, static_cast<std::uint32_t>((titleLength + 1) * 6), 0);
+    const auto flip = display.PrepareFlip();
+    sceAgcDcbSetFlip(&buffer, flip.Handle, flip.BufferIndex, 1, flip.Argument);
     sceAgcCbReleaseMem(&buffer, 0x2d, 0x70f, 0, 0, reinterpret_cast<Label*>(fence), 2, 1, 0, 0, 3, 0);
     const Packet packet{commands, static_cast<std::uint32_t>(buffer.cursor_up - commands), 0, {}};
     std::atomic_thread_fence(std::memory_order_seq_cst);
