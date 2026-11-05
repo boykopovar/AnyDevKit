@@ -14,7 +14,7 @@ public:
     void Wait();
 
 private:
-    static constexpr std::size_t bufferCount = 3;
+    static constexpr std::size_t bufferCount = 4;
     int handle;
     int back = 0;
     std::int64_t sequence = 0;
