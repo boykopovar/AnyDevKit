@@ -14,5 +14,5 @@ adk_add_executable(@NAME@
 )
 target_include_directories(@NAME@ PRIVATE include)
 adk_link_libraries(@NAME@ libc libkernel libSceVideoOut libSceAgc libSceAgcDriver)
-adk_add_shaders(@NAME@ shaders/Screen.vert HEADER ScreenVertex)
+adk_add_shaders(@NAME@ shaders/Screen.vert HEADER ScreenVertex OPTIONS --descriptor "0,0,storage-buffer,1,0,16")
 adk_add_shaders(@NAME@ shaders/Screen.frag HEADER ScreenFragment COLOR_FORMAT 4)

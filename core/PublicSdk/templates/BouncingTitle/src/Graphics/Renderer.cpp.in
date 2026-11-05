@@ -12,14 +12,14 @@
 namespace {
 constexpr std::size_t CommandWords = 4096;
 bool APS5_VABI exhausted(CommandBuffer*, std::uint32_t, void*) { throw Error{"AGC command buffer exhausted"}; }
-void bindShader(CommandBuffer& buffer, std::uint32_t base, const std::array<std::uint32_t, 16>& values, std::uint32_t count, int slot, const void* constants) {
+void bindShader(CommandBuffer& buffer, std::uint32_t base, const std::array<std::uint32_t, 16>& values, std::uint32_t count, int slot, const void* descriptors) {
     for (std::uint32_t index = 0; index < count; ++index) {
-        const auto value = static_cast<int>(index) == slot ? static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(constants)) : values[index];
+        const auto value = static_cast<int>(index) == slot ? static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(descriptors)) : values[index];
         sceAgcDcbSetShRegisterDirect(&buffer, {base + index, value});
     }
 }
 }
-Renderer::Renderer(int width, int height, std::string_view title) : memory(2 * 1024 * 1024, 0x240000000ull) {
+Renderer::Renderer(int width, int height, std::string_view title) : memory(Memory::Alignment, 0x240000000ull) {
     if (title.empty() || title.size() > 64) throw Error{"Invalid title length"};
     const auto address = reinterpret_cast<std::uintptr_t>(memory.Data());
     if (address >> 32 != 2 || (address + memory.Size() - 1) >> 32 != 2) throw Error{"GPU memory is outside shader aperture"};
@@ -37,8 +37,15 @@ Renderer::Renderer(int width, int height, std::string_view title) : memory(2 * 1
     }
     frames[0].rectangle = {0, 0, static_cast<float>(width), static_cast<float>(height)};
     static_assert(sizeof(Frame) == 64);
-    static_assert(AdkShaders::ScreenVertex::PushConstantSize <= sizeof(Frame));
-    static_assert(AdkShaders::ScreenFragment::PushConstantSize <= sizeof(Frame));
+    static_assert(AdkShaders::ScreenVertex::PushConstantSize == 0);
+    static_assert(AdkShaders::ScreenFragment::PushConstantSize == 0);
+    static_assert(AdkShaders::ScreenVertex::DescriptorSetSlots[0] >= 0);
+    descriptor = static_cast<std::uint32_t*>(memory.Allocate(16, 16));
+    const auto frameAddress = reinterpret_cast<std::uintptr_t>(frames);
+    descriptor[0] = static_cast<std::uint32_t>(frameAddress);
+    descriptor[1] = static_cast<std::uint32_t>(frameAddress >> 32);
+    descriptor[2] = static_cast<std::uint32_t>(sizeof(Frame) * (titleLength + 1));
+    descriptor[3] = 0x31016fac;
     vertex = createShader(AdkShaders::ScreenVertex::Header, AdkShaders::ScreenVertex::Code);
     fragment = createShader(AdkShaders::ScreenFragment::Header, AdkShaders::ScreenFragment::Code);
     pipeline = std::make_unique<Pipeline>(memory, width, height, vertex, fragment);
@@ -66,11 +73,9 @@ void Renderer::Draw(void* target, std::array<float, 2> position, float scale) {
     pipeline->Bind(buffer, target);
     for (const auto* shader : {vertex, fragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
     sceAgcDcbSetNumInstances(&buffer, 1);
-    for (std::size_t index = 0; index <= titleLength; ++index) {
-        bindShader(buffer, 0x8c, AdkShaders::ScreenVertex::UserData, AdkShaders::ScreenVertex::UserDataCount, AdkShaders::ScreenVertex::PushConstantSlot, frames + index);
-        bindShader(buffer, 0xc, AdkShaders::ScreenFragment::UserData, AdkShaders::ScreenFragment::UserDataCount, AdkShaders::ScreenFragment::PushConstantSlot, frames + index);
-        sceAgcDcbDrawIndexAuto(&buffer, 6, 0);
-    }
+    bindShader(buffer, 0x8c, AdkShaders::ScreenVertex::UserData, AdkShaders::ScreenVertex::UserDataCount, AdkShaders::ScreenVertex::DescriptorSetSlots[0], descriptor);
+    bindShader(buffer, 0xc, AdkShaders::ScreenFragment::UserData, AdkShaders::ScreenFragment::UserDataCount, -1, nullptr);
+    sceAgcDcbDrawIndexAuto(&buffer, static_cast<std::uint32_t>((titleLength + 1) * 6), 0);
     sceAgcCbReleaseMem(&buffer, 0x2d, 0x70f, 0, 0, reinterpret_cast<Label*>(fence), 2, 1, 0, 0, 3, 0);
     const Packet packet{commands, static_cast<std::uint32_t>(buffer.cursor_up - commands), 0, {}};
     std::atomic_thread_fence(std::memory_order_seq_cst);

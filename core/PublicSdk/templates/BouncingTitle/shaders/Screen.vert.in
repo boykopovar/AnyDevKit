@@ -1,12 +1,25 @@
 #version 450
-layout(push_constant) uniform Frame {
+struct Frame {
     vec4 rectangle;
     vec4 color;
     vec4 viewport;
     uvec4 glyph;
-} frame;
+};
+layout(set = 0, binding = 0, std430) readonly buffer Frames {
+    Frame values[];
+} frames;
+layout(location = 0) out vec2 coordinate;
+layout(location = 1) flat out vec4 color;
+layout(location = 2) flat out uvec4 glyph;
+layout(location = 3) flat out uint text;
 void main() {
     const vec2 corners[6] = vec2[6](vec2(0, 0), vec2(1, 0), vec2(0, 1), vec2(0, 1), vec2(1, 0), vec2(1, 1));
-    vec2 position = frame.rectangle.xy + corners[gl_VertexIndex] * frame.rectangle.zw;
+    Frame frame = frames.values[gl_VertexIndex / 6];
+    vec2 corner = corners[gl_VertexIndex % 6];
+    text = frame.viewport.z > 0.0 ? 1u : 0u;
+    coordinate = corner * (text != 0u ? vec2(5, 7) : vec2(1));
+    color = frame.color;
+    glyph = frame.glyph;
+    vec2 position = frame.rectangle.xy + corner * frame.rectangle.zw;
     gl_Position = vec4(position / frame.viewport.xy * 2.0 - 1.0, 0.0, 1.0);
 }

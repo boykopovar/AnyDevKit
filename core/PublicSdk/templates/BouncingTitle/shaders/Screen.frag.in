@@ -1,22 +1,18 @@
 #version 450
-layout(push_constant) uniform Frame {
-    vec4 rectangle;
-    vec4 color;
-    vec4 viewport;
-    uvec4 glyph;
-} frame;
+layout(location = 0) in vec2 coordinate;
+layout(location = 1) flat in vec4 color;
+layout(location = 2) flat in uvec4 glyph;
+layout(location = 3) flat in uint text;
 layout(location = 0) out vec4 outputColor;
 void main() {
-    float scale = frame.viewport.z;
-    if (scale == 0.0) {
-        float gradient = gl_FragCoord.y / frame.viewport.y;
-        outputColor = vec4(mix(vec3(0.025, 0.04, 0.065), vec3(0.065, 0.10, 0.14), gradient), 1.0);
+    if (text == 0u) {
+        outputColor = vec4(mix(vec3(0.025, 0.04, 0.065), vec3(0.065, 0.10, 0.14), coordinate.y), 1.0);
     } else {
-        uvec2 cell = uvec2(floor((gl_FragCoord.xy - frame.rectangle.xy) / scale));
+        uvec2 cell = uvec2(floor(coordinate));
         if (cell.x >= 5u || cell.y >= 7u) discard;
-        uint rows = cell.y < 4u ? frame.glyph.x : frame.glyph.y;
+        uint rows = cell.y < 4u ? glyph.x : glyph.y;
         uint bit = (cell.y % 4u) * 5u + 4u - cell.x;
         if ((rows & (1u << bit)) == 0u) discard;
-        outputColor = frame.color;
+        outputColor = color;
     }
 }

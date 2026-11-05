@@ -25,6 +25,7 @@ private:
     std::uint32_t* commands;
     std::uint64_t* fence;
     Frame* frames;
+    std::uint32_t* descriptor;
     std::size_t titleLength;
 };
 #endif
