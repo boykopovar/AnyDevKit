@@ -63,11 +63,16 @@ Renderer::Renderer(int width, int height) : width(width), height(height) {
         interfacePrimitive = static_cast<ShaderRegister*>(allocate(3 * sizeof(ShaderRegister), 256));
         interfaceCommands = static_cast<DrawCommand*>(allocate(Canvas::Capacity * sizeof(DrawCommand), alignof(DrawCommand)));
         backgroundRegions = static_cast<std::array<float, 4>*>(allocate(RegionCapacity * sizeof(std::array<float, 4>), 16));
-        backgroundDescriptor = static_cast<std::uint32_t*>(allocate(16, 16));
+        backgroundDescriptor = static_cast<std::uint32_t*>(allocate(32, 16));
         const auto regionAddress = reinterpret_cast<std::uintptr_t>(backgroundRegions);
         backgroundDescriptor[0] = static_cast<std::uint32_t>(regionAddress);
         backgroundDescriptor[1] = static_cast<std::uint32_t>(regionAddress >> 32);
         backgroundDescriptor[3] = 0x31016fac;
+        const auto frameAddress = reinterpret_cast<std::uintptr_t>(constants);
+        backgroundDescriptor[4] = static_cast<std::uint32_t>(frameAddress);
+        backgroundDescriptor[5] = static_cast<std::uint32_t>(frameAddress >> 32);
+        backgroundDescriptor[6] = (4 + BackgroundPhysics::Scene::TransformFloats) * sizeof(float);
+        backgroundDescriptor[7] = 0x31016fac;
         interfaceDescriptor = static_cast<std::uint32_t*>(allocate(16, 16));
         const auto commandAddress = reinterpret_cast<std::uintptr_t>(interfaceCommands);
         interfaceDescriptor[0] = static_cast<std::uint32_t>(commandAddress);

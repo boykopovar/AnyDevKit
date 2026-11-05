@@ -1,10 +1,12 @@
 #version 450
 
-layout(push_constant) uniform Frame {
+layout(set = 0, binding = 1, std430) readonly buffer Frame {
     vec2 resolution;
     float seconds;
     vec4 positions[8];
     vec4 orientations[4];
+    vec4 formulaPositions[8];
+    vec4 formulaOrientations[8];
 } frame;
 
 layout(set = 0, binding = 0, std430) readonly buffer Regions {
@@ -25,10 +27,8 @@ void main() {
     resolution = frame.resolution;
     for (int index = 0; index < 8; ++index) {
         positions[index] = frame.positions[index];
-        float phase = float(index) * 1.73;
-        float angle = frame.seconds * 0.12 + phase;
-        textCenters[index] = vec4(vec3(sin(angle) * 4.4, cos(angle * 0.7 + phase) * 2.8, 5.0 + 1.5 * sin(angle * 0.6)) + vec3(-1.0, 0.9, -0.8), 0.0);
-        textRotations[index] = vec4(cos(angle), sin(angle), cos(angle * 0.7), sin(angle * 0.7));
+        textCenters[index] = frame.formulaPositions[index];
+        textRotations[index] = frame.formulaOrientations[index];
     }
     for (int index = 0; index < 4; ++index) orientations[index] = frame.orientations[index];
 }

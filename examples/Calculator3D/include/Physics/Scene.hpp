@@ -16,14 +16,17 @@ struct Body {
     Vector Position;
     Vector Velocity;
     Vector AngularVelocity;
+    Vector HalfExtents{0.55f, 0.55f, 0.55f};
     std::array<Vector, 3> Axes{{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
     bool Sphere = false;
 };
 
 class Scene final {
 public:
-    static constexpr std::size_t Count = 8;
-    static constexpr std::size_t TransformFloats = Count * 4 + Count / 2 * 4;
+    static constexpr std::size_t ShapeCount = 8;
+    static constexpr std::size_t FormulaCount = 8;
+    static constexpr std::size_t Count = ShapeCount + FormulaCount;
+    static constexpr std::size_t TransformFloats = ShapeCount * 4 + ShapeCount / 2 * 4 + FormulaCount * 8;
     Scene();
     void Update(float seconds);
     void WriteTransforms(std::span<float, TransformFloats> output) const;

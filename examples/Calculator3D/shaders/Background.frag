@@ -7,6 +7,13 @@ layout(location = 9) flat in vec4 orientations[4];
 layout(location = 13) flat in vec4 textCenters[8];
 layout(location = 21) flat in vec4 textRotations[8];
 
+mat3 orientation(vec4 q) {
+    return mat3(
+        1.0 - 2.0 * (q.y * q.y + q.z * q.z), 2.0 * (q.x * q.y + q.z * q.w), 2.0 * (q.x * q.z - q.y * q.w),
+        2.0 * (q.x * q.y - q.z * q.w), 1.0 - 2.0 * (q.x * q.x + q.z * q.z), 2.0 * (q.y * q.z + q.x * q.w),
+        2.0 * (q.x * q.z + q.y * q.w), 2.0 * (q.y * q.z - q.x * q.w), 1.0 - 2.0 * (q.x * q.x + q.y * q.y));
+}
+
 float cube(vec3 origin, vec3 direction, out vec3 normal) {
     vec3 inverse = 1.0 / direction;
     vec3 a = (-vec3(0.55) - origin) * inverse;
@@ -63,17 +70,13 @@ void main() {
         vec3 normal;
         float distance = 1000.0;
         float b = dot(-center, direction);
-        float discriminant = b * b - dot(center, center) + ((index & 1) == 1 ? 0.42 : 0.9075);
+        float discriminant = b * b - dot(center, center) + ((index & 1) == 1 ? 0.42 : 0.91);
         if (discriminant > 0.0) {
             if ((index & 1) == 1) {
                 distance = -b - sqrt(discriminant);
                 normal = normalize(direction * distance - center);
             } else {
-                vec4 q = orientations[index / 2];
-                mat3 basis = mat3(
-                    1.0 - 2.0 * (q.y * q.y + q.z * q.z), 2.0 * (q.x * q.y + q.z * q.w), 2.0 * (q.x * q.z - q.y * q.w),
-                    2.0 * (q.x * q.y - q.z * q.w), 1.0 - 2.0 * (q.x * q.x + q.z * q.z), 2.0 * (q.y * q.z + q.x * q.w),
-                    2.0 * (q.x * q.z + q.y * q.w), 2.0 * (q.y * q.z - q.x * q.w), 1.0 - 2.0 * (q.x * q.x + q.y * q.y));
+                mat3 basis = orientation(orientations[index / 2]);
                 vec3 origin = transpose(basis) * -center;
                 vec3 ray = transpose(basis) * direction;
                 distance = cube(origin, ray, normal);
@@ -86,9 +89,8 @@ void main() {
             vec3 tint = (index & 1) == 0 ? vec3(0.07, 0.22, 0.24) : vec3(0.15, 0.12, 0.28);
             surface = tint * light + vec3(0.018, 0.025, 0.035);
         }
-        vec4 r = textRotations[index];
-        mat3 basis = mat3(r.x, 0.0, r.y, 0.0, 1.0, 0.0, -r.y, 0.0, r.x) * mat3(1.0, 0.0, 0.0, 0.0, r.z, r.w, 0.0, -r.w, r.z);
-        vec3 textCenter = textCenters[index].xyz;
+        mat3 basis = orientation(textRotations[index]);
+        vec3 textCenter = textCenters[index].xyz - basis[0] * textCenters[index].w + basis[1] * (7.0 / 45.0);
         vec3 textNormal = basis[2];
         float denominator = dot(direction, textNormal);
         if (abs(denominator) > 0.001) {
