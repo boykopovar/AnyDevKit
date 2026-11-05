@@ -1,7 +1,4 @@
 #include "Screen.hpp"
-#include "Calculator3DError.hpp"
-#include "prx/libkernel/include/Api.hpp"
-#include <cstring>
 #include <algorithm>
 #include <stdexcept>
 
@@ -15,12 +12,31 @@ constexpr std::uint32_t Red = 0xffff8585;
 
 std::string visible(std::string_view text) {
     std::string result;
-    for (char value : text.substr(0, 90)) {
+    text = text.substr(0, 90);
+    result.reserve(text.size());
+    for (char value : text) {
         if (value >= 'a' && value <= 'z') value = static_cast<char>(value - 'a' + 'A');
         if ((value >= 'A' && value <= 'Z') || (value >= '0' && value <= '9') || value == ' ' || value == '.' || value == ':' || value == '-' || value == '+' || value == '/') result.push_back(value);
         else result.push_back(' ');
     }
     return result;
+}
+
+constexpr auto ColumnOffsets = [] {
+    std::array<std::size_t, Width> offsets{};
+    for (unsigned x = 0; x < Width; ++x) {
+        const auto swizzle = ((x << 2) & 0x000cu) ^ ((x << 5) & 0x0380u) ^ ((x << 4) & 0x0400u) ^ ((x << 6) & 0x0800u) ^ ((x << 9) & 0xa000u);
+        offsets[x] = static_cast<std::size_t>(x / 128) * 16384 + swizzle / sizeof(std::uint32_t);
+    }
+    return offsets;
+}();
+
+void fillRectangle(std::span<std::uint32_t> pixels, unsigned x, unsigned y, unsigned width, unsigned height, std::uint32_t color) {
+    for (unsigned row = y; row < y + height; ++row) {
+        const auto base = static_cast<std::size_t>(row / 128) * ((Width + 127) / 128) * 16384;
+        const auto swizzle = (((row << 4) & 0x0070u) ^ ((row << 5) & 0x0f00u) ^ ((row << 9) & 0x1000u) ^ ((row << 8) & 0x4000u)) / sizeof(std::uint32_t);
+        for (unsigned column = x; column < x + width; ++column) pixels[base + (ColumnOffsets[column] ^ swizzle)] = color;
+    }
 }
 
 void render(std::span<std::uint32_t> pixels, std::span<const DrawCommand> commands) {
@@ -35,18 +51,14 @@ void render(std::span<std::uint32_t> pixels, std::span<const DrawCommand> comman
         const auto width = static_cast<unsigned>(command.Rectangle[2]);
         const auto height = static_cast<unsigned>(command.Rectangle[3]);
         const auto scale = static_cast<unsigned>(command.Parameters[3]);
-        for (unsigned row = 0; row < height; ++row) {
-            for (unsigned column = 0; column < width; ++column) {
-                if (scale != 0) {
-                    const auto glyphRow = row / scale;
-                    const auto bits = (command.Glyph[glyphRow / 4] >> ((glyphRow % 4) * 5)) & 31u;
-                    if ((bits & (1u << (4 - column / scale))) == 0) continue;
-                }
-                const auto tileX = x + column;
-                const auto tileY = y + row;
-                const auto tile = static_cast<std::size_t>(tileY / 128) * ((Width + 127) / 128) + tileX / 128;
-                const auto offset = ((tileY << 4) & 0x0070u) ^ ((tileY << 5) & 0x0f00u) ^ ((tileY << 9) & 0x1000u) ^ ((tileY << 8) & 0x4000u) ^ ((tileX << 2) & 0x000cu) ^ ((tileX << 5) & 0x0380u) ^ ((tileX << 4) & 0x0400u) ^ ((tileX << 6) & 0x0800u) ^ ((tileX << 9) & 0xa000u);
-                pixels[tile * 16384 + offset / sizeof(std::uint32_t)] = color;
+        if (scale == 0) {
+            fillRectangle(pixels, x, y, width, height, color);
+            continue;
+        }
+        for (unsigned row = 0; row < 7; ++row) {
+            const auto bits = (command.Glyph[row / 4] >> ((row % 4) * 5)) & 31u;
+            for (unsigned column = 0; column < 5; ++column) {
+                if ((bits & (1u << (4 - column))) != 0) fillRectangle(pixels, x + column * scale, y + row * scale, scale, scale, color);
             }
         }
     }
@@ -54,18 +66,7 @@ void render(std::span<std::uint32_t> pixels, std::span<const DrawCommand> comman
 
 }
 
-Screen::Screen() : display(Width, Height), canvas(Width, Height) {
-    void* storage = nullptr;
-    const auto capacity = Canvas::StorageSize(Width, Height);
-    const auto result = sceKernelMapFlexibleMemory(&storage, capacity, 3, 0);
-    if (result < 0) throw Calculator3DError{"sceKernelMapFlexibleMemory", result};
-    frame = std::span(static_cast<std::uint32_t*>(storage), capacity / sizeof(std::uint32_t));
-}
-
-Screen::~Screen() noexcept(false) {
-    const auto result = sceKernelMunmap(reinterpret_cast<std::uintptr_t>(frame.data()), frame.size_bytes());
-    if (result < 0) throw Calculator3DError{"sceKernelMunmap", result};
-}
+Screen::Screen() : display(Width, Height), canvas(Width, Height) {}
 
 void Screen::Begin(std::size_t index, std::string_view name) {
     rows.at(index) = {visible(name), "RUNNING"};
@@ -105,9 +106,7 @@ void Screen::draw() {
     }
     canvas.Text(120, 908, detail, 3, Red);
     canvas.Text(120, 994, "CLOSE THIS APPLICATION FROM THE SYSTEM MENU", 3, 0xff9caec2);
-    render(frame, canvas.Commands());
-    const auto target = display.Acquire();
-    std::memcpy(target.data(), frame.data(), frame.size_bytes());
+    render(display.Acquire(), canvas.Commands());
     display.Present();
 }
 
