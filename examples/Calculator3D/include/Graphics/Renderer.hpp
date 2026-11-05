@@ -2,6 +2,7 @@
 #define ANYDEVKIT_CALCULATOR3D_GRAPHICS_RENDERER_HPP
 
 #include "Graphics/ShaderAsset.hpp"
+#include "Graphics/BackgroundVisibility.hpp"
 #include "Physics/Scene.hpp"
 #include "Canvas.hpp"
 #include "SceShaders.hpp"
@@ -43,6 +44,9 @@ private:
     DrawCommand* interfaceCommands = nullptr;
     bool pending = false;
     BackgroundPhysics::Scene physics;
+    BackgroundVisibility visibility;
+    std::array<float, 4>* backgroundRegions = nullptr;
+    std::uint32_t* backgroundDescriptor = nullptr;
 };
 
 #endif

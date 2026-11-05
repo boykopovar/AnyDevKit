@@ -17,6 +17,7 @@ constexpr std::size_t MemorySize = 32 * 1024 * 1024;
 constexpr std::size_t Alignment = 131072;
 constexpr std::size_t CommandWords = 65536;
 constexpr std::size_t RegisterCapacity = 256;
+constexpr std::size_t RegionCapacity = 8192;
 
 void check(int result, const char* operation) {
     if (result != 0) throw Calculator3DError{operation, result};
@@ -61,6 +62,12 @@ Renderer::Renderer(int width, int height) : width(width), height(height) {
         interfaceContext = static_cast<ShaderRegister*>(allocate(RegisterCapacity * sizeof(ShaderRegister), 256));
         interfacePrimitive = static_cast<ShaderRegister*>(allocate(3 * sizeof(ShaderRegister), 256));
         interfaceCommands = static_cast<DrawCommand*>(allocate(Canvas::Capacity * sizeof(DrawCommand), alignof(DrawCommand)));
+        backgroundRegions = static_cast<std::array<float, 4>*>(allocate(RegionCapacity * sizeof(std::array<float, 4>), 16));
+        backgroundDescriptor = static_cast<std::uint32_t*>(allocate(16, 16));
+        const auto regionAddress = reinterpret_cast<std::uintptr_t>(backgroundRegions);
+        backgroundDescriptor[0] = static_cast<std::uint32_t>(regionAddress);
+        backgroundDescriptor[1] = static_cast<std::uint32_t>(regionAddress >> 32);
+        backgroundDescriptor[3] = 0x31016fac;
         interfaceDescriptor = static_cast<std::uint32_t*>(allocate(16, 16));
         const auto commandAddress = reinterpret_cast<std::uintptr_t>(interfaceCommands);
         interfaceDescriptor[0] = static_cast<std::uint32_t>(commandAddress);
@@ -168,6 +175,10 @@ void Renderer::Draw(std::span<std::uint32_t> pixels, float seconds, const Canvas
     }
     const auto draws = canvas.Commands();
     if (draws.size() > Canvas::Capacity) throw Calculator3DError{"Too many interface draws"};
+    const auto regions = visibility.Update(width, height, draws);
+    if (regions.size() > RegionCapacity) throw Calculator3DError{"Background region capacity exceeded"};
+    std::memcpy(backgroundRegions, regions.data(), regions.size_bytes());
+    backgroundDescriptor[2] = static_cast<std::uint32_t>(regions.size_bytes());
     interfaceDescriptor[2] = static_cast<std::uint32_t>(draws.size_bytes());
     std::memcpy(interfaceCommands, draws.data(), draws.size_bytes());
     constants[0] = static_cast<float>(width);
@@ -183,22 +194,22 @@ void Renderer::Draw(std::span<std::uint32_t> pixels, float seconds, const Canvas
     sceAgcDcbSetCxRegistersIndirect(&buffer, context, contextCount);
     sceAgcDcbSetUcRegistersIndirect(&buffer, primitive, 3);
     for (const auto* shader : {vertex, fragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
-    const auto bind = [&](const ShaderAsset& asset, std::uint32_t base, const void* pushConstants) {
+    const auto bind = [&](const ShaderAsset& asset, std::uint32_t base, const void* pushConstants, const void* descriptors) {
         for (std::uint32_t i = 0; i < asset.UserDataCount; ++i) {
             auto value = static_cast<int>(i) == asset.PushConstantSlot ? static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(pushConstants)) : asset.UserData[i];
-            if (static_cast<int>(i) == asset.DescriptorSlot) value = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(interfaceDescriptor));
+            if (static_cast<int>(i) == asset.DescriptorSlot) value = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(descriptors));
             sceAgcDcbSetShRegisterDirect(&buffer, {base + i, value});
         }
     };
-    bind(Calculator3DShaders::Vertex, 0x8c, constants);
-    bind(Calculator3DShaders::Fragment, 0xc, constants);
+    bind(Calculator3DShaders::Vertex, 0x8c, constants, backgroundDescriptor);
+    bind(Calculator3DShaders::Fragment, 0xc, constants, backgroundDescriptor);
     sceAgcDcbSetNumInstances(&buffer, 1);
-    sceAgcDcbDrawIndexAuto(&buffer, 3, 0);
+    if (!regions.empty()) sceAgcDcbDrawIndexAuto(&buffer, static_cast<std::uint32_t>(regions.size() * 6), 0);
     sceAgcDcbSetCxRegistersIndirect(&buffer, interfaceContext, interfaceContextCount);
     sceAgcDcbSetUcRegistersIndirect(&buffer, interfacePrimitive, 3);
     for (const auto* shader : {interfaceVertex, interfaceFragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
-    bind(Calculator3DShaders::InterfaceVertex, 0x8c, interfaceCommands);
-    bind(Calculator3DShaders::InterfaceFragment, 0xc, interfaceCommands);
+    bind(Calculator3DShaders::InterfaceVertex, 0x8c, interfaceCommands, interfaceDescriptor);
+    bind(Calculator3DShaders::InterfaceFragment, 0xc, interfaceCommands, interfaceDescriptor);
     sceAgcDcbDrawIndexAuto(&buffer, static_cast<std::uint32_t>(draws.size() * 6), 0);
     sceAgcCbReleaseMem(&buffer, 0x2d, 0x70f, 0, 0, reinterpret_cast<Label*>(fence), 2, 1, 0, 0, 3, 0);
     const Packet packet{commands, static_cast<std::uint32_t>(buffer.cursor_up - commands), 0, {}};
