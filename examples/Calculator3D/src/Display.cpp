@@ -15,20 +15,21 @@ int check(int result, const char* operation) {
 
 }
 
-Display::Display(int width, int height) {
+Display::Display(int width, int height, std::size_t bufferCount) : bufferCount(bufferCount) {
+    if (bufferCount < 2 || bufferCount > maximumBufferCount) throw Calculator3DError{"Invalid display buffer count"};
     constexpr std::size_t Alignment = 131072;
     const auto capacity = Canvas::StorageSize(width, height);
     const auto stride = (capacity + Alignment - 1) & ~(Alignment - 1);
     std::int64_t physicalAddress = 0;
-    check(sceKernelAllocateDirectMemory(0, sceKernelGetDirectMemorySize(), stride * buffers.size(), Alignment, 12, &physicalAddress), "sceKernelAllocateDirectMemory");
+    check(sceKernelAllocateDirectMemory(0, sceKernelGetDirectMemorySize(), stride * bufferCount, Alignment, 12, &physicalAddress), "sceKernelAllocateDirectMemory");
     void* address = nullptr;
-    const auto result = sceKernelMapDirectMemory(&address, stride * buffers.size(), 0x33, 0, physicalAddress, Alignment);
+    const auto result = sceKernelMapDirectMemory(&address, stride * bufferCount, 0x33, 0, physicalAddress, Alignment);
     if (result < 0) {
-        check(sceKernelReleaseDirectMemory(physicalAddress, stride * buffers.size()), "sceKernelReleaseDirectMemory");
+        check(sceKernelReleaseDirectMemory(physicalAddress, stride * bufferCount), "sceKernelReleaseDirectMemory");
         check(result, "sceKernelMapDirectMemory");
     }
-    std::array<VideoOutBuffers, bufferCount> registered{};
-    for (std::size_t index = 0; index < buffers.size(); ++index) {
+    std::array<VideoOutBuffers, maximumBufferCount> registered{};
+    for (std::size_t index = 0; index < bufferCount; ++index) {
         auto* pixels = reinterpret_cast<std::uint32_t*>(static_cast<std::byte*>(address) + index * stride);
         buffers[index] = std::span(pixels, capacity / sizeof(std::uint32_t));
         registered[index].data = pixels;
@@ -36,10 +37,10 @@ Display::Display(int width, int height) {
     handle = check(sceVideoOutOpen(255, 0, 0, nullptr), "sceVideoOutOpen");
     VideoOutBufferAttribute2 attribute{};
     sceVideoOutSetBufferAttribute2(&attribute, 0x8000000000000000ull, 0, width, height, 0, 0, 0);
-    check(sceVideoOutRegisterBuffers2(handle, 0, 0, registered.data(), static_cast<int>(registered.size()), &attribute, 0, nullptr), "sceVideoOutRegisterBuffers2");
+    check(sceVideoOutRegisterBuffers2(handle, 0, 0, registered.data(), static_cast<int>(bufferCount), &attribute, 0, nullptr), "sceVideoOutRegisterBuffers2");
     std::uintptr_t labelAddress = 0;
     const auto labelCount = check(sceVideoOutGetBufferLabelAddress(handle, &labelAddress), "sceVideoOutGetBufferLabelAddress");
-    if (labelCount < static_cast<int>(buffers.size()) || labelAddress == 0 || labelAddress % std::atomic_ref<std::uint64_t>::required_alignment != 0) throw Calculator3DError{"Invalid VideoOut buffer labels"};
+    if (labelCount < static_cast<int>(bufferCount) || labelAddress == 0 || labelAddress % std::atomic_ref<std::uint64_t>::required_alignment != 0) throw Calculator3DError{"Invalid VideoOut buffer labels"};
     labels = reinterpret_cast<std::uint64_t*>(labelAddress);
 }
 
@@ -64,7 +65,7 @@ Display::Flip Display::PrepareFlip() {
     std::atomic_thread_fence(std::memory_order_seq_cst);
     label.store(1, std::memory_order_release);
     const Flip flip{handle, back, ++sequence};
-    back = (back + 1) % static_cast<int>(buffers.size());
+    back = (back + 1) % static_cast<int>(bufferCount);
     acquired = false;
     return flip;
 }

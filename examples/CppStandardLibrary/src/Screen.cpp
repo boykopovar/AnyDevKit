@@ -66,7 +66,7 @@ void render(std::span<std::uint32_t> pixels, std::span<const DrawCommand> comman
 
 }
 
-Screen::Screen() : display(Width, Height), canvas(Width, Height) {}
+Screen::Screen() : display(Width, Height, 2), canvas(Width, Height) {}
 
 void Screen::Begin(std::size_t index, std::string_view name) {
     rows.at(index) = {visible(name), "RUNNING"};
