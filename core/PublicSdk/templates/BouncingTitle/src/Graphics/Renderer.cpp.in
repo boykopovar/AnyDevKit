@@ -87,4 +87,5 @@ void Renderer::Draw(Display& display, std::array<float, 2> position, float scale
         if (sceKernelGetProcessTime() - start > 5000000) throw Error{"GPU rendering timed out"};
         Check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
     }
+    display.CompleteFlip();
 }

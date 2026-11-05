@@ -3,6 +3,7 @@
 #include "Display.hpp"
 #include "Calculator3DError.hpp"
 #include "prx/libSceVideoOut/libSceVideoOut.hpp"
+#include "prx/libSceSystemService/libSceSystemService.hpp"
 
 #include <atomic>
 
@@ -73,4 +74,18 @@ Display::Flip Display::PrepareFlip() {
 void Display::Present() {
     const auto flip = PrepareFlip();
     check(sceVideoOutSubmitFlip(flip.Handle, flip.BufferIndex, 1, flip.Argument), "sceVideoOutSubmitFlip");
+    CompleteFlip();
+}
+
+void Display::CompleteFlip() {
+    if (sequence != 1) return;
+    const auto start = sceKernelGetProcessTime();
+    for (;;) {
+        VideoOutFlipStatus status{};
+        check(sceVideoOutGetFlipStatus(handle, &status), "sceVideoOutGetFlipStatus");
+        if (status.flipArg == sequence) break;
+        if (sceKernelGetProcessTime() - start > 5000000) throw Calculator3DError{"First display flip timed out"};
+        check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
+    }
+    check(sceSystemServiceHideSplashScreen(), "sceSystemServiceHideSplashScreen");
 }

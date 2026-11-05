@@ -3,6 +3,7 @@
 #include "prx/libkernel/Time/include/Time.hpp"
 #include "prx/libkernel/include/Api.hpp"
 #include "prx/libSceVideoOut/libSceVideoOut.hpp"
+#include "prx/libSceSystemService/libSceSystemService.hpp"
 #include <atomic>
 namespace {
 std::size_t bufferSize(int width, int height) {
@@ -56,4 +57,17 @@ Display::Flip Display::PrepareFlip() {
     back = (back + 1) % static_cast<int>(bufferCount);
     acquired = false;
     return flip;
+}
+
+void Display::CompleteFlip() {
+    if (sequence != 1) return;
+    const auto start = sceKernelGetProcessTime();
+    for (;;) {
+        VideoOutFlipStatus status{};
+        Check(sceVideoOutGetFlipStatus(handle, &status), "sceVideoOutGetFlipStatus");
+        if (status.flipArg == sequence) break;
+        if (sceKernelGetProcessTime() - start > 5000000) throw Error{"First display flip timed out"};
+        Check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
+    }
+    Check(sceSystemServiceHideSplashScreen(), "sceSystemServiceHideSplashScreen");
 }

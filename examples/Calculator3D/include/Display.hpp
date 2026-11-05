@@ -17,6 +17,7 @@ public:
     Display& operator=(const Display&) = delete;
     std::span<std::uint32_t> Acquire();
     Flip PrepareFlip();
+    void CompleteFlip();
     void Present();
     void Wait();
 

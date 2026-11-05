@@ -230,4 +230,5 @@ void Renderer::Draw(Display& display, float seconds, const Canvas& canvas) {
         check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
     }
     pending = false;
+    display.CompleteFlip();
 }

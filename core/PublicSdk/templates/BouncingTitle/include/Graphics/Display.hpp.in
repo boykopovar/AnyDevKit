@@ -15,6 +15,7 @@ public:
     Display& operator=(const Display&) = delete;
     void* Acquire();
     Flip PrepareFlip();
+    void CompleteFlip();
 private:
     static constexpr std::size_t bufferCount = 3;
     Memory memory;

@@ -40,13 +40,13 @@ else:
     sources = sorted(path.relative_to(project).as_posix() for path in (project / "src").rglob("*.cpp"))
     includes = ["include"]
     if options.example == "Calculator3D":
-        libraries = ["libc", "libkernel", "libSceVideoOut", "libScePad", "libSceSysmodule", "libSceSaveData.native", "libSceUserService", "libSceAgc", "libSceAgcDriver"]
+        libraries = ["libc", "libkernel", "libSceVideoOut", "libSceSystemService", "libScePad", "libSceSysmodule", "libSceSaveData.native", "libSceUserService", "libSceAgc", "libSceAgcDriver"]
         shutil.copytree(example / "shaders", project / "shaders")
         generate(adk, project, options.target)
         includes.append("generated")
         definitions = "ANYDEVKIT_CALCULATOR3D_WIDTH=1920"
     else:
-        libraries = ["libc", "libkernel", "libSceVideoOut"]
+        libraries = ["libc", "libkernel", "libSceVideoOut", "libSceSystemService"]
         calculator3D = repository / "examples/Calculator3D"
         shutil.copytree(calculator3D / "include", project / "shared/include")
         for name in ["Canvas.cpp", "Display.cpp"]:
