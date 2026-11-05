@@ -6,12 +6,14 @@ def generate(adk, project, target):
     directory = project / "build/shader-assets" / target
     directory.mkdir(parents=True, exist_ok=False)
     output = ['#ifndef ANYDEVKIT_CALCULATOR3D_GENERATED_SHADERS_HPP', '#define ANYDEVKIT_CALCULATOR3D_GENERATED_SHADERS_HPP', '#include "Graphics/ShaderAsset.hpp"', 'namespace Calculator3DShaders {']
-    shaders = [("Background.vert", "vertex", "Vertex", 12), ("Background.frag", "fragment", "Fragment", 208), ("Interface.vert", "vertex", "InterfaceVertex", 64), ("Interface.frag", "fragment", "InterfaceFragment", 64)]
+    shaders = [("Background.vert", "vertex", "Vertex", 208), ("Background.frag", "fragment", "Fragment", 208), ("Interface.vert", "vertex", "InterfaceVertex", 64), ("Interface.frag", "fragment", "InterfaceFragment", 64)]
     for source, stage, name, constant_size in shaders:
         header = directory / (name + ".header")
         code = directory / (name + ".code")
         metadata = directory / (name + ".adk")
         command = [str(adk), "shader", "--input", str(project / "shaders" / source), "--stage", stage, "--target", target, "--header", str(header), "--code", str(code), "--metadata", str(metadata)]
+        if stage == "vertex":
+            command += ["--descriptor", "0,0,storage-buffer,1,0,16"]
         if stage == "fragment":
             command += ["--color-format", "4"]
         subprocess.run(command, check=True)
@@ -24,8 +26,10 @@ def generate(adk, project, target):
             if key in fields:
                 raise RuntimeError("Duplicate shader metadata field")
             fields[key] = int(value)
-        if any(fields[key] for key in ["descriptor_binding_count", "vertex_buffer_table_valid", "view_index_valid", "draw_id_valid", "start_instance_valid"]):
+        if any(fields[key] for key in ["vertex_buffer_table_valid", "view_index_valid", "draw_id_valid", "start_instance_valid"]):
             raise RuntimeError("Unexpected calculator3D shader resource layout")
+        if fields["descriptor_binding_count"] != int(stage == "vertex") or bool(fields["descriptor_set0_valid"]) != (stage == "vertex"):
+            raise RuntimeError("Unexpected calculator3D descriptor layout")
         data = [0] * 16
         if fields["ngg_lds_layout_valid"]:
             data[fields["ngg_lds_layout_user_data_dword"]] = fields["ngg_lds_layout"]
@@ -37,7 +41,8 @@ def generate(adk, project, target):
                 raise RuntimeError("Empty shader output")
             output.append("inline constexpr std::uint8_t " + name + suffix + "[]{" + ",".join(map(str, values)) + "};")
         slot = fields["push_constants_user_data_dword"] if fields["push_constants_valid"] else -1
-        output.append("inline constexpr ShaderAsset " + name + "{" + name + "Header, " + name + "Code, {" + ",".join(map(str, data)) + "}, " + str(fields["user_sgpr_count"]) + ", " + str(slot) + "};")
+        descriptor_slot = fields["descriptor_set0_user_data_dword"] if fields["descriptor_set0_valid"] else -1
+        output.append("inline constexpr ShaderAsset " + name + "{" + name + "Header, " + name + "Code, {" + ",".join(map(str, data)) + "}, " + str(fields["user_sgpr_count"]) + ", " + str(slot) + ", " + str(descriptor_slot) + "};")
     output += ["}", "#endif"]
     destination = project / "generated"
     destination.mkdir(exist_ok=False)

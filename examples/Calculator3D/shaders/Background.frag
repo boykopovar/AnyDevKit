@@ -61,22 +61,24 @@ void main() {
     for (int index = 0; index < 8; ++index) {
         vec3 center = positions[index].xyz;
         vec3 normal;
-        float distance;
-        if ((index & 1) == 1) {
-            float b = dot(-center, direction);
-            float discriminant = b * b - dot(center, center) + 0.42;
-            distance = discriminant > 0.0 ? -b - sqrt(discriminant) : 1000.0;
-            normal = normalize(direction * distance - center);
-        } else {
-            vec4 q = orientations[index / 2];
-            mat3 basis = mat3(
-                1.0 - 2.0 * (q.y * q.y + q.z * q.z), 2.0 * (q.x * q.y + q.z * q.w), 2.0 * (q.x * q.z - q.y * q.w),
-                2.0 * (q.x * q.y - q.z * q.w), 1.0 - 2.0 * (q.x * q.x + q.z * q.z), 2.0 * (q.y * q.z + q.x * q.w),
-                2.0 * (q.x * q.z + q.y * q.w), 2.0 * (q.y * q.z - q.x * q.w), 1.0 - 2.0 * (q.x * q.x + q.y * q.y));
-            vec3 origin = transpose(basis) * -center;
-            vec3 ray = transpose(basis) * direction;
-            distance = cube(origin, ray, normal);
-            normal = basis * normal;
+        float distance = 1000.0;
+        float b = dot(-center, direction);
+        float discriminant = b * b - dot(center, center) + ((index & 1) == 1 ? 0.42 : 0.9075);
+        if (discriminant > 0.0) {
+            if ((index & 1) == 1) {
+                distance = -b - sqrt(discriminant);
+                normal = normalize(direction * distance - center);
+            } else {
+                vec4 q = orientations[index / 2];
+                mat3 basis = mat3(
+                    1.0 - 2.0 * (q.y * q.y + q.z * q.z), 2.0 * (q.x * q.y + q.z * q.w), 2.0 * (q.x * q.z - q.y * q.w),
+                    2.0 * (q.x * q.y - q.z * q.w), 1.0 - 2.0 * (q.x * q.x + q.z * q.z), 2.0 * (q.y * q.z + q.x * q.w),
+                    2.0 * (q.x * q.z + q.y * q.w), 2.0 * (q.y * q.z - q.x * q.w), 1.0 - 2.0 * (q.x * q.x + q.y * q.y));
+                vec3 origin = transpose(basis) * -center;
+                vec3 ray = transpose(basis) * direction;
+                distance = cube(origin, ray, normal);
+                normal = basis * normal;
+            }
         }
         if (distance > 0.0 && distance < closest) {
             closest = distance;
