@@ -27,7 +27,7 @@ Display::Display(int width, int height) {
         check(sceKernelReleaseDirectMemory(physicalAddress, stride * buffers.size()), "sceKernelReleaseDirectMemory");
         check(result, "sceKernelMapDirectMemory");
     }
-    std::array<VideoOutBuffers, 3> registered{};
+    std::array<VideoOutBuffers, bufferCount> registered{};
     for (std::size_t index = 0; index < buffers.size(); ++index) {
         auto* pixels = reinterpret_cast<std::uint32_t*>(static_cast<std::byte*>(address) + index * stride);
         buffers[index] = std::span(pixels, capacity / sizeof(std::uint32_t));
