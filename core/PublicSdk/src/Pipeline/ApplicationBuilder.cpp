@@ -21,7 +21,7 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     const auto relative = output.lexically_relative(workspace);
     if (output == workspace || (!relative.empty() && *relative.begin() != "..")) throw std::invalid_argument("Package output must be outside workspace");
     const auto entries = PfsBuilder::ScanDirectory(options.App0);
-    const std::set<std::string> generated{"eboot.bin", "sce_sys/param.json", "sce_sys/icon0.dds", "sce_sys/pic0.dds", "sce_sys/keystone", "sce_module/libc.prx"};
+    const std::set<std::string> generated{"eboot.bin", "sce_sys/param.json", "sce_sys/icon0.dds", "sce_sys/pic0.dds", "sce_sys/pic1.dds", "sce_sys/keystone", "sce_module/libc.prx"};
     for (const auto& entry : entries) if (generated.contains(entry.Path) && !(entry.Path == "sce_sys/param.json" && options.ParameterJson)) throw std::invalid_argument("app0 already contains generated file: " + entry.Path);
     std::array<std::byte, 32> passcode{};
     if (options.Format == PackageFormat::Pkg) passcode = options.Keys->Passcode;
@@ -31,6 +31,7 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     const auto& param = options.ParameterJson ? *options.ParameterJson : generatedParam;
     const auto iconPath = options.App0 / "sce_sys/icon0.png";
     const auto backgroundPath = options.App0 / "sce_sys/pic0.png";
+    const auto splashPath = options.App0 / "sce_sys/pic1.png";
     const bool generatedIcon = !std::filesystem::exists(iconPath);
     const auto icon = generatedIcon ? DefaultIconGenerator::Generate() : IconBuilder::ReadPng(iconPath);
     std::optional<std::vector<std::byte>> backgroundDds;
@@ -38,6 +39,12 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
         const auto background = IconBuilder::ReadPng(backgroundPath);
         if (background.Width != 3840 || background.Height != 2160) throw std::invalid_argument("pic0.png must be 3840x2160");
         backgroundDds = IconBuilder::EncodeDds(background);
+    }
+    std::optional<std::vector<std::byte>> splashDds;
+    if (std::filesystem::exists(splashPath)) {
+        const auto splash = IconBuilder::ReadPng(splashPath);
+        if (splash.Width != 3840 || splash.Height != 2160) throw std::invalid_argument("pic1.png must be 3840x2160");
+        splashDds = IconBuilder::EncodeDds(splash);
     }
     if (icon.Width != 512 || icon.Height != 512) throw std::invalid_argument("icon0.png must be 512x512");
     const auto elf = Ps5ElfBuilder::Build(Files::Read(options.InputElf), options.Imports, options.Elf);
@@ -68,6 +75,8 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     Files::Write(app0 / "sce_sys/param.json", std::as_bytes(std::span(param)));
     Files::Write(app0 / "sce_sys/icon0.dds", iconDds);
     if (backgroundDds) Files::Write(app0 / "sce_sys/pic0.dds", *backgroundDds);
+    if (splashDds) Files::Write(app0 / "sce_sys/pic1.dds", *splashDds);
+    else if (backgroundDds) Files::Write(app0 / "sce_sys/pic1.dds", *backgroundDds);
     if (options.Format == PackageFormat::Ffpfsc) FfpfscPackager::PackDirectory(app0, output, workspace / "package", options.Pfs);
     else {
         PkgOptions pkg;

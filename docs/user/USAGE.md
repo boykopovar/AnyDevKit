@@ -35,7 +35,7 @@ adk package --target ps5
 
 Output: `dist/ps5/MyApp.ffpfsc`.
 
-An absent `app0/sce_sys/icon0.png` is generated. `pic0.png` is optional.
+An absent `app0/sce_sys/icon0.png` is generated. `pic0.png` and `pic1.png` are optional (3840x2160). An absent `pic1.png` uses `pic0.png`.
 
 ## Complete example
 
