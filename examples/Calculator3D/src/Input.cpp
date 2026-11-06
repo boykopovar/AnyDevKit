@@ -33,16 +33,15 @@ Input::~Input() noexcept(false) {
     check(scePthreadJoin(vibrationThread, nullptr), "scePthreadJoin");
 }
 
-void* APS5_VABI Input::vibrationEntry(void* argument) {
-    auto& input = *static_cast<Input*>(argument);
+void* Input::runVibrationThread() {
     try {
-        input.runVibration();
+        runVibration();
     } catch (const Calculator3DError& error) {
-        input.vibrationError.store(error.Code, std::memory_order_release);
+        vibrationError.store(error.Code, std::memory_order_release);
     }
     const PadVibrationParam stopped{};
-    const int result = scePadSetVibration(input.pad, &stopped);
-    if (result < 0) input.vibrationError.store(result, std::memory_order_release);
+    const int result = scePadSetVibration(pad, &stopped);
+    if (result < 0) vibrationError.store(result, std::memory_order_release);
     return nullptr;
 }
 

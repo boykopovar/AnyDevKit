@@ -19,6 +19,7 @@ public:
 private:
     struct Pulse { std::uint32_t Duration; std::uint8_t Low; std::uint8_t High; };
     static void* APS5_VABI vibrationEntry(void* argument);
+    void* runVibrationThread();
     void runVibration();
     void vibrate(const Interface& interface);
     std::array<Pulse, 64> pulses{};

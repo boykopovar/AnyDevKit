@@ -18,7 +18,7 @@ add_custom_command(OUTPUT "${shaderHeader}"
     COMMAND "$<TARGET_FILE:Calculator3DShaderBuilder>" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Background.frag" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.vert" "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Interface.frag" "${shaderHeader}" --target "${ANYDEVKIT_CALCULATOR3D_SHADER_TARGET}"
     DEPENDS Calculator3DShaderBuilder shaders/Background.vert shaders/Background.frag shaders/Interface.vert shaders/Interface.frag
     VERBATIM)
-add_executable(Calculator3D src/Main.cpp src/Canvas.cpp src/Calculator3D.cpp src/Interface.cpp src/Input.cpp src/Display.cpp src/Settings.cpp src/Graphics/Renderer.cpp src/Graphics/BackgroundVisibility.cpp src/Physics/Scene.cpp "${shaderHeader}")
+add_executable(Calculator3D src/Main.cpp src/Canvas.cpp src/Calculator3D.cpp src/Interface.cpp src/Input.cpp src/InputThread.cpp src/Display.cpp src/Settings.cpp src/Graphics/Renderer.cpp src/Graphics/BackgroundVisibility.cpp src/Physics/Scene.cpp "${shaderHeader}")
 target_compile_features(Calculator3D PRIVATE cxx_std_20)
 target_compile_options(Calculator3D PRIVATE -fno-math-errno)
 target_compile_definitions(Calculator3D PRIVATE ANYDEVKIT_CALCULATOR3D_WIDTH=${ANYDEVKIT_CALCULATOR3D_WIDTH})
