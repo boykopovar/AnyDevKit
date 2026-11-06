@@ -41,7 +41,7 @@ def unpack_asset(info, name, cache, directory):
     return directory
 
 
-def prepare(target, root, scratch, cache, anyps5, anycxx):
+def prepare(target, root, scratch, cache, anyps5, anycxx, compiler):
     directory = root / target
     platform = "windows" if target == "windows" else "linux"
     native = scratch / platform
@@ -71,7 +71,8 @@ def prepare(target, root, scratch, cache, anyps5, anycxx):
         (runtime / "libs").rename(directory / "runtime")
     suffix = "zip" if target == "windows" else "tar.gz"
     version = anycxx["tag_name"].removeprefix("v")
-    unpack_asset(anycxx, f"llvm-cxx-ps-{version}-{target}-x86_64.{suffix}", cache, directory / "anycxx")
+    variant = "windows-gcc" if target == "windows" and compiler == "gcc" else target
+    unpack_asset(anycxx, f"llvm-cxx-ps-{version}-{variant}-x86_64.{suffix}", cache, directory / "anycxx")
     if not (directory / "anycxx/lib/cmake/AnyLibcxx/AnyLibcxxConfig.cmake").is_file():
         raise ValueError("C++ release is missing its CMake configuration")
     if target == "windows":
@@ -94,6 +95,7 @@ def main():
     parser.add_argument("--anyps5-version", default="v0.1.4", help="AnyPS5 release tag (default: %(default)s)")
     parser.add_argument("--anycxx-version", default="v0.1.7", help="C++ runtime release tag (default: %(default)s)")
     parser.add_argument("--cache", type=Path)
+    parser.add_argument("--compiler", choices=("clang", "gcc"), default="clang")
     options = parser.parse_args()
     root = options.directory.resolve()
     if root.exists():
@@ -112,8 +114,8 @@ def main():
         shutil.copytree(headers / "include", staging / "include")
         shutil.copy2(headers / "LICENSE", staging / "AnyPS5-LICENSE")
         for target in targets:
-            prepare(target, staging, scratch, cache, anyps5, anycxx)
-        metadata = {"schemaVersion": 1, "anyps5": anyps5["tag_name"], "anycxx": anycxx["tag_name"], "targets": targets}
+            prepare(target, staging, scratch, cache, anyps5, anycxx, options.compiler)
+        metadata = {"schemaVersion": 1, "anyps5": anyps5["tag_name"], "anycxx": anycxx["tag_name"], "targets": targets, "compiler": options.compiler}
         (staging / "dependencies.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
         staging.rename(root)
     print(f"Dependencies installed: {root}", flush=True)
