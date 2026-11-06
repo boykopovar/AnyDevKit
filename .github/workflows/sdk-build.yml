@@ -11,6 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-24.04, windows-2022]
+        compiler: [clang, gcc]
         include:
           - os: ubuntu-24.04
             platform: linux
@@ -42,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 ninja-build ccache python3-venv
+          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 gcc g++ ninja-build ccache python3-venv
           echo /usr/lib/llvm-18/bin >> "$GITHUB_PATH"
           python3 -m venv .venv
           .venv/bin/python -m pip install -r cmake/dependencies/requirements.txt
@@ -64,7 +66,9 @@ jobs:
           update: true
           install: >-
             mingw-w64-ucrt-x86_64-clang
+            mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-llvm-tools
+            mingw-w64-ucrt-x86_64-lld
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
             mingw-w64-ucrt-x86_64-ccache
@@ -72,8 +76,8 @@ jobs:
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-v1-sdk-${{ runner.os }}-${{ github.sha }}
-          restore-keys: ccache-v1-sdk-${{ runner.os }}-
+          key: ccache-v2-sdk-${{ runner.os }}-${{ matrix.compiler }}-${{ github.sha }}
+          restore-keys: ccache-v2-sdk-${{ runner.os }}-${{ matrix.compiler }}-
       - name: Initialize compiler cache
         run: |
           ccache --version
@@ -99,22 +103,26 @@ jobs:
           set -euo pipefail
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }} \
             -DPython3_EXECUTABLE="$SDK_PYTHON" \
-            -DBUILD_TESTING=ON \
+            -DBUILD_TESTING=${{ matrix.compiler == 'clang' && 'ON' || 'OFF' }} \
             -DANYDEVKIT_PACKAGE_VERSION="$PACKAGE_VERSION"
       - name: Build
         run: cmake --build build --parallel 4
       - name: Test
+        if: matrix.compiler == 'clang'
         run: ctest --test-dir build --output-on-failure --parallel 2 --timeout 120
       - name: Package
+        if: matrix.compiler == 'clang'
         run: cmake --build build --target package_sdk
       - name: Verify installed SDK
+        if: matrix.compiler == 'clang'
         run: |
           set -euo pipefail
           "$SDK_PYTHON" core/PublicSdk/tests/InstalledSdk.py --packages build/sdk-package --directory "build/relocated sdk"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - if: matrix.compiler == 'clang'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: adk-${{ matrix.platform }}
           path: |

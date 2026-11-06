@@ -12,6 +12,7 @@ parser.add_argument("--sdk", type=Path, required=True)
 parser.add_argument("--deps", type=Path, required=True)
 parser.add_argument("--directory", type=Path, required=True)
 parser.add_argument("--target", choices=["windows", "linux", "ps5"], required=True)
+parser.add_argument("--compiler", choices=["clang", "gcc"], default="clang")
 parser.add_argument("--example", choices=["Calculator3D", "CppStandardLibrary", "BouncingTitle"], required=True)
 options = parser.parse_args()
 repository = Path(__file__).resolve().parents[2]
@@ -73,7 +74,8 @@ def run(name, command):
         raise RuntimeError(f"{name} failed: {result.returncode}")
 
 
-run("configure", ["cmake", "--preset", options.target, "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"])
+configuration = ["cmake", "--preset", options.target, "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", f"-DADK_COMPILER={options.compiler}"]
+run("configure", configuration)
 commands = json.loads((project / "build" / options.target / "compile_commands.json").read_text())
 if len(commands) < len(sources):
     raise RuntimeError("Missing example compilation commands")
@@ -85,9 +87,11 @@ for entry in commands:
     if "3rdparty/anyps5" in command:
         raise RuntimeError("Application compilation references the AnyPS5 submodule")
 run("build", ["cmake", "--build", "--preset", options.target, "--parallel", "4"])
-if options.target == "ps5":
+if options.target == "ps5" and options.compiler == "clang":
     run("ffpfsc", [adk, "package", "--target", "ps5"])
     output = project / "dist/ps5" / (options.example + ".ffpfsc")
+elif options.target == "ps5":
+    output = project / "build/ps5" / (options.example + ".elf")
 else:
     suffix = ".exe" if options.target == "windows" else ""
     output = project / "dist" / options.target / (options.example + suffix)

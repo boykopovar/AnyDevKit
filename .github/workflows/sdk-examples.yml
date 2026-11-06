@@ -12,6 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [windows, linux, ps5]
+        compiler: [clang, gcc]
         example: [Calculator3D, CppStandardLibrary]
         include:
           - target: windows
@@ -48,7 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 ninja-build ccache
+          sudo apt-get install --no-install-recommends clang-18 llvm-18 lld-18 gcc g++ ninja-build ccache
           echo /usr/lib/llvm-18/bin >> "$GITHUB_PATH"
       - name: Install Windows tools
         if: runner.os == 'Windows'
@@ -58,7 +59,9 @@ jobs:
           update: true
           install: >-
             mingw-w64-ucrt-x86_64-clang
+            mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-llvm-tools
+            mingw-w64-ucrt-x86_64-lld
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
             mingw-w64-ucrt-x86_64-ccache
@@ -73,8 +76,8 @@ jobs:
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-v1-examples-${{ runner.os }}-${{ matrix.target }}-${{ matrix.example }}-${{ github.sha }}
-          restore-keys: ccache-v1-examples-${{ runner.os }}-${{ matrix.target }}-${{ matrix.example }}-
+          key: ccache-v2-examples-${{ runner.os }}-${{ matrix.target }}-${{ matrix.example }}-${{ matrix.compiler }}-${{ github.sha }}
+          restore-keys: ccache-v2-examples-${{ runner.os }}-${{ matrix.target }}-${{ matrix.example }}-${{ matrix.compiler }}-
       - name: Initialize compiler cache
         shell: bash
         run: |
@@ -88,21 +91,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           TARGET: ${{ matrix.target }}
-        run: build/sdk/bin/adk setup build/dependencies --target "$TARGET"
+        run: build/sdk/bin/adk setup build/dependencies --target "$TARGET" --compiler "${{ matrix.compiler }}"
       - name: Initialize and build example
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
           EXAMPLE: ${{ matrix.example }}
-        run: python tools/ci/BuildExample.py --sdk build/sdk --deps build/dependencies --directory "build/example" --target "$TARGET" --example "$EXAMPLE"
+        run: python tools/ci/BuildExample.py --sdk build/sdk --deps build/dependencies --directory "build/example" --target "$TARGET" --example "$EXAMPLE" --compiler "${{ matrix.compiler }}"
       - name: Build BouncingTitle template
         if: matrix.example == 'Calculator3D'
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-        run: python tools/ci/BuildExample.py --sdk build/sdk --deps build/dependencies --directory build/bouncing-title --target "$TARGET" --example BouncingTitle
+        run: python tools/ci/BuildExample.py --sdk build/sdk --deps build/dependencies --directory build/bouncing-title --target "$TARGET" --example BouncingTitle --compiler "${{ matrix.compiler }}"
       - name: Package example release
-        if: matrix.example == 'Calculator3D'
+        if: matrix.example == 'Calculator3D' && matrix.compiler == 'clang'
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
@@ -116,7 +119,7 @@ jobs:
           fi
           python tools/ci/PackageExample.py --project build/example --deps build/dependencies --directory build/example-release --target "$TARGET" --example "$EXAMPLE" --version "$version"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: matrix.example == 'Calculator3D'
+        if: matrix.example == 'Calculator3D' && matrix.compiler == 'clang'
         with:
           name: example-release-${{ matrix.target }}-${{ matrix.example }}
           path: build/example-release/
@@ -125,7 +128,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: example-logs-${{ matrix.target }}-${{ matrix.example }}
+          name: example-logs-${{ matrix.target }}-${{ matrix.example }}-${{ matrix.compiler }}
           path: |
             build/example/logs/
             build/bouncing-title/logs/
