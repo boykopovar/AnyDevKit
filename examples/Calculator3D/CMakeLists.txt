@@ -37,7 +37,7 @@ anydevkit_link_runtime_library(Calculator3D libSceAgc sceAgcSuspendPoint sceAgcI
 anydevkit_link_runtime_library(Calculator3D libSceAgcDriver sceAgcDriverSubmitDcb)
 
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTENT [=[
-{"titleId":"FAKE26109","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit Calculator3D"}}}
+{"titleId":"FAKE26109","attribute3":64,"localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit Calculator3D"}}}
 ]=])
 
 get_filename_component(compilerDirectory "${CMAKE_CXX_COMPILER}" DIRECTORY)

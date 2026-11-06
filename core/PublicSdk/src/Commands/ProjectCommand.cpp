@@ -40,6 +40,7 @@ void ProjectCommand::Init(const std::string& name, Arguments& arguments, const s
     parameters.Titles.emplace("en-US", name);
     parameters.RequiredSystemSoftwareVersion = 0x0200000000000000;
     parameters.SdkVersion = 0x0200000000000000;
+    parameters.Attribute3 = 0x40;
     arguments.Finish();
     const auto metadata = ParamBuilder::Build(parameters);
     Files::RequireNew(directory);
