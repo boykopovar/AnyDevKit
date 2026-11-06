@@ -30,5 +30,12 @@ std::span<const std::array<float, 4>> BackgroundVisibility::Update(int width, in
         subtract({rectangle[0] + radius, rectangle[1], rectangle[0] + rectangle[2] - radius, rectangle[1] + rectangle[3]});
         if (radius > 0.0f) subtract({rectangle[0], rectangle[1] + radius, rectangle[0] + rectangle[2], rectangle[1] + rectangle[3] - radius});
     }
+    scratch.clear();
+    for (const auto& region : regions) {
+        for (float top = region[1]; top < region[3]; top += 64) {
+            for (float left = region[0]; left < region[2]; left += 64) scratch.push_back({left, top, std::min(left + 64, region[2]), std::min(top + 64, region[3])});
+        }
+    }
+    regions.swap(scratch);
     return regions;
 }

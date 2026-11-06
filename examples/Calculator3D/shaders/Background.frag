@@ -6,6 +6,7 @@ layout(location = 1) flat in vec4 positions[8];
 layout(location = 9) flat in vec4 orientations[4];
 layout(location = 13) flat in vec4 textCenters[8];
 layout(location = 21) flat in vec4 textRotations[8];
+layout(location = 29) flat in uint visibility;
 
 mat3 orientation(vec4 q) {
     return mat3(
@@ -63,47 +64,55 @@ void main() {
     vec3 direction = normalize(vec3(screen, 2.3));
     vec3 background = mix(vec3(0.025, 0.050, 0.080), vec3(0.045, 0.085, 0.12), uv.y);
     background += 0.012 * pow(max(0.0, 1.0 - length(screen * 0.55)), 2.0);
+    if (visibility == 0u) {
+        color = vec4(background, 1.0);
+        return;
+    }
     float closest = 1000.0;
     vec3 surface = background;
     for (int index = 0; index < 8; ++index) {
-        vec3 center = positions[index].xyz;
-        vec3 normal;
-        float distance = 1000.0;
-        float b = dot(-center, direction);
-        float discriminant = b * b - dot(center, center) + ((index & 1) == 1 ? 0.42 : 0.91);
-        if (discriminant > 0.0) {
-            if ((index & 1) == 1) {
-                distance = -b - sqrt(discriminant);
-                normal = normalize(direction * distance - center);
-            } else {
-                mat3 basis = orientation(orientations[index / 2]);
-                vec3 origin = transpose(basis) * -center;
-                vec3 ray = transpose(basis) * direction;
-                distance = cube(origin, ray, normal);
-                normal = basis * normal;
+        if ((visibility & (1u << index)) != 0u) {
+            vec3 center = positions[index].xyz;
+            vec3 normal;
+            float distance = 1000.0;
+            float b = dot(-center, direction);
+            float discriminant = b * b - dot(center, center) + ((index & 1) == 1 ? 0.42 : 0.91);
+            if (discriminant > 0.0) {
+                if ((index & 1) == 1) {
+                    distance = -b - sqrt(discriminant);
+                    normal = normalize(direction * distance - center);
+                } else {
+                    mat3 basis = orientation(orientations[index / 2]);
+                    vec3 origin = transpose(basis) * -center;
+                    vec3 ray = transpose(basis) * direction;
+                    distance = cube(origin, ray, normal);
+                    normal = basis * normal;
+                }
+            }
+            if (distance > 0.0 && distance < closest) {
+                closest = distance;
+                float light = 0.25 + 0.75 * max(0.0, dot(normal, normalize(vec3(-0.4, 0.8, -1.0))));
+                vec3 tint = (index & 1) == 0 ? vec3(0.07, 0.22, 0.24) : vec3(0.15, 0.12, 0.28);
+                surface = tint * light + vec3(0.018, 0.025, 0.035);
             }
         }
-        if (distance > 0.0 && distance < closest) {
-            closest = distance;
-            float light = 0.25 + 0.75 * max(0.0, dot(normal, normalize(vec3(-0.4, 0.8, -1.0))));
-            vec3 tint = (index & 1) == 0 ? vec3(0.07, 0.22, 0.24) : vec3(0.15, 0.12, 0.28);
-            surface = tint * light + vec3(0.018, 0.025, 0.035);
-        }
-        vec3 formulaCenter = textCenters[index].xyz;
-        float formulaProjection = dot(formulaCenter, direction);
-        float formulaRadiusSquared = textCenters[index].w * textCenters[index].w + (7.0 / 45.0) * (7.0 / 45.0) + 0.001;
-        if (formulaProjection * formulaProjection - dot(formulaCenter, formulaCenter) + formulaRadiusSquared > 0.0) {
-            mat3 basis = orientation(textRotations[index]);
-            vec3 textCenter = textCenters[index].xyz - basis[0] * textCenters[index].w + basis[1] * (7.0 / 45.0);
-            vec3 textNormal = basis[2];
-            float denominator = dot(direction, textNormal);
-            if (abs(denominator) > 0.001) {
-                float planeDistance = dot(textCenter, textNormal) / denominator;
-                vec3 local = transpose(basis) * (direction * planeDistance - textCenter);
-                vec2 textUv = vec2(local.x / 2.0, -local.y / 0.4);
-                if (planeDistance > 0.0 && planeDistance < closest && formula(textUv, index & 1) > 0.0) {
-                    closest = planeDistance;
-                    surface = vec3(0.13, 0.34, 0.32);
+        if ((visibility & (1u << (index + 8))) != 0u) {
+            vec3 formulaCenter = textCenters[index].xyz;
+            float formulaProjection = dot(formulaCenter, direction);
+            float formulaRadiusSquared = textCenters[index].w * textCenters[index].w + (7.0 / 45.0) * (7.0 / 45.0) + 0.001;
+            if (formulaProjection * formulaProjection - dot(formulaCenter, formulaCenter) + formulaRadiusSquared > 0.0) {
+                mat3 basis = orientation(textRotations[index]);
+                vec3 textCenter = textCenters[index].xyz - basis[0] * textCenters[index].w + basis[1] * (7.0 / 45.0);
+                vec3 textNormal = basis[2];
+                float denominator = dot(direction, textNormal);
+                if (abs(denominator) > 0.001) {
+                    float planeDistance = dot(textCenter, textNormal) / denominator;
+                    vec3 local = transpose(basis) * (direction * planeDistance - textCenter);
+                    vec2 textUv = vec2(local.x / 2.0, -local.y / 0.4);
+                    if (planeDistance > 0.0 && planeDistance < closest && formula(textUv, index & 1) > 0.0) {
+                        closest = planeDistance;
+                        surface = vec3(0.13, 0.34, 0.32);
+                    }
                 }
             }
         }
