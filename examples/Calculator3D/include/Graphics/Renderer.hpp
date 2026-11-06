@@ -43,7 +43,24 @@ private:
     ShaderRegister* interfacePrimitive = nullptr;
     std::uint32_t* interfaceDescriptor = nullptr;
     DrawCommand* interfaceCommands = nullptr;
-    bool pending = false;
+    struct DrawSlot {
+        std::uint32_t* Commands = nullptr;
+        std::uint64_t* Fence = nullptr;
+        float* Constants = nullptr;
+        ShaderRegister* Context = nullptr;
+        ShaderRegister* InterfaceContext = nullptr;
+        std::uint32_t* InterfaceDescriptor = nullptr;
+        DrawCommand* InterfaceCommands = nullptr;
+        std::array<float, 4>* BackgroundRegions = nullptr;
+        std::uint32_t* BackgroundDescriptor = nullptr;
+        std::size_t Bytes = 0;
+        bool Pending = false;
+    };
+    std::array<DrawSlot, 3> slots{};
+    std::size_t slotIndex = 0;
+    bool shaderMemoryPending = true;
+    void selectSlot(std::size_t index);
+    void waitSlot(DrawSlot& slot);
     BackgroundPhysics::Scene physics;
     BackgroundVisibility visibility;
     std::array<float, 4>* backgroundRegions = nullptr;

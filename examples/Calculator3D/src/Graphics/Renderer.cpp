@@ -79,6 +79,31 @@ Renderer::Renderer(int width, int height) : width(width), height(height) {
         interfaceDescriptor[1] = static_cast<std::uint32_t>(commandAddress >> 32);
         interfaceDescriptor[3] = 0x31016fac;
         createPipeline(interfaceContext, interfaceContextCount, interfacePrimitive, interfaceVertex, interfaceFragment);
+        slots[0] = {commands, fence, constants, context, interfaceContext, interfaceDescriptor, interfaceCommands, backgroundRegions, backgroundDescriptor, used, false};
+        std::construct_at(fence, 0);
+        for (std::size_t index = 1; index < slots.size(); ++index) {
+            auto& slot = slots[index];
+            slot.Commands = static_cast<std::uint32_t*>(allocate(CommandWords * sizeof(std::uint32_t), Alignment));
+            slot.Fence = static_cast<std::uint64_t*>(allocate(sizeof(std::uint64_t), 64));
+            std::construct_at(slot.Fence, 0);
+            slot.Constants = static_cast<float*>(allocate((4 + BackgroundPhysics::Scene::TransformFloats) * sizeof(float), 16));
+            slot.Context = static_cast<ShaderRegister*>(allocate(RegisterCapacity * sizeof(ShaderRegister), 256));
+            std::memcpy(slot.Context, context, contextCount * sizeof(ShaderRegister));
+            slot.InterfaceContext = static_cast<ShaderRegister*>(allocate(RegisterCapacity * sizeof(ShaderRegister), 256));
+            std::memcpy(slot.InterfaceContext, interfaceContext, interfaceContextCount * sizeof(ShaderRegister));
+            slot.InterfaceCommands = static_cast<DrawCommand*>(allocate(Canvas::Capacity * sizeof(DrawCommand), alignof(DrawCommand)));
+            slot.BackgroundRegions = static_cast<std::array<float, 4>*>(allocate(RegionCapacity * sizeof(std::array<float, 4>), 16));
+            slot.BackgroundDescriptor = static_cast<std::uint32_t*>(allocate(32, 16));
+            const auto regionsAddress = reinterpret_cast<std::uintptr_t>(slot.BackgroundRegions);
+            const auto constantsAddress = reinterpret_cast<std::uintptr_t>(slot.Constants);
+            const std::array backgroundValues{static_cast<std::uint32_t>(regionsAddress), static_cast<std::uint32_t>(regionsAddress >> 32), 0u, 0x31016facu, static_cast<std::uint32_t>(constantsAddress), static_cast<std::uint32_t>(constantsAddress >> 32), static_cast<std::uint32_t>((4 + BackgroundPhysics::Scene::TransformFloats) * sizeof(float)), 0x31016facu};
+            std::memcpy(slot.BackgroundDescriptor, backgroundValues.data(), sizeof(backgroundValues));
+            slot.InterfaceDescriptor = static_cast<std::uint32_t*>(allocate(16, 16));
+            const auto commandsAddress = reinterpret_cast<std::uintptr_t>(slot.InterfaceCommands);
+            const std::array interfaceValues{static_cast<std::uint32_t>(commandsAddress), static_cast<std::uint32_t>(commandsAddress >> 32), 0u, 0x31016facu};
+            std::memcpy(slot.InterfaceDescriptor, interfaceValues.data(), sizeof(interfaceValues));
+            slot.Bytes = used - static_cast<std::size_t>(reinterpret_cast<std::byte*>(slot.Commands) - memory);
+        }
     } catch (...) {
         check(sceKernelMunmap(reinterpret_cast<std::uintptr_t>(memory), MemorySize), "sceKernelMunmap");
         check(sceKernelReleaseDirectMemory(physicalAddress, MemorySize), "sceKernelReleaseDirectMemory");
@@ -87,7 +112,7 @@ Renderer::Renderer(int width, int height) : width(width), height(height) {
 }
 
 Renderer::~Renderer() noexcept(false) {
-    if (pending) return;
+    for (auto& slot : slots) waitSlot(slot);
     check(sceKernelMunmap(reinterpret_cast<std::uintptr_t>(memory), MemorySize), "sceKernelMunmap");
     check(sceKernelReleaseDirectMemory(physicalAddress, MemorySize), "sceKernelReleaseDirectMemory");
 }
@@ -170,8 +195,33 @@ void Renderer::createPipeline(ShaderRegister* context, std::uint32_t& contextCou
     for (const auto value : state) context[contextCount++] = value;
 }
 
+void Renderer::waitSlot(DrawSlot& slot) {
+    if (!slot.Pending) return;
+    const auto start = sceKernelGetProcessTime();
+    std::atomic_ref completion(*slot.Fence);
+    while (completion.load(std::memory_order_acquire) != 1) {
+        if (sceKernelGetProcessTime() - start > 5000000) throw Calculator3DError{"AGC rendering timed out"};
+        check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
+    }
+    slot.Pending = false;
+}
+
+void Renderer::selectSlot(std::size_t index) {
+    auto& slot = slots.at(index);
+    waitSlot(slot);
+    commands = slot.Commands;
+    fence = slot.Fence;
+    constants = slot.Constants;
+    context = slot.Context;
+    interfaceContext = slot.InterfaceContext;
+    interfaceDescriptor = slot.InterfaceDescriptor;
+    interfaceCommands = slot.InterfaceCommands;
+    backgroundRegions = slot.BackgroundRegions;
+    backgroundDescriptor = slot.BackgroundDescriptor;
+}
+
 void Renderer::Draw(Display& display, float seconds, const Canvas& canvas) {
-    if (pending) throw Calculator3DError{"Previous AGC submission is still pending"};
+    selectSlot(slotIndex);
     const auto pixels = display.Acquire();
     const auto address = reinterpret_cast<std::uintptr_t>(pixels.data());
     if (pixels.size_bytes() != Canvas::StorageSize(width, height) || address % Alignment != 0 || address >> 48 != 0) throw Calculator3DError{"Invalid AGC display target"};
@@ -196,7 +246,7 @@ void Renderer::Draw(Display& display, float seconds, const Canvas& canvas) {
     completion.store(0, std::memory_order_release);
     CommandBuffer buffer{commands, commands + CommandWords, commands, commands + CommandWords, exhausted, nullptr, 0};
     sceAgcDcbContextStateOp(&buffer, 0);
-    sceAgcDcbAcquireMem(&buffer, 1, 0, 0x4381, memory, MemorySize, 40);
+    sceAgcDcbAcquireMem(&buffer, 1, 0, 0x4381, shaderMemoryPending ? memory : reinterpret_cast<std::byte*>(commands), shaderMemoryPending ? MemorySize : slots[slotIndex].Bytes, 40);
     sceAgcDcbSetCxRegistersIndirect(&buffer, context, contextCount);
     sceAgcDcbSetUcRegistersIndirect(&buffer, primitive, 3);
     for (const auto* shader : {vertex, fragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
@@ -222,13 +272,9 @@ void Renderer::Draw(Display& display, float seconds, const Canvas& canvas) {
     sceAgcCbReleaseMem(&buffer, 0x2d, 0x70f, 0, 0, reinterpret_cast<Label*>(fence), 2, 1, 0, 0, 3, 0);
     const Packet packet{commands, static_cast<std::uint32_t>(buffer.cursor_up - commands), 0, {}};
     std::atomic_thread_fence(std::memory_order_seq_cst);
-    pending = true;
+    slots[slotIndex].Pending = true;
     check(sceAgcDriverSubmitDcb(&packet), "sceAgcDriverSubmitDcb");
-    const auto start = sceKernelGetProcessTime();
-    while (completion.load(std::memory_order_acquire) != 1) {
-        if (sceKernelGetProcessTime() - start > 5000000) throw Calculator3DError{"AGC rendering timed out"};
-        check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
-    }
-    pending = false;
+    shaderMemoryPending = false;
+    slotIndex = (slotIndex + 1) % slots.size();
     display.CompleteFlip();
 }
