@@ -4,8 +4,8 @@
 #include <array>
 #include <bit>
 #include <cstring>
+#include <algorithm>
 namespace {
-constexpr std::size_t RegisterCapacity = 256;
 template<typename TValue>
 TValue read(const void* base, std::size_t offset) {
     TValue result;
@@ -14,7 +14,7 @@ TValue read(const void* base, std::size_t offset) {
 }
 }
 Pipeline::Pipeline(Memory& memory, int width, int height, Shader* vertex, Shader* fragment) {
-    context = static_cast<ShaderRegister*>(memory.Allocate(RegisterCapacity * sizeof(ShaderRegister), 256));
+    context = static_cast<ShaderRegister*>(memory.Allocate(ContextCapacity * sizeof(ShaderRegister), 256));
     primitive = static_cast<ShaderRegister*>(memory.Allocate(3 * sizeof(ShaderRegister), 256));
     const auto* defaults = sceAgcGetRegisterDefaults();
     if (!defaults) throw Error{"AGC register defaults are missing"};
@@ -48,7 +48,7 @@ Pipeline::Pipeline(Memory& memory, int width, int height, Shader* vertex, Shader
     context[15].value = (context[15].value & ~0x4707dfffu) | 0x4506c000u;
     Check(sceAgcLinkShaders(context + contextCount, primitive, nullptr, vertex, fragment, 4), "sceAgcLinkShaders");
     contextCount += 34;
-    if (contextCount + vertex->num_cx_registers + fragment->num_cx_registers > RegisterCapacity) throw Error{"AGC shader register storage exhausted"};
+    if (contextCount + vertex->num_cx_registers + fragment->num_cx_registers > ContextCapacity) throw Error{"AGC shader register storage exhausted"};
     for (const auto* shader : {vertex, fragment}) {
         for (std::uint32_t i = 0; i < shader->num_cx_registers; ++i) context[contextCount++] = shader->cx_registers[i];
     }
@@ -71,14 +71,16 @@ Pipeline::Pipeline(Memory& memory, int width, int height, Shader* vertex, Shader
         ShaderRegister{0x2fa, 0x3f800000}, ShaderRegister{0x2fb, 0x3f800000},
         ShaderRegister{0x2fc, 0x3f800000}, ShaderRegister{0x2fd, 0x3f800000}
     };
-    if (contextCount + state.size() > RegisterCapacity) throw Error{"AGC register storage exhausted"};
+    if (contextCount + state.size() > ContextCapacity) throw Error{"AGC register storage exhausted"};
     for (const auto value : state) context[contextCount++] = value;
 }
-void Pipeline::Bind(CommandBuffer& buffer, void* target) {
+void Pipeline::Bind(CommandBuffer& buffer, void* target, std::span<ShaderRegister> storage) {
+    if (storage.size() < contextCount) throw Error{"Pipeline snapshot storage exhausted"};
+    std::copy_n(context, contextCount, storage.data());
     const auto address = reinterpret_cast<std::uintptr_t>(target);
     if (address % Memory::Alignment != 0 || address >> 48 != 0) throw Error{"Invalid display target address"};
-    context[0].value = static_cast<std::uint32_t>(address >> 8);
-    context[10].value = (context[10].value & ~0xffu) | static_cast<std::uint32_t>(address >> 40);
-    sceAgcDcbSetCxRegistersIndirect(&buffer, context, contextCount);
+    storage[0].value = static_cast<std::uint32_t>(address >> 8);
+    storage[10].value = (storage[10].value & ~0xffu) | static_cast<std::uint32_t>(address >> 40);
+    sceAgcDcbSetCxRegistersIndirect(&buffer, storage.data(), contextCount);
     sceAgcDcbSetUcRegistersIndirect(&buffer, primitive, 3);
 }

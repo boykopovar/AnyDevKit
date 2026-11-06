@@ -10,6 +10,9 @@
 class Renderer final {
 public:
     Renderer(int width, int height, std::string_view title);
+    ~Renderer() noexcept(false);
+    Renderer(const Renderer&) = delete;
+    Renderer& operator=(const Renderer&) = delete;
     void Draw(Display& display, std::array<float, 2> position, float scale);
 private:
     struct alignas(16) Frame {
@@ -18,6 +21,20 @@ private:
         std::array<float, 4> viewport;
         std::array<std::uint32_t, 4> glyph;
     };
+    struct DrawSlot {
+        std::uint32_t* Commands = nullptr;
+        std::uint64_t* Fence = nullptr;
+        Frame* Frames = nullptr;
+        std::uint32_t* Descriptor = nullptr;
+        ShaderRegister* Contexts = nullptr;
+        std::size_t Bytes = 0;
+        bool Pending = false;
+    };
+    std::array<DrawSlot, 3> slots{};
+    std::size_t slotIndex = 0;
+    bool shaderMemoryPending = true;
+    void selectSlot(std::size_t index);
+    void waitSlot(DrawSlot& slot);
     Shader* createShader(std::span<const std::uint8_t> header, std::span<const std::uint8_t> code);
     Memory memory;
     std::unique_ptr<Pipeline> pipeline;
@@ -27,6 +44,7 @@ private:
     std::uint64_t* fence;
     Frame* frames;
     std::uint32_t* descriptor;
+    ShaderRegister* contexts;
     std::size_t titleLength;
 };
 #endif

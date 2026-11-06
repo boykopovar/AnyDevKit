@@ -24,31 +24,56 @@ Renderer::Renderer(int width, int height, std::string_view title) : memory(Memor
     const auto address = reinterpret_cast<std::uintptr_t>(memory.Data());
     if (address >> 32 != 2 || (address + memory.Size() - 1) >> 32 != 2) throw Error{"GPU memory is outside shader aperture"};
     Check(sceAgcInit(11), "sceAgcInit");
-    commands = static_cast<std::uint32_t*>(memory.Allocate(CommandWords * sizeof(std::uint32_t), 256));
-    fence = static_cast<std::uint64_t*>(memory.Allocate(sizeof(std::uint64_t), 64));
-    std::construct_at(fence, 0);
     titleLength = title.size();
-    frames = static_cast<Frame*>(memory.Allocate(sizeof(Frame) * (titleLength + 1), alignof(Frame)));
-    for (std::size_t index = 0; index <= titleLength; ++index) {
-        std::construct_at(frames + index);
-        frames[index].viewport = {static_cast<float>(width), static_cast<float>(height), 0, 0};
-        frames[index].color = {0.25f, 0.9f, 0.75f, 1};
-        if (index != 0) frames[index].glyph = EncodeGlyph(title[index - 1]);
-    }
-    frames[0].rectangle = {0, 0, static_cast<float>(width), static_cast<float>(height)};
     static_assert(sizeof(Frame) == 64);
     static_assert(AdkShaders::ScreenVertex::PushConstantSize == 0);
     static_assert(AdkShaders::ScreenFragment::PushConstantSize == 0);
     static_assert(AdkShaders::ScreenVertex::DescriptorSetSlots[0] >= 0);
-    descriptor = static_cast<std::uint32_t*>(memory.Allocate(16, 16));
-    const auto frameAddress = reinterpret_cast<std::uintptr_t>(frames);
-    descriptor[0] = static_cast<std::uint32_t>(frameAddress);
-    descriptor[1] = static_cast<std::uint32_t>(frameAddress >> 32);
-    descriptor[2] = static_cast<std::uint32_t>(sizeof(Frame) * (titleLength + 1));
-    descriptor[3] = 0x31016fac;
+    for (auto& slot : slots) {
+        commands = static_cast<std::uint32_t*>(memory.Allocate(CommandWords * sizeof(std::uint32_t), 256));
+        fence = static_cast<std::uint64_t*>(memory.Allocate(sizeof(std::uint64_t), 64));
+        std::construct_at(fence, 0);
+        frames = static_cast<Frame*>(memory.Allocate(sizeof(Frame) * (titleLength + 1), alignof(Frame)));
+        for (std::size_t index = 0; index <= titleLength; ++index) {
+            std::construct_at(frames + index);
+            frames[index].viewport = {static_cast<float>(width), static_cast<float>(height), 0, 0};
+            frames[index].color = {0.25f, 0.9f, 0.75f, 1};
+            if (index != 0) frames[index].glyph = EncodeGlyph(title[index - 1]);
+        }
+        frames[0].rectangle = {0, 0, static_cast<float>(width), static_cast<float>(height)};
+        descriptor = static_cast<std::uint32_t*>(memory.Allocate(16, 16));
+        const auto frameAddress = reinterpret_cast<std::uintptr_t>(frames);
+        descriptor[0] = static_cast<std::uint32_t>(frameAddress);
+        descriptor[1] = static_cast<std::uint32_t>(frameAddress >> 32);
+        descriptor[2] = static_cast<std::uint32_t>(sizeof(Frame) * (titleLength + 1));
+        descriptor[3] = 0x31016fac;
+        contexts = static_cast<ShaderRegister*>(memory.Allocate(Pipeline::ContextCapacity * sizeof(ShaderRegister), 256));
+        const auto bytes = reinterpret_cast<std::byte*>(contexts + Pipeline::ContextCapacity) - reinterpret_cast<std::byte*>(commands);
+        slot = {commands, fence, frames, descriptor, contexts, static_cast<std::size_t>(bytes), false};
+    }
     vertex = createShader(AdkShaders::ScreenVertex::Header, AdkShaders::ScreenVertex::Code);
     fragment = createShader(AdkShaders::ScreenFragment::Header, AdkShaders::ScreenFragment::Code);
     pipeline = std::make_unique<Pipeline>(memory, width, height, vertex, fragment);
+}
+Renderer::~Renderer() noexcept(false) { for (auto& slot : slots) waitSlot(slot); }
+void Renderer::waitSlot(DrawSlot& slot) {
+    if (!slot.Pending) return;
+    const auto start = sceKernelGetProcessTime();
+    std::atomic_ref completion(*slot.Fence);
+    while (completion.load(std::memory_order_acquire) != 1) {
+        if (sceKernelGetProcessTime() - start > 5000000) throw Error{"GPU rendering timed out"};
+        Check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
+    }
+    slot.Pending = false;
+}
+void Renderer::selectSlot(std::size_t index) {
+    auto& slot = slots.at(index);
+    waitSlot(slot);
+    commands = slot.Commands;
+    fence = slot.Fence;
+    frames = slot.Frames;
+    descriptor = slot.Descriptor;
+    contexts = slot.Contexts;
 }
 Shader* Renderer::createShader(std::span<const std::uint8_t> header, std::span<const std::uint8_t> code) {
     void* headerMemory = memory.Allocate(header.size(), 8);
@@ -61,6 +86,7 @@ Shader* Renderer::createShader(std::span<const std::uint8_t> header, std::span<c
     return shader;
 }
 void Renderer::Draw(Display& display, std::array<float, 2> position, float scale) {
+    selectSlot(slotIndex);
     for (std::size_t index = 1; index <= titleLength; ++index) {
         frames[index].rectangle = {position[0] + static_cast<float>(index - 1) * 6 * scale, position[1], 5 * scale, 7 * scale};
         frames[index].viewport[2] = scale;
@@ -69,8 +95,8 @@ void Renderer::Draw(Display& display, std::array<float, 2> position, float scale
     completion.store(0, std::memory_order_release);
     CommandBuffer buffer{commands, commands + CommandWords, commands, commands + CommandWords, exhausted, nullptr, 0};
     sceAgcDcbContextStateOp(&buffer, 0);
-    sceAgcDcbAcquireMem(&buffer, 1, 0, 0x4381, memory.Data(), memory.Size(), 40);
-    pipeline->Bind(buffer, display.Acquire());
+    sceAgcDcbAcquireMem(&buffer, 1, 0, 0x4381, shaderMemoryPending ? memory.Data() : commands, shaderMemoryPending ? memory.Size() : slots[slotIndex].Bytes, 40);
+    pipeline->Bind(buffer, display.Acquire(), {contexts, Pipeline::ContextCapacity});
     for (const auto* shader : {vertex, fragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
     sceAgcDcbSetNumInstances(&buffer, 1);
     bindShader(buffer, 0x8c, AdkShaders::ScreenVertex::UserData, AdkShaders::ScreenVertex::UserDataCount, AdkShaders::ScreenVertex::DescriptorSetSlots[0], descriptor);
@@ -82,10 +108,8 @@ void Renderer::Draw(Display& display, std::array<float, 2> position, float scale
     const Packet packet{commands, static_cast<std::uint32_t>(buffer.cursor_up - commands), 0, {}};
     std::atomic_thread_fence(std::memory_order_seq_cst);
     Check(sceAgcDriverSubmitDcb(&packet), "sceAgcDriverSubmitDcb");
-    const auto start = sceKernelGetProcessTime();
-    while (completion.load(std::memory_order_acquire) != 1) {
-        if (sceKernelGetProcessTime() - start > 5000000) throw Error{"GPU rendering timed out"};
-        Check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
-    }
+    slots[slotIndex].Pending = true;
+    shaderMemoryPending = false;
+    slotIndex = (slotIndex + 1) % slots.size();
     display.CompleteFlip();
 }
