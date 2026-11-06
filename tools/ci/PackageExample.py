@@ -32,6 +32,7 @@ else:
         raise RuntimeError("Missing application metadata")
     repository = Path(__file__).resolve().parents[2]
     extras = [(parameter, "app0/sce_sys/param.json"), (repository / "LICENSE", "LICENSE"), (options.deps / "AnyPS5-LICENSE", "licenses/AnyPS5-LICENSE"), (options.deps / options.target / "anycxx/LICENSE.TXT", "licenses/llvm-cxx-ps-LICENSE.TXT")]
+    extras.append((options.deps / options.target / "anycxx/share/licenses/compiler-rt-LICENSE.TXT", "licenses/compiler-rt-LICENSE.TXT"))
     if options.target == "windows":
         package = options.directory / (name + ".zip")
         with zipfile.ZipFile(package, "x", compression=zipfile.ZIP_DEFLATED) as archive:
