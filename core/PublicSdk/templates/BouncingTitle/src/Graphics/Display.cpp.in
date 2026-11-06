@@ -21,6 +21,17 @@ Display::Display(int width, int height) : memory(bufferSize(width, height) * buf
     }
     handle = Check(sceVideoOutOpen(255, 0, 0, nullptr), "sceVideoOutOpen");
     try {
+        constexpr std::uint64_t HighRefreshMode = 15;
+        VideoOutOutputOptions options{};
+        Check(sceVideoOutInitializeOutputOptions(&options), "sceVideoOutInitializeOutputOptions");
+        const auto supported = Check(sceVideoOutIsOutputSupported(handle, HighRefreshMode, &options, nullptr, 0), "sceVideoOutIsOutputSupported");
+        if (supported > 1) throw Error{"Invalid high refresh support result"};
+        if (supported) {
+            Check(sceVideoOutConfigureOutput(handle, HighRefreshMode, &options, nullptr, 0), "sceVideoOutConfigureOutput");
+            VideoOutOutputStatus status{};
+            Check(sceVideoOutGetOutputStatus(handle, &status), "sceVideoOutGetOutputStatus");
+            if (status.refreshRate != 13) throw Error{"High refresh output mode was not applied"};
+        }
         VideoOutBufferAttribute2 attribute{};
         sceVideoOutSetBufferAttribute2(&attribute, 0x8000000000000000ull, 0, width, height, 0, 0, 0);
         Check(sceVideoOutRegisterBuffers2(handle, 0, 0, registered.data(), static_cast<int>(registered.size()), &attribute, 0, nullptr), "sceVideoOutRegisterBuffers2");

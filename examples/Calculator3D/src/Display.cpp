@@ -36,6 +36,17 @@ Display::Display(int width, int height, std::size_t bufferCount) : bufferCount(b
         registered[index].data = pixels;
     }
     handle = check(sceVideoOutOpen(255, 0, 0, nullptr), "sceVideoOutOpen");
+    constexpr std::uint64_t HighRefreshMode = 15;
+    VideoOutOutputOptions options{};
+    check(sceVideoOutInitializeOutputOptions(&options), "sceVideoOutInitializeOutputOptions");
+    const auto supported = check(sceVideoOutIsOutputSupported(handle, HighRefreshMode, &options, nullptr, 0), "sceVideoOutIsOutputSupported");
+    if (supported > 1) throw Calculator3DError{"Invalid high refresh support result"};
+    if (supported) {
+        check(sceVideoOutConfigureOutput(handle, HighRefreshMode, &options, nullptr, 0), "sceVideoOutConfigureOutput");
+        VideoOutOutputStatus status{};
+        check(sceVideoOutGetOutputStatus(handle, &status), "sceVideoOutGetOutputStatus");
+        if (status.refreshRate != 13) throw Calculator3DError{"High refresh output mode was not applied"};
+    }
     VideoOutBufferAttribute2 attribute{};
     sceVideoOutSetBufferAttribute2(&attribute, 0x8000000000000000ull, 0, width, height, 0, 0, 0);
     check(sceVideoOutRegisterBuffers2(handle, 0, 0, registered.data(), static_cast<int>(bufferCount), &attribute, 0, nullptr), "sceVideoOutRegisterBuffers2");
