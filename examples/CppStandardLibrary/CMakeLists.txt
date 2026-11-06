@@ -44,7 +44,7 @@ if(WIN32)
     endif()
     anydevkit_configure_windows_executable(CppStandardLibrary ${ANYLIBCXX_WINDOWS_IMPORTS} __cxa_get_globals)
     anydevkit_link_runtime_library(CppStandardLibrary libkernel sceKernelMapFlexibleMemory sceKernelMunmap sceKernelAllocateDirectMemory sceKernelGetDirectMemorySize sceKernelMapDirectMemory sceKernelReleaseDirectMemory sceKernelGetProcessTime sceKernelUsleep_nid_postfix)
-    anydevkit_link_runtime_library(CppStandardLibrary libSceVideoOut sceVideoOutOpen sceVideoOutSetBufferAttribute2 sceVideoOutRegisterBuffers2 sceVideoOutSubmitFlip sceVideoOutWaitVblank sceVideoOutGetFlipStatus sceVideoOutGetBufferLabelAddress)
+    anydevkit_link_runtime_library(CppStandardLibrary libSceVideoOut sceVideoOutOpen sceVideoOutSetBufferAttribute2 sceVideoOutRegisterBuffers2 sceVideoOutSubmitFlip sceVideoOutWaitVblank sceVideoOutGetFlipStatus sceVideoOutGetBufferLabelAddress sceVideoOutInitializeOutputOptions sceVideoOutIsOutputSupported sceVideoOutConfigureOutput sceVideoOutGetOutputStatus)
     anydevkit_link_runtime_library(CppStandardLibrary libSceSystemService sceSystemServiceHideSplashScreen)
 else()
     set_target_properties(CppStandardLibrary PROPERTIES SUFFIX ".elf")
@@ -60,7 +60,7 @@ else()
     endforeach()
 endif()
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/app0/sce_sys/param.json" CONTENT [=[
-{"titleId":"FAKE26102","localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit C++ Standard Library"}}}
+{"titleId":"FAKE26102","attribute3":64,"localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"AnyDevKit C++ Standard Library"}}}
 ]=])
 
 if(WIN32)
