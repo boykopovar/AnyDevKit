@@ -18,6 +18,7 @@ public:
     static void Set(std::span<std::byte> output, std::uint64_t offset, std::uint64_t value, std::size_t size);
     static void Append(std::vector<std::byte>& output, std::uint64_t value, std::size_t size);
     static std::uint32_t String(std::vector<std::byte>& output, std::string_view value);
+
 private:
     static std::uint32_t hash(std::string_view name);
 };
@@ -25,3 +26,4 @@ private:
 }
 
 #endif
+

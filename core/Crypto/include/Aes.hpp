@@ -17,6 +17,7 @@ public:
     void DecryptCbc(std::span<std::byte> bytes, std::span<const std::byte, 16> iv) const;
     static void EncryptXts(std::span<std::byte> bytes, std::span<const std::byte> key, std::span<const std::byte, 16> tweak);
     static void DecryptXts(std::span<std::byte> bytes, std::span<const std::byte> key, std::span<const std::byte, 16> tweak);
+
 private:
     std::array<std::byte, 16> transform(std::span<const std::byte, 16> block, bool decrypt) const;
     static void transformXts(std::span<std::byte> bytes, std::span<const std::byte> key, std::span<const std::byte, 16> tweak, bool decrypt);
@@ -27,3 +28,4 @@ private:
 }
 
 #endif
+

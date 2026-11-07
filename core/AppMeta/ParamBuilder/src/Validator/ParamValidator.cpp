@@ -6,6 +6,7 @@
 #include <string_view>
 
 namespace AnyDevKit::Param {
+
 namespace {
 
 bool digits(std::string_view value) {
@@ -25,11 +26,13 @@ void validateTitle(std::string_view value) {
         const unsigned count = first >= 0xc2 && first <= 0xdf ? 1 : first >= 0xe0 && first <= 0xef ? 2 : first >= 0xf0 && first <= 0xf4 ? 3 : 0;
         if (count == 0 || count > value.size() - i) throw std::invalid_argument("Title name is not valid UTF-8");
         std::uint32_t point = first & (0x7f >> (count + 1));
+
         for (unsigned j = 0; j < count; ++j) {
             const auto next = static_cast<unsigned char>(value[i++]);
             if ((next & 0xc0) != 0x80) throw std::invalid_argument("Title name is not valid UTF-8");
             point = (point << 6) | (next & 0x3f);
         }
+
         if ((count == 1 && point < 0x80) || (count == 2 && point < 0x800) || (count == 3 && point < 0x10000) || point > 0x10ffff || (point >= 0xd800 && point <= 0xdfff)) throw std::invalid_argument("Title name is not valid UTF-8");
     }
 }
@@ -48,12 +51,15 @@ void ParamValidator::Validate(const ApplicationParameters& parameters) {
     if (master.size() != 5 || master[2] != '.' || !digits(master.substr(0, 2)) || !digits(master.substr(3, 2))) throw std::invalid_argument("Master version must use NN.NN");
     if (!parameters.Titles.contains(parameters.DefaultLanguage)) throw std::invalid_argument("Default language has no title name");
     constexpr std::array<std::string_view, 30> languages{"ar-AE", "cs-CZ", "da-DK", "de-DE", "el-GR", "en-GB", "en-US", "es-ES", "es-419", "fi-FI", "fr-CA", "fr-FR", "hu-HU", "id-ID", "it-IT", "ja-JP", "ko-KR", "nl-NL", "no-NO", "pl-PL", "pt-BR", "pt-PT", "ro-RO", "ru-RU", "sv-SE", "th-TH", "tr-TR", "uk-UA", "vi-VN", "zh-Hans"};
+
     for (const auto& [language, name] : parameters.Titles) {
         if (language != "zh-Hant" && std::ranges::find(languages, language) == languages.end()) throw std::invalid_argument("Unsupported PS5 title language: " + language);
         validateTitle(name);
     }
+
     if (parameters.RequiredSystemSoftwareVersion == 0 || parameters.SdkVersion == 0) throw std::invalid_argument("Firmware and SDK versions must be specified");
     if (parameters.FlexibleMemorySize && (*parameters.FlexibleMemorySize == 0 || *parameters.FlexibleMemorySize % 0x4000 != 0)) throw std::invalid_argument("Flexible memory size must be a positive multiple of 16 KiB");
 }
 
 }
+

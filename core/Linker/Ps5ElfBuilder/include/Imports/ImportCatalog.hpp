@@ -26,6 +26,7 @@ public:
     void AddModule(const std::string& fileName);
     void Select(const std::string& symbol, const std::string& module, const std::string& library);
     Ps5Import Resolve(const std::string& symbol) const;
+
 private:
     std::vector<Ps5Import> findCandidates(const std::string& nid) const;
     std::vector<Ps5Import> modules;
@@ -35,3 +36,4 @@ private:
 }
 
 #endif
+

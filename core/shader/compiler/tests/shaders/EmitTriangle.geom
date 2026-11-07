@@ -9,5 +9,7 @@ void main() {
         color = inputColor[index];
         EmitVertex();
     }
+
     EndPrimitive();
 }
+

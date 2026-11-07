@@ -23,3 +23,4 @@ if(MINGW)
     target_compile_options(AnyDevKitWindowsStartup PRIVATE -fno-builtin $<$<CXX_COMPILER_ID:Clang>:-fdwarf-exceptions> -fno-stack-protector -fno-stack-check -mstack-arg-probe)
     set_target_properties(AnyDevKitWindowsStartup PROPERTIES CXX_EXTENSIONS OFF)
 endif()
+

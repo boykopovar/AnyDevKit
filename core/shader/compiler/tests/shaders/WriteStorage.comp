@@ -5,3 +5,4 @@ layout(push_constant) uniform Parameters { uint offset; } parameters;
 void main() {
     result.values[gl_GlobalInvocationID.x + parameters.offset] = gl_LocalInvocationIndex + gl_WorkGroupID.y;
 }
+

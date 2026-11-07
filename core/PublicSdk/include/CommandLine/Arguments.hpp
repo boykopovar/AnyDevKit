@@ -5,7 +5,9 @@
 #include <span>
 #include <string>
 #include <vector>
+
 namespace AnyDevKit::PublicSdk {
+
 class Arguments final {
 public:
     explicit Arguments(std::span<const std::string> arguments);
@@ -17,8 +19,12 @@ public:
     void MergeDefaults(const std::map<std::string, std::vector<std::string>>& defaults);
     static std::uint64_t Number(const std::string& value);
     static std::uint32_t Number32(const std::string& value);
+
 private:
     std::map<std::string, std::vector<std::string>> values;
 };
+
 }
+
 #endif
+

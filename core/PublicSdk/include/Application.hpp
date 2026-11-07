@@ -3,10 +3,15 @@
 #include <span>
 #include <filesystem>
 #include <string>
+
 namespace AnyDevKit::PublicSdk {
+
 class Application final {
 public:
     static void Run(std::span<const std::string> arguments, const std::filesystem::path& sdkRoot = {});
 };
+
 }
+
 #endif
+

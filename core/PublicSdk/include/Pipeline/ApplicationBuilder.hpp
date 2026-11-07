@@ -5,7 +5,9 @@
 #include "PkgPackager.hpp"
 #include "Ps5ElfBuilder.hpp"
 #include <optional>
+
 namespace AnyDevKit::PublicSdk {
+
 enum class PackageFormat { Ffpfsc, Pkg };
 struct ApplicationBuildOptions {
     std::filesystem::path InputElf;
@@ -21,9 +23,13 @@ struct ApplicationBuildOptions {
     PfsOptions Pfs;
     std::optional<Pkg::PackageKeys> Keys;
 };
+
 class ApplicationBuilder final {
 public:
     static void Build(const ApplicationBuildOptions& options);
 };
+
 }
+
 #endif
+

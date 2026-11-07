@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 namespace AnyDevKit::Crypto {
+
 namespace {
 
 using Integer = std::array<std::uint32_t, 96>;
@@ -21,6 +22,7 @@ Integer Add(const Integer& left, const Integer& right, const Integer& modulus) {
         result[i] = static_cast<std::uint32_t>(value);
         carry = value >> 32;
     }
+
     if (carry || !Less(result, modulus)) {
         std::uint64_t borrow = 0;
         for (std::size_t i = 0; i < result.size(); ++i) {
@@ -29,6 +31,7 @@ Integer Add(const Integer& left, const Integer& right, const Integer& modulus) {
             result[i] = static_cast<std::uint32_t>(std::uint64_t{result[i]} - subtrahend);
         }
     }
+
     return result;
 }
 
@@ -38,6 +41,7 @@ Integer Multiply(Integer left, const Integer& right, const Integer& modulus) {
         if ((word >> bit) & 1) result = Add(result, left, modulus);
         left = Add(left, left, modulus);
     }
+
     return result;
 }
 
@@ -56,11 +60,13 @@ std::array<std::byte, 384> Rsa3072::ApplyPublic(std::span<const std::byte, 384> 
     if (!Less(base, divisor)) throw std::invalid_argument("RSA representative exceeds modulus");
     Integer result{};
     result[0] = 1;
+
     while (exponent) {
         if (exponent & 1) result = Multiply(result, base, divisor);
         exponent >>= 1;
         if (exponent) base = Multiply(base, base, divisor);
     }
+
     std::array<std::byte, 384> encoded{};
     for (std::size_t i = 0; i < encoded.size(); ++i) encoded[encoded.size() - i - 1] = static_cast<std::byte>((result[i / 4] >> (8 * (i % 4))) & 0xff);
     return encoded;
@@ -73,7 +79,9 @@ std::array<std::byte, 384> Rsa3072::Encrypt(std::span<const std::byte> message, 
     encoded[1] = std::byte{2};
     std::copy(padding.begin(), padding.end(), encoded.begin() + 2);
     std::copy(message.begin(), message.end(), encoded.begin() + static_cast<std::ptrdiff_t>(3 + padding.size()));
+
     return ApplyPublic(encoded, modulus, exponent);
 }
 
 }
+

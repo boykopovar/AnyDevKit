@@ -4,3 +4,4 @@ target_include_directories(AnyDevKitPkgPackager PUBLIC include)
 target_link_libraries(AnyDevKitPkgPackager PUBLIC AnyDevKit::ParamBuilder PRIVATE AnyDevKit::PfsBuilder AnyDevKit::Crypto)
 target_compile_features(AnyDevKitPkgPackager PUBLIC cxx_std_20)
 set_target_properties(AnyDevKitPkgPackager PROPERTIES CXX_EXTENSIONS OFF)
+

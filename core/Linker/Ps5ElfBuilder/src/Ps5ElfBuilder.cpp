@@ -17,13 +17,16 @@ void Ps5ElfBuilder::BuildFile(const std::filesystem::path& input, const std::fil
     if (std::filesystem::exists(output) && std::filesystem::equivalent(input, output)) throw std::invalid_argument("PS5 output must differ from input ELF");
     const auto size = std::filesystem::file_size(input);
     if (size > std::numeric_limits<std::size_t>::max() || size > static_cast<std::uintmax_t>(std::numeric_limits<std::streamsize>::max())) throw std::length_error("ELF input is too large");
+
     std::vector<std::byte> bytes(static_cast<std::size_t>(size));
     std::ifstream source(input, std::ios::binary);
     source.exceptions(std::ios::badbit | std::ios::failbit);
     source.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
     source.close();
+
     const auto result = Build(bytes, imports, options);
     if (result.size() > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max())) throw std::length_error("PS5 ELF output is too large");
+
     std::ofstream destination(output, std::ios::binary | std::ios::trunc);
     destination.exceptions(std::ios::badbit | std::ios::failbit);
     destination.write(reinterpret_cast<const char*>(result.data()), static_cast<std::streamsize>(result.size()));
@@ -31,3 +34,4 @@ void Ps5ElfBuilder::BuildFile(const std::filesystem::path& input, const std::fil
 }
 
 }
+

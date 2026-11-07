@@ -37,6 +37,7 @@ void validate(const AnyDevKit::AgcShaderPackage& package, PsbcStage stage, Shade
     const auto offset = offsetof(Shader, sh_registers) + displacement;
     require(header.num_sh_registers > 0 && header.num_sh_registers <= (bytes.size() - offset) / sizeof(ShaderRegister), "Register table exceeds header");
     bool found = false;
+
     for (std::size_t index = 0; index < header.num_sh_registers; ++index) {
         ShaderRegister entry;
         std::memcpy(&entry, bytes.data() + offset + index * sizeof(entry), sizeof(entry));
@@ -45,6 +46,7 @@ void validate(const AnyDevKit::AgcShaderPackage& package, PsbcStage stage, Shade
             found = true;
         }
     }
+
     require(found, "Missing program address register");
     std::cout << "header=" << bytes.size() << " code=" << package.GetCodeBytes().size() << '\n';
 }
@@ -64,6 +66,7 @@ int main(int count, char** arguments) {
                 options.descriptor_binding_count = 1;
                 options.descriptor_bindings[0] = {0, 0, PSBC_DESCRIPTOR_STORAGE_BUFFER, 1, 0, 16};
             }
+
             const auto package = ShaderCompiler::CompileFile(directory / (stage == "vertex" ? "Triangle.vert" : stage == "fragment" ? "Triangle.frag" : "WriteStorage.comp"), options);
             validate(package, kind, stage == "vertex" ? ShaderRegs::ShaderBinaryType::Gs : stage == "fragment" ? ShaderRegs::ShaderBinaryType::Ps : ShaderRegs::ShaderBinaryType::Cs, stage == "vertex" ? ShaderRegs::SPI_SHADER_PGM_LO_ES : stage == "fragment" ? ShaderRegs::SPI_SHADER_PGM_LO_PS : ShaderRegs::COMPUTE_PGM_LO);
             if (kind == PSBC_STAGE_COMPUTE) require(package.GetBindingMetadata().descriptor_set0_valid && package.GetBindingMetadata().push_constants_valid, "Compute resource bindings disappeared");
@@ -87,9 +90,11 @@ int main(int count, char** arguments) {
                 require(packages[0].GetBindingMetadata().hull_tess_wg_valid, "Hull is missing its merged local stage layout");
             } else validate(packages[1], PSBC_STAGE_TESS_EVAL, ShaderRegs::ShaderBinaryType::Gs, ShaderRegs::SPI_SHADER_PGM_LO_ES);
         } else throw std::invalid_argument("Unknown stage");
+
         return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
         return 1;
     }
 }
+

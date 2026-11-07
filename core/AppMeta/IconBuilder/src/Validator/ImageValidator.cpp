@@ -17,3 +17,4 @@ void ImageValidator::Validate(const RgbaImage& image) {
 }
 
 }
+

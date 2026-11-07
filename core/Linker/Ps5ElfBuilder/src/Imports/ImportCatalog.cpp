@@ -22,6 +22,7 @@ std::vector<std::string> ImportCatalog::Dependencies(std::span<const std::byte> 
         if (std::ranges::find(result, name) != result.end()) throw std::invalid_argument("Duplicate mapped PS5 dependency: " + name);
         result.push_back(std::move(name));
     }
+
     if (result.empty()) throw std::invalid_argument("Input ELF has no DT_NEEDED dependencies");
     return result;
 }
@@ -38,13 +39,16 @@ std::vector<Ps5Import> ImportCatalog::findCandidates(const std::string& nid) con
     std::vector<Ps5Import> result;
     for (const auto& module : modules) {
         const std::vector<std::string>* libraries;
+
         try {
             libraries = &Ps5NidMap::GetExportLibraries(module.Module, nid);
         } catch (const std::out_of_range&) {
             continue;
         }
+
         for (const auto& library : *libraries) result.push_back({nid, module.Module, module.FileName, library, 0, 0});
     }
+
     return result;
 }
 
@@ -67,3 +71,4 @@ void ImportCatalog::Select(const std::string& symbol, const std::string& module,
 }
 
 }
+

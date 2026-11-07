@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 namespace AnyDevKit {
+
 namespace {
 
 using Pfs::ImageWriter;
@@ -77,6 +78,7 @@ std::vector<PfsEntry> PfsBuilder::ScanDirectory(const std::filesystem::path& inp
         ValidatePath(path);
         entries.push_back({path, entry.path(), entry.is_directory(), false});
     }
+
     std::sort(entries.begin(), entries.end(), [](const auto& left, const auto& right) { return left.Path < right.Path; });
     return entries;
 }
@@ -93,6 +95,7 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
     });
     std::set<std::string> paths;
     std::map<std::uint32_t, std::vector<std::size_t>> hashes;
+
     for (std::size_t i = 0; i < sorted.size(); ++i) {
         const auto& entry = sorted[i];
         ValidatePath(entry.Path);
@@ -100,6 +103,7 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
         if (entry.Directory && entry.Pfsc) throw std::invalid_argument("Directory cannot contain PFSC data");
         hashes[Hash("/" + entry.Path, options.CaseInsensitive)].push_back(i);
     }
+
     const bool collisions = std::any_of(hashes.begin(), hashes.end(), [](const auto& item) { return item.second.size() > 1; });
     const std::uint32_t root = collisions ? 3 : 2;
     if (sorted.size() >= 0x20000000 - root - 1) throw std::length_error("Too many PFS inodes");
@@ -111,6 +115,7 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
     nodes[root].Entry.Directory = true;
     nodes[root].Links = 3;
     std::map<std::string, std::uint32_t> directories{{"", root}};
+
     for (const auto& entry : sorted) {
         Node node;
         node.Entry = entry;
@@ -122,14 +127,17 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
             node.SourceSize = std::filesystem::file_size(entry.Source);
             node.Size = entry.Pfsc ? Pfs::PfscWriter::StoredSize(node.SourceSize) : node.SourceSize;
         }
+
         nodes.push_back(std::move(node));
     }
+
     for (const auto& [path, inode] : directories) {
         const auto parent = directories.find(Parent(path));
         if (parent == directories.end()) throw std::invalid_argument("PFS parent directory is missing: " + path);
         AppendEntry(nodes[inode].Data, inode, 4, ".");
         AppendEntry(nodes[inode].Data, parent->second, 5, "..");
     }
+
     for (std::size_t i = root + 1; i < nodes.size(); ++i) {
         const auto& entry = nodes[i].Entry;
         const auto parent = directories.find(Parent(entry.Path));
@@ -141,6 +149,7 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
             ++directory.Links;
         }
     }
+
     AppendEntry(nodes[0].Data, 1, 2, "flat_path_table");
     if (collisions) AppendEntry(nodes[0].Data, 2, 2, "collision_resolver");
     AppendEntry(nodes[0].Data, root, 3, "uroot");
@@ -152,14 +161,17 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
         } else {
             if (nodes[2].Data.size() >= 0x80000000) throw std::length_error("PFS collision table is too large");
             value = 0x80000000 | static_cast<std::uint32_t>(nodes[2].Data.size());
+
             for (const auto index : indices) AppendEntry(nodes[2].Data, static_cast<std::uint32_t>(root + 1 + index), sorted[index].Directory ? 3 : 2, "/" + sorted[index].Path);
             nodes[2].Data.resize(nodes[2].Data.size() + 0x18);
         }
+
         const auto offset = nodes[1].Data.size();
         nodes[1].Data.resize(offset + 8);
         ImageWriter::Put(nodes[1].Data, offset, hash, 4);
         ImageWriter::Put(nodes[1].Data, offset + 4, value, 4);
     }
+
     const std::uint64_t inodesPerBlock = blockSize / 0xa8;
     const auto inodeBlocks = (nodes.size() + inodesPerBlock - 1) / inodesPerBlock;
     std::uint64_t next = 1 + inodeBlocks;
@@ -172,6 +184,7 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
         node.Blocks = static_cast<std::uint32_t>(blocks);
         if (node.Entry.Directory) node.Size = blocks * blockSize;
     }
+
     std::vector<std::byte> header(blockSize);
     ImageWriter::Put(header, 0, 2, 8);
     ImageWriter::Put(header, 8, 20130315, 8);
@@ -186,14 +199,17 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
     ImageWriter::Put(header, 0x54, 0x10, 4);
     ImageWriter::Put(header, 0x58, inodeBlocks * blockSize, 8);
     ImageWriter::Put(header, 0x60, inodeBlocks * blockSize, 8);
+
     for (std::size_t i = 0; i < 4; ++i) ImageWriter::Put(header, 0x68 + i * 8, static_cast<std::uint64_t>(options.Timestamp), 8);
     ImageWriter::Put(header, 0xb0, inodeBlocks, 4);
     ImageWriter::Put(header, 0xd8, 1, 8);
     ImageWriter::Put(header, 0x368, 1, 4);
+
     try {
         ImageWriter writer(output);
         writer.Write(0, header);
         writer.Zero(blockSize, inodeBlocks * blockSize);
+
         for (std::size_t i = 0; i < nodes.size(); ++i) {
             const auto& node = nodes[i];
             std::vector<std::byte> inode(0xa8);
@@ -202,6 +218,7 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
             ImageWriter::Put(inode, 4, 0x10 | (node.Internal ? 0x20000 : 0) | (node.Entry.Pfsc ? 1 : 0), 4);
             ImageWriter::Put(inode, 8, node.Size, 8);
             ImageWriter::Put(inode, 16, node.Entry.Pfsc ? node.SourceSize : node.Size, 8);
+
             for (std::size_t time = 0; time < 4; ++time) ImageWriter::Put(inode, 0x18 + time * 8, static_cast<std::uint64_t>(options.Timestamp), 8);
             ImageWriter::Put(inode, 0x60, node.Blocks, 4);
             ImageWriter::Put(inode, 0x64, node.Start, 4);
@@ -217,6 +234,7 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
                 writer.Zero(offset + node.Size, static_cast<std::uint64_t>(node.Blocks) * blockSize - node.Size);
             }
         }
+
         writer.Close();
     } catch (...) {
         std::error_code error;
@@ -226,3 +244,4 @@ void PfsBuilder::Build(const std::vector<PfsEntry>& entries, const std::filesyst
 }
 
 }
+

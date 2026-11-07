@@ -18,6 +18,7 @@ public:
     GlslangRuntime() {
         if (!glslang::InitializeProcess()) throw std::runtime_error("GLSL: initialization failed");
     }
+
     ~GlslangRuntime() { glslang::FinalizeProcess(); }
     GlslangRuntime(const GlslangRuntime&) = delete;
     GlslangRuntime& operator=(const GlslangRuntime&) = delete;
@@ -30,6 +31,7 @@ std::vector<std::uint32_t> GlslCompiler::Compile(std::string_view source, std::s
     if (source.empty() || source.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()) || source.find('\0') != std::string_view::npos) throw std::invalid_argument("GLSL: empty, oversized or null-containing source");
     if (sourceName.empty() || sourceName.find('\0') != std::string_view::npos) throw std::invalid_argument("GLSL: invalid source name");
     EShLanguage language;
+
     switch (stage) {
         case PSBC_STAGE_VERTEX: language = EShLangVertex; break;
         case PSBC_STAGE_FRAGMENT: language = EShLangFragment; break;
@@ -39,6 +41,7 @@ std::vector<std::uint32_t> GlslCompiler::Compile(std::string_view source, std::s
         case PSBC_STAGE_TESS_EVAL: language = EShLangTessEvaluation; break;
         default: throw std::invalid_argument("GLSL: unsupported AGC stage");
     }
+
     static std::mutex mutex;
     const std::lock_guard lock(mutex);
     static const GlslangRuntime runtime;
@@ -76,3 +79,4 @@ std::vector<std::uint32_t> GlslCompiler::Compile(std::string_view source, std::s
 }
 
 }
+

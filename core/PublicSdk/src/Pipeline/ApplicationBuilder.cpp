@@ -8,7 +8,9 @@
 #include "LibcModuleBuilder.hpp"
 #include <set>
 #include <stdexcept>
+
 namespace AnyDevKit::PublicSdk {
+
 void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     if (options.Format != PackageFormat::Ffpfsc && options.Format != PackageFormat::Pkg) throw std::invalid_argument("Unsupported package format");
     if ((options.Format == PackageFormat::Pkg) != options.Keys.has_value()) throw std::invalid_argument("PKG requires package keys; FFPFSC does not accept them");
@@ -22,6 +24,7 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     if (output == workspace || (!relative.empty() && *relative.begin() != "..")) throw std::invalid_argument("Package output must be outside workspace");
     const auto entries = PfsBuilder::ScanDirectory(options.App0);
     const std::set<std::string> generated{"eboot.bin", "sce_sys/param.json", "sce_sys/icon0.dds", "sce_sys/pic0.dds", "sce_sys/pic1.dds", "sce_sys/keystone", "sce_module/libc.prx"};
+
     for (const auto& entry : entries) if (generated.contains(entry.Path) && !(entry.Path == "sce_sys/param.json" && options.ParameterJson)) throw std::invalid_argument("app0 already contains generated file: " + entry.Path);
     std::array<std::byte, 32> passcode{};
     if (options.Format == PackageFormat::Pkg) passcode = options.Keys->Passcode;
@@ -40,12 +43,14 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
         if (background.Width != 3840 || background.Height != 2160) throw std::invalid_argument("pic0.png must be 3840x2160");
         backgroundDds = IconBuilder::EncodeDds(background);
     }
+
     std::optional<std::vector<std::byte>> splashDds;
     if (std::filesystem::exists(splashPath)) {
         const auto splash = IconBuilder::ReadPng(splashPath);
         if (splash.Width != 3840 || splash.Height != 2160) throw std::invalid_argument("pic1.png must be 3840x2160");
         splashDds = IconBuilder::EncodeDds(splash);
     }
+
     if (icon.Width != 512 || icon.Height != 512) throw std::invalid_argument("icon0.png must be 512x512");
     const auto elf = Ps5ElfBuilder::Build(Files::Read(options.InputElf), options.Imports, options.Elf);
     const auto eboot = EbootPackager::Build(elf, options.Eboot);
@@ -55,6 +60,7 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
     if (!std::filesystem::create_directory(workspace)) throw std::invalid_argument("Workspace must be new");
     const auto app0 = workspace / "app0";
     std::filesystem::create_directory(app0);
+
     for (const auto& entry : entries) {
         if (entry.Path == "sce_sys/param.json" && options.ParameterJson) continue;
         const auto destination = app0 / Files::Path(entry.Path);
@@ -64,6 +70,7 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
             if (!std::filesystem::copy_file(entry.Source, destination)) throw std::runtime_error("Cannot copy app0 file");
         }
     }
+
     Files::Write(workspace / "application.elf", elf);
     Files::Write(app0 / "eboot.bin", eboot);
     std::filesystem::create_directories(app0 / "sce_module");
@@ -87,4 +94,6 @@ void ApplicationBuilder::Build(const ApplicationBuildOptions& options) {
         PkgPackager::PackDirectory(app0, output, workspace / "package", pkg);
     }
 }
+
 }
+

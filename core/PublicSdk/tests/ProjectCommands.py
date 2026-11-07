@@ -117,3 +117,4 @@ with tempfile.TemporaryDirectory(prefix="adk-project-", dir=Path(adk).parent) as
         assert "adk " + command in run(command, "--help").stdout
     run("unknown", "--help", success=False)
 print("Project configuration checks passed")
+

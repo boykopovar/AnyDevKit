@@ -8,3 +8,4 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_target_properties(AnyDevKitLinuxStartup PROPERTIES CXX_EXTENSIONS OFF)
     install(TARGETS AnyDevKitLinuxStartup ARCHIVE DESTINATION lib COMPONENT sdk)
 endif()
+

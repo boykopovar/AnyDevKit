@@ -3,7 +3,9 @@
 #include "IO/Files.hpp"
 #include "Pipeline/ApplicationBuilder.hpp"
 #include <stdexcept>
+
 namespace AnyDevKit::PublicSdk {
+
 void BuildCommand::Run(std::string_view command, Arguments& arguments) {
     if (command != "build") throw std::invalid_argument("Unsupported build command");
     ApplicationBuildOptions options;
@@ -36,4 +38,6 @@ void BuildCommand::Run(std::string_view command, Arguments& arguments) {
     arguments.Finish();
     ApplicationBuilder::Build(options);
 }
+
 }
+

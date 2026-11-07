@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 namespace AnyDevKit::Self {
+
 namespace {
 
 void write(std::span<std::byte> output, std::size_t offset, std::uint64_t value, std::size_t size) {
@@ -30,6 +31,7 @@ std::vector<std::byte> SelfWriter::Write(const ElfImage& image, const EbootPacka
     write(output, 16, layout.FileSize, 8);
     write(output, 24, layout.Entries.size(), 2);
     write(output, 26, 0x22, 2);
+
     for (std::size_t i = 0; i < layout.Entries.size(); ++i) {
         const auto& entry = layout.Entries[i];
         const auto offset = 32 + i * 32;
@@ -38,6 +40,7 @@ std::vector<std::byte> SelfWriter::Write(const ElfImage& image, const EbootPacka
         write(output, offset + 16, entry.Size, 8);
         write(output, offset + 24, entry.Size, 8);
     }
+
     copy(output, layout.ElfOffset, image.Header);
     write(output, layout.ElfOffset + 60, 0, 2);
     write(output, layout.InfoOffset, options.ProgramAuthorityId, 8);
@@ -47,9 +50,11 @@ std::vector<std::byte> SelfWriter::Write(const ElfImage& image, const EbootPacka
     copy(output, layout.InfoOffset + 32, Crypto::Sha256::Compute(image.Source));
     write(output, layout.InfoOffset + 64, 3, 2);
     write(output, layout.HeaderSize + layout.Entries.size() * 80 + 48, 0x10000, 4);
+
     for (std::size_t i = 0; i < image.Segments.size(); ++i) copy(output, layout.Entries[i * 2 + 1].Offset, image.Segments[i].Data);
     copy(output, layout.FileSize, image.Version);
     return output;
 }
 
 }
+

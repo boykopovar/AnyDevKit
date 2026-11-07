@@ -42,13 +42,16 @@ void AgcMetadataValidator::Validate(const PsbcShaderOutput& compiled) {
         if (!metadata.hull_tess_wg_valid || !metadata.hull_num_patches_per_wg || !metadata.hull_workgroup_size || metadata.hull_workgroup_size > 256 || metadata.hull_tcs_lds_size > 65536 || !metadata.hull_push_use_valid) throw std::invalid_argument("AGC: incomplete merged hull workgroup metadata");
     } else if (metadata.hull_tess_wg_valid || metadata.hull_num_patches_per_wg || metadata.hull_tcs_lds_size || metadata.hull_workgroup_size || metadata.hull_push_use_valid || metadata.hull_vertex_push_dwords || metadata.hull_control_push_dwords) throw std::invalid_argument("AGC: hull metadata on another stage");
     if (tessellation != metadata.ps5_ring_table_valid || (!tessellation && metadata.ps5_ring_table_user_data_dword)) throw std::invalid_argument("AGC: missing or unexpected tessellation ring table");
+
     for (const auto& entry : {metadata.hull_ls_pgm_lo, metadata.hull_ls_pgm_hi, metadata.hull_ls_rsrc1, metadata.hull_ls_rsrc2}) {
         if (entry.offset || entry.padding || entry.value) throw std::invalid_argument("AGC: unexpected hull registers");
     }
+
     if (metadata.streamout_valid || metadata.streamout_buffer_table_user_data_dword || metadata.streamout_enabled_stream_buffers_mask || metadata.streamout_config_sgpr || metadata.streamout_write_index_sgpr) throw std::invalid_argument("AGC: streamout is unsupported");
     for (std::size_t index = 0; index < 4; ++index) {
         if (metadata.streamout_strides_dwords[index] || metadata.streamout_offset_sgprs[index]) throw std::invalid_argument("AGC: unexpected streamout layout");
     }
+
     if (metadata.clip_distance_mask || metadata.cull_distance_mask || metadata.ps_clip_distance_reads || metadata.ps_cull_distance_reads) throw std::invalid_argument("AGC: clip and cull distance linkage is unsupported");
     if (metadata.address32_hi != 2 || metadata.user_sgpr_count > 16 || metadata.user_data_window_base > 16 || metadata.user_sgpr_count > 16 - metadata.user_data_window_base) throw std::invalid_argument("AGC: unsupported PS5 user-data address or SGPR window");
     if (metadata.linkage_valid != vertex || metadata.ngg_lds_layout_valid != vertex) throw std::invalid_argument("AGC: stage linkage or NGG LDS layout is missing or unexpected");
@@ -59,12 +62,15 @@ void AgcMetadataValidator::Validate(const PsbcShaderOutput& compiled) {
     } else if (metadata.esgs_gs_tg_info_sgpr || metadata.esgs_merged_wave_info_sgpr || metadata.esgs_es_verts_per_subgroup || metadata.esgs_gs_inst_prims_per_subgroup || metadata.esgs_prim_amp_factor || metadata.esgs_workgroup_size) {
         throw std::invalid_argument("AGC: undeclared NGG system SGPR layout");
     }
+
     if (metadata.linkage_ge_pc_alloc_valid) {
         if (!vertex || metadata.linkage_ge_pc_alloc.offset != ShaderRegs::GE_PC_ALLOC || metadata.linkage_ge_pc_alloc.padding) throw std::invalid_argument("AGC: invalid parameter-cache allocation register");
     } else if (metadata.linkage_ge_pc_alloc.offset || metadata.linkage_ge_pc_alloc.padding || metadata.linkage_ge_pc_alloc.value) {
         throw std::invalid_argument("AGC: undeclared parameter-cache allocation register");
     }
+
     if ((!compute && metadata.context_register_count == 0) || metadata.context_register_count > PSBC_MAX_CONTEXT_REGISTERS || metadata.shader_register_count == 0 || metadata.shader_register_count > PSBC_MAX_SHADER_REGISTERS || metadata.input_semantic_count > PSBC_MAX_SEMANTICS || metadata.output_semantic_count > PSBC_MAX_SEMANTICS || metadata.descriptor_binding_count > PSBC_MAX_DESCRIPTOR_BINDINGS) throw std::invalid_argument("AGC: invalid metadata table count");
 }
 
 }
+

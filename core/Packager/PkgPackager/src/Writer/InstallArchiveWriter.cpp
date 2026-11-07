@@ -13,6 +13,7 @@ std::vector<std::byte> InstallArchiveWriter::Build(std::span<const InstallArchiv
     if (entries.empty() || entries.size() >= 0xffff) throw std::invalid_argument("Invalid SI entry count");
     std::set<std::string> paths;
     std::uint64_t total = 22;
+
     for (const auto& entry : entries) {
         if (entry.Path.empty() || entry.Path.size() > 0xffff || entry.Path.front() == '/' || entry.Path.back() == '/') throw std::invalid_argument("Invalid SI entry path");
         std::size_t start = 0;
@@ -25,9 +26,11 @@ std::vector<std::byte> InstallArchiveWriter::Build(std::span<const InstallArchiv
                 throw std::invalid_argument("Unsupported SI path character");
             }
         }
+
         if (!paths.insert(entry.Path).second) throw std::invalid_argument("Duplicate SI entry path");
         total = Pfs::ImageWriter::Add(total, Pfs::ImageWriter::Add(76 + entry.Path.size() * 2, entry.Content.size()));
     }
+
     if (total >= 0xffffffff || total > std::numeric_limits<std::size_t>::max()) throw std::length_error("SI archive exceeds ZIP32 range");
     std::vector<std::byte> result(static_cast<std::size_t>(total));
     std::vector<std::array<std::uint32_t, 2>> records;
@@ -36,6 +39,7 @@ std::vector<std::byte> InstallArchiveWriter::Build(std::span<const InstallArchiv
     const auto writeName = [&result](std::size_t offset, const std::string& name) {
         for (std::size_t i = 0; i < name.size(); ++i) result[offset + i] = static_cast<std::byte>(name[i]);
     };
+
     for (const auto& entry : entries) {
         const auto crc = Crypto::Crc32::Zip(entry.Content);
         records.push_back({static_cast<std::uint32_t>(cursor), crc});
@@ -48,8 +52,10 @@ std::vector<std::byte> InstallArchiveWriter::Build(std::span<const InstallArchiv
         put(cursor + 26, entry.Path.size(), 2);
         writeName(cursor + 30, entry.Path);
         cursor += 30 + entry.Path.size();
+
         for (const auto byte : entry.Content) result[cursor++] = byte;
     }
+
     const auto directoryStart = cursor;
     for (std::size_t i = 0; i < entries.size(); ++i) {
         const auto& entry = entries[i];
@@ -64,12 +70,15 @@ std::vector<std::byte> InstallArchiveWriter::Build(std::span<const InstallArchiv
         writeName(cursor + 46, entry.Path);
         cursor += 46 + entry.Path.size();
     }
+
     put(cursor, 0x06054b50, 4);
     put(cursor + 8, entries.size(), 2);
     put(cursor + 10, entries.size(), 2);
     put(cursor + 12, cursor - directoryStart, 4);
     put(cursor + 16, directoryStart, 4);
+
     return result;
 }
 
 }
+

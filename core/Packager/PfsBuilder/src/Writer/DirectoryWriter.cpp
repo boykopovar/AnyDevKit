@@ -16,7 +16,9 @@ void DirectoryWriter::Append(std::vector<std::byte>& data, std::uint32_t inode, 
     ImageWriter::Put(data, start + 4, type, 4);
     ImageWriter::Put(data, start + 8, name.size(), 4);
     ImageWriter::Put(data, start + 12, size, 4);
+
     for (std::size_t i = 0; i < name.size(); ++i) data[start + 16 + i] = static_cast<std::byte>(name[i]);
 }
 
 }
+

@@ -51,6 +51,7 @@ public:
     std::vector<Relocation> Relocations(std::uint64_t addressTag, std::uint64_t sizeTag) const;
     const std::vector<Segment>& Segments() const;
     const std::vector<DynamicEntry>& DynamicEntries() const;
+
 private:
     std::span<const std::byte> bytes;
     std::vector<Segment> segments;
@@ -61,3 +62,4 @@ private:
 }
 
 #endif
+

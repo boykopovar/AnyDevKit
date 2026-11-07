@@ -24,6 +24,7 @@ const PsbcRegisterWrite& requireRegister(std::span<const PsbcRegisterWrite> regi
     for (const auto& entry : registers) {
         if (entry.offset == offset) return entry;
     }
+
     throw std::invalid_argument("AGC: required stage register is missing");
 }
 
@@ -66,10 +67,12 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
         requireRegister(context, 0x2dbu);
     } else if (!compute) {
         for (const auto offset : std::array<std::uint32_t, 9>{0x1c4u, 0x1c5u, 0x1b3u, 0x1b4u, 0x1b6u, 0x1b8u, 0x203u, 0x8fu, 0x310u}) requireRegister(context, offset);
+
         for (const auto& entry : {metadata.linkage_ge_cntl, metadata.linkage_stages_en, metadata.linkage_user_vgpr_en}) {
             if (entry.offset || entry.padding || entry.value) throw std::invalid_argument("AGC: unexpected fragment linkage register");
         }
     }
+
     const auto contextOffset = writer.Reserve(context.size() * sizeof(ShaderRegister), alignof(ShaderRegister));
     const auto shaderOffset = writer.Reserve(shader.size() * sizeof(ShaderRegister), alignof(ShaderRegister));
     for (std::size_t index = 0; index < context.size(); ++index) {
@@ -77,6 +80,7 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
         if (vertex && entry.offset == 0x2abu) entry.value = metadata.merged_geometry ? metadata.merged_esgs_ring_itemsize : 1;
         writeRegister(writer, contextOffset + index * sizeof(ShaderRegister), entry);
     }
+
     for (std::size_t index = 0; index < shader.size(); ++index) writeRegister(writer, shaderOffset + index * sizeof(ShaderRegister), shader[index]);
     if (!context.empty()) writer.WriteRelativePointer(offsetof(Shader, cx_registers), contextOffset);
     writer.WriteRelativePointer(offsetof(Shader, sh_registers), shaderOffset);
@@ -94,3 +98,4 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
 }
 
 }
+

@@ -35,8 +35,10 @@ glslang::TShader::Includer::IncludeResult* ShaderIncluder::resolve(const char* h
     if (requested.is_absolute()) candidates.push_back(requested);
     else {
         if (local && includerName && *includerName) candidates.push_back(std::filesystem::path(includerName).parent_path() / requested);
+
         for (const auto& directory : includeDirectories) candidates.push_back(directory / requested);
     }
+
     for (const auto& candidate : candidates) {
         if (!std::filesystem::exists(candidate)) continue;
         const auto path = std::filesystem::canonical(candidate);
@@ -45,8 +47,10 @@ glslang::TShader::Includer::IncludeResult* ShaderIncluder::resolve(const char* h
         auto result = std::make_unique<IncludeResult>(path.generic_string(), source->data(), source->size(), source.get());
         auto* pointer = result.get();
         includes.emplace(pointer, std::make_pair(std::move(source), std::move(result)));
+
         return pointer;
     }
+
     throw std::runtime_error("GLSL: include not found: " + requested.string());
 }
 
@@ -59,3 +63,4 @@ void ShaderIncluder::releaseInclude(IncludeResult* result) {
 }
 
 }
+

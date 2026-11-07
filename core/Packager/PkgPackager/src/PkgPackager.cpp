@@ -18,6 +18,7 @@
 #include <stdexcept>
 
 namespace AnyDevKit {
+
 namespace {
 
 std::vector<std::byte> Bytes(std::string_view text) {
@@ -50,10 +51,12 @@ std::vector<std::byte> ChunkChecks(const std::filesystem::path& path, std::uint6
     std::ifstream stream;
     stream.exceptions(std::ios::badbit | std::ios::failbit);
     stream.open(path, std::ios::binary);
+
     for (std::size_t i = 0; i < result.size(); i += 4) {
         stream.read(reinterpret_cast<char*>(block.data()), block.size());
         Pfs::ImageWriter::Put(result, i, Crypto::Crc32::Castagnoli(block), 4);
     }
+
     return result;
 }
 
@@ -70,6 +73,7 @@ void PkgPackager::PackDirectory(const std::filesystem::path& input, const std::f
     const auto work = std::filesystem::weakly_canonical(workspace);
     const auto within = [](const auto& parent, const auto& child) {
         const auto relative = child.lexically_relative(parent);
+
         return !relative.empty() && *relative.begin() != "..";
     };
     if (within(root, destination) || within(root, work) || within(work, root) || within(work, destination)) throw std::invalid_argument("PKG input, workspace and output must be separate");
@@ -85,6 +89,7 @@ void PkgPackager::PackDirectory(const std::filesystem::path& input, const std::f
     const std::map<std::string, std::uint32_t> systemEntries{{"license.dat", 0x400}, {"license.info", 0x401}, {"nptitle.dat", 0x402}, {"npbind.dat", 0x403}, {"pronunciation.xml", 0x1006}, {"pronunciation.sig", 0x100d}, {"icon0.png", 0x1200}, {"pic0.png", 0x1220}, {"pic1.png", 0x1240}, {"icon0.dds", 0x1280}, {"pic0.dds", 0x12a0}, {"pic1.dds", 0x12c0}};
     std::vector<CntEntry> entries{{0x2000, "param.json", parameterData}};
     std::vector<std::string> excluded;
+
     for (const auto& file : files) {
         if (file.Directory || !file.Path.starts_with("sce_sys/")) continue;
         const auto name = file.Path.substr(8);
@@ -98,6 +103,7 @@ void PkgPackager::PackDirectory(const std::filesystem::path& input, const std::f
             excluded.push_back(file.Path);
         }
     }
+
     const auto keyData = KeyBuilder::Build(options.Parameters.ContentId, options.Keys);
     if (!std::filesystem::create_directory(work)) throw std::invalid_argument("PKG workspace must be a new directory");
     const auto innerPath = work / "inner.dat";
@@ -109,6 +115,7 @@ void PkgPackager::PackDirectory(const std::filesystem::path& input, const std::f
     Write(napsPath, naps);
     const auto outer = OuterImageBuilder::Build(innerPath, napsPath, inner.Size, keyData.ImageSecret, options.Keys.ImageSeed, options.Timestamp, outerPath);
     std::uint32_t version = 0;
+
     for (const auto c : options.Parameters.ContentVersion) if (c != '.') version = (version << 4) | static_cast<unsigned>(c - '0');
     const auto fih = FihWriter::Build(inner, outer, naps, version);
     const auto playgo = PlayGoBuilder::Build(options.Parameters.ContentId, inner, outer);
@@ -126,6 +133,7 @@ void PkgPackager::PackDirectory(const std::filesystem::path& input, const std::f
         writer.Write(containerOffset, container.Data);
         writer.Close();
     }
+
     const auto metadata = InstallMetadataBuilder::Build(innerPath, inner, Crypto::Sha256::Hmac(keyData.ImageSecret, options.Keys.ImageSeed), options.Keys.ImageSeed);
     std::vector<InstallArchiveEntry> supplemental{{"common/etc/naps_meta_18.dat", metadata.Metrics}};
     for (const auto id : {300, 301, 302, 308}) supplemental.push_back({"common/etc/naps_meta_" + std::to_string(id) + ".dat", metadata.Descriptor});
@@ -133,6 +141,7 @@ void PkgPackager::PackDirectory(const std::filesystem::path& input, const std::f
     supplemental.push_back({"common/etc/playgo-chunk.dat", playgo.Chunks});
     supplemental.push_back({"config/" + options.Parameters.ContentId + "/playgo-chunk.crc", ChunkChecks(mountPath, mountSize)});
     const auto archive = InstallArchiveWriter::Build(supplemental);
+
     try {
         ImageWriter writer(destination);
         writer.Copy(0, mountPath, mountSize);
@@ -142,8 +151,10 @@ void PkgPackager::PackDirectory(const std::filesystem::path& input, const std::f
         std::filesystem::remove(destination);
         throw;
     }
+
     for (const auto& path : {innerPath, napsPath, outerPath, mountPath}) if (!std::filesystem::remove(path)) throw std::runtime_error("Cannot remove PKG workspace file");
     if (!std::filesystem::remove(work)) throw std::runtime_error("Cannot remove PKG workspace");
 }
 
 }
+

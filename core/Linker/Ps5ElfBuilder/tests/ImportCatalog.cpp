@@ -2,9 +2,11 @@
 #include <stdexcept>
 
 namespace {
+
 void require(bool condition) {
     if (!condition) throw std::runtime_error("Import catalog check failed");
 }
+
 template<typename TException, typename TAction>
 void requireError(TAction action) {
     try {
@@ -12,8 +14,10 @@ void requireError(TAction action) {
     } catch (const TException&) {
         return;
     }
+
     throw std::runtime_error("Expected import catalog error");
 }
+
 }
 
 int main() {
@@ -39,3 +43,4 @@ int main() {
     require(allocator.FileName == "libSceLibcInternal.sprx");
     require(allocator.ModuleVersion == 0 && allocator.LibraryVersion == 0);
 }
+

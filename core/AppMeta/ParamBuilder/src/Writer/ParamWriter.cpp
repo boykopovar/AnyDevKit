@@ -3,6 +3,7 @@
 #include <string_view>
 
 namespace AnyDevKit::Param {
+
 namespace {
 
 std::string quote(std::string_view value) {
@@ -11,6 +12,7 @@ std::string quote(std::string_view value) {
         if (c == '"' || c == '\\') result += '\\';
         result += c;
     }
+
     return result + '"';
 }
 
@@ -40,8 +42,10 @@ std::string ParamWriter::Write(const ApplicationParameters& parameters) {
     field("sdkVersion", hex(parameters.SdkVersion));
     if (parameters.FlexibleMemorySize) field("kernel", "{\"flexibleMemorySize\": " + std::to_string(*parameters.FlexibleMemorySize) + "}");
     result += "  \"localizedParameters\": {\n    \"defaultLanguage\": " + quote(parameters.DefaultLanguage);
+
     for (const auto& [language, name] : parameters.Titles) result += ",\n    " + quote(language) + ": {\"titleName\": " + quote(name) + "}";
     return result + "\n  }\n}\n";
 }
 
 }
+

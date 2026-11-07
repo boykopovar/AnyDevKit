@@ -11,6 +11,7 @@
 #include <string>
 
 namespace AnyDevKit {
+
 namespace {
 
 void Check(unsigned error) {
@@ -34,6 +35,7 @@ RgbaImage IconBuilder::DecodePng(std::span<const std::byte> data) {
     if (pixels.size() != expectedSize) throw std::runtime_error("PNG decoded pixel size mismatch");
     RgbaImage result{width, height, std::vector<std::byte>(expectedSize)};
     std::memcpy(result.Pixels.data(), pixels.data(), pixels.size());
+
     return result;
 }
 
@@ -47,6 +49,7 @@ RgbaImage IconBuilder::ReadPng(const std::filesystem::path& input) {
     if (!data.empty()) stream.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(data.size()));
     if (stream.rdbuf()->sgetc() != std::char_traits<char>::eof()) throw std::runtime_error("PNG file grew while reading");
     stream.close();
+
     return DecodePng(data);
 }
 
@@ -56,6 +59,7 @@ std::vector<std::byte> IconBuilder::EncodePng(const RgbaImage& image) {
     Check(lodepng::encode(encoded, reinterpret_cast<const unsigned char*>(image.Pixels.data()), image.Width, image.Height, LCT_RGBA, 8));
     std::vector<std::byte> result(encoded.size());
     std::memcpy(result.data(), encoded.data(), encoded.size());
+
     return result;
 }
 
@@ -81,3 +85,4 @@ void IconBuilder::writeFile(const std::filesystem::path& output, std::span<const
 }
 
 }
+

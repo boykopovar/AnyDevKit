@@ -14,12 +14,14 @@ void validateBinding(const glslang::TObjectReflection& resource, PsbcDescriptorT
     if (!type) throw std::runtime_error("GLSL: resource reflection has no type");
     const auto& qualifier = type->getQualifier();
     if (!qualifier.hasSet() || resource.getBinding() < 0) throw std::invalid_argument("GLSL: resource requires an explicit set and binding: " + resource.name);
+
     for (std::uint32_t index = 0; index < options.descriptor_binding_count; ++index) {
         const auto& binding = options.descriptor_bindings[index];
         if (binding.set != qualifier.layoutSet || binding.binding != resource.getBinding()) continue;
         if (binding.type != descriptorType) throw std::invalid_argument("GLSL: descriptor type disagrees with the supplied layout: " + resource.name);
         return;
     }
+
     throw std::invalid_argument("GLSL: descriptor is missing from the supplied layout: " + resource.name);
 }
 
@@ -43,6 +45,7 @@ void ShaderLayoutValidator::Validate(glslang::TProgram& program, const PsbcCompi
         if (resource.getType()->getQualifier().isPushConstant()) continue;
         validateBinding(resource, PSBC_DESCRIPTOR_UNIFORM_BUFFER, options);
     }
+
     for (int index = 0; index < program.getNumBufferBlocks(); ++index) validateBinding(program.getBufferBlock(index), PSBC_DESCRIPTOR_STORAGE_BUFFER, options);
     for (int index = 0; index < program.getNumUniformVariables(); ++index) {
         const auto& resource = program.getUniform(index);
@@ -53,3 +56,4 @@ void ShaderLayoutValidator::Validate(glslang::TProgram& program, const PsbcCompi
 }
 
 }
+

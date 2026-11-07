@@ -23,6 +23,7 @@ PsbcCompileOptions ShaderCompiler::CreateOptions(PsbcStage stage, std::string_vi
     options.static_descriptor_use = true;
     options.rasterization_samples = 1;
     options.spi_shader_col_format = stage == PSBC_STAGE_FRAGMENT ? 9 : 0;
+
     return options;
 }
 
@@ -39,6 +40,7 @@ AgcShaderPackage ShaderCompiler::CompileGeometry(const ShaderSource& vertex, con
     vertexOptions.stage = PSBC_STAGE_VERTEX;
     const auto vertexSpirv = GlslCompiler::Compile(vertex.Text, vertex.Name, vertexOptions, includeDirectories);
     const auto geometrySpirv = GlslCompiler::Compile(geometry.Text, geometry.Name, options, includeDirectories);
+
     return PsbcCompiler::CompileGeometry(vertexSpirv, geometrySpirv, options);
 }
 
@@ -53,6 +55,7 @@ std::array<AgcShaderPackage, 2> ShaderCompiler::CompileTessellation(const Shader
     const auto vertexSpirv = GlslCompiler::Compile(vertex.Text, vertex.Name, vertexOptions, includeDirectories);
     const auto controlSpirv = GlslCompiler::Compile(control.Text, control.Name, options, includeDirectories);
     const auto evaluationSpirv = GlslCompiler::Compile(evaluation.Text, evaluation.Name, evaluationOptions, includeDirectories);
+
     return PsbcCompiler::CompileTessellation(vertexSpirv, controlSpirv, evaluationSpirv, options);
 }
 
@@ -64,3 +67,4 @@ AgcShaderPackage ShaderCompiler::CompileFile(const std::filesystem::path& source
 }
 
 }
+

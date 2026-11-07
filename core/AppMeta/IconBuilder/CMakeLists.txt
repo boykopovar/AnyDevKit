@@ -4,3 +4,4 @@ target_include_directories(AnyDevKitIconBuilder PUBLIC include)
 target_link_libraries(AnyDevKitIconBuilder PRIVATE AnyDevKitLodePng)
 target_compile_features(AnyDevKitIconBuilder PUBLIC cxx_std_20)
 set_target_properties(AnyDevKitIconBuilder PROPERTIES CXX_EXTENSIONS OFF)
+

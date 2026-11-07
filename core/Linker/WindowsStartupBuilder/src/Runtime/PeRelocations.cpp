@@ -17,13 +17,16 @@ void _pei386_runtime_relocator() {
     if (end - cursor < 3 || cursor[0] != 0 || cursor[1] != 0 || cursor[2] != 1 || (end - cursor) % 3 != 0) {
         throw AnyDevKit::Windows::StartupError{"Unsupported PE relocation table"};
     }
+
     const auto base = reinterpret_cast<std::uintptr_t>(__ImageBase);
     for (cursor += 3; cursor != end; cursor += 3) {
         if (cursor[2] != 64) {
             throw AnyDevKit::Windows::StartupError{"Unsupported PE relocation width"};
         }
+
         const auto symbol = base + cursor[0];
         auto* target = reinterpret_cast<std::uintptr_t*>(base + cursor[1]);
         *target += *reinterpret_cast<const std::uintptr_t*>(symbol) - symbol;
     }
 }
+

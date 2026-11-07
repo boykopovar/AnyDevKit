@@ -7,12 +7,15 @@
 #include <map>
 #include <limits>
 #include <stdexcept>
+
 namespace AnyDevKit::PublicSdk {
+
 PsbcCompileOptions Options::Shader(Arguments& arguments, PsbcStage stage) {
     auto options = ShaderCompiler::CreateOptions(stage, arguments.Optional("target", "ps5"));
     const auto omit = arguments.Optional("omit-implicit-primitive-id", options.omit_implicit_primitive_id ? "true" : "false");
     if (omit != "true" && omit != "false") throw std::invalid_argument("Invalid --omit-implicit-primitive-id value");
     options.omit_implicit_primitive_id = omit == "true";
+
     for (const auto& value : arguments.Many("descriptor")) {
         std::array<std::string, 6> fields;
         std::size_t begin = 0;
@@ -23,6 +26,7 @@ PsbcCompileOptions Options::Shader(Arguments& arguments, PsbcStage stage) {
             if (fields[index].empty()) throw std::invalid_argument("Empty descriptor field");
             begin = end == std::string::npos ? value.size() : end + 1;
         }
+
         const std::map<std::string, PsbcDescriptorType> types{
             {"uniform-buffer", PSBC_DESCRIPTOR_UNIFORM_BUFFER}, {"storage-buffer", PSBC_DESCRIPTOR_STORAGE_BUFFER},
             {"uniform-texel-buffer", PSBC_DESCRIPTOR_UNIFORM_TEXEL_BUFFER}, {"storage-texel-buffer", PSBC_DESCRIPTOR_STORAGE_TEXEL_BUFFER},
@@ -38,14 +42,18 @@ PsbcCompileOptions Options::Shader(Arguments& arguments, PsbcStage stage) {
         const auto offset = Arguments::Number32(fields[4]);
         const auto stride = Arguments::Number32(fields[5]);
         if (!count || !stride || offset % 4 || stride % 4 || count > (std::numeric_limits<std::uint32_t>::max() - offset) / stride) throw std::invalid_argument("Invalid descriptor extent");
+
         for (std::uint32_t index = 0; index < options.descriptor_binding_count; ++index) {
             const auto& previous = options.descriptor_bindings[index];
             if (previous.set == set && (previous.binding == binding || (offset < previous.offset + previous.array_size * previous.stride && previous.offset < offset + count * stride))) throw std::invalid_argument("Duplicate or overlapping descriptor");
         }
+
         options.descriptor_bindings[options.descriptor_binding_count++] = {static_cast<std::uint8_t>(set), static_cast<std::uint8_t>(binding), type->second, count, offset, stride};
     }
+
     return options;
 }
+
 ApplicationParameters Options::Parameters(Arguments& arguments) {
     const auto param = arguments.Optional("param");
     if (!param.empty()) arguments.MergeDefaults(Metadata::Read(Files::Path(param)));
@@ -56,10 +64,12 @@ ApplicationParameters Options::Parameters(Arguments& arguments) {
     result.ContentVersion = arguments.Require("content-version");
     result.MasterVersion = arguments.Require("master-version");
     result.DefaultLanguage = arguments.Require("default-language");
+
     for (const auto& title : arguments.Many("title")) {
         const auto split = title.find('=');
         if (split == std::string::npos || !result.Titles.emplace(title.substr(0, split), title.substr(split + 1)).second) throw std::invalid_argument("Expected unique --title language=text");
     }
+
     result.RequiredSystemSoftwareVersion = Arguments::Number(arguments.Require("firmware-version"));
     result.SdkVersion = Arguments::Number(arguments.Require("sdk-version"));
     result.ApplicationCategoryType = Arguments::Number32(arguments.Optional("category", "0"));
@@ -69,13 +79,16 @@ ApplicationParameters Options::Parameters(Arguments& arguments) {
     const auto memory = arguments.Optional("flexible-memory");
     if (!memory.empty()) result.FlexibleMemorySize = Arguments::Number(memory);
     static_cast<void>(ParamBuilder::Build(result));
+
     return result;
 }
+
 Pkg::PackageKeys Options::Keys(Arguments& arguments) {
     Pkg::PackageKeys keys;
     const auto moduli = Files::Read(Files::Path(arguments.Require("passcode-moduli")));
     const auto mount = Files::Read(Files::Path(arguments.Require("mount-modulus")));
     if (moduli.size() != 7 * 384 || mount.size() != 384) throw std::invalid_argument("Expected seven 384-byte passcode moduli and one 384-byte mount modulus");
+
     for (std::size_t i = 0; i < keys.PasscodeModuli.size(); ++i) std::copy_n(moduli.begin() + static_cast<std::ptrdiff_t>(i * 384), 384, keys.PasscodeModuli[i].begin());
     std::copy(mount.begin(), mount.end(), keys.MountModulus.begin());
     const auto passcode = arguments.Require("passcode");
@@ -87,32 +100,40 @@ Pkg::PackageKeys Options::Keys(Arguments& arguments) {
         throw std::invalid_argument("Invalid hexadecimal key character");
     };
     if (passcode.size() != 32 || seed.size() != 32) throw std::invalid_argument("Passcode and image seed must each contain 32 hexadecimal characters");
+
     for (std::size_t i = 0; i < passcode.size(); ++i) {
         static_cast<void>(hex(passcode[i]));
         keys.Passcode[i] = static_cast<std::byte>(passcode[i]);
     }
+
     for (std::size_t i = 0; i < keys.ImageSeed.size(); ++i) keys.ImageSeed[i] = static_cast<std::byte>((hex(seed[2 * i]) << 4) | hex(seed[2 * i + 1]));
     return keys;
 }
+
 std::int64_t Options::Timestamp(Arguments& arguments) {
     const auto value = Arguments::Number(arguments.Optional("timestamp", "0"));
     if (value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) throw std::invalid_argument("Timestamp exceeds signed 64 bits");
     return static_cast<std::int64_t>(value);
 }
+
 PfsOptions Options::Pfs(Arguments& arguments) {
     PfsOptions result;
     result.BlockSize = Arguments::Number32(arguments.Optional("block-size", "65536"));
     result.Timestamp = Timestamp(arguments);
     result.CaseInsensitive = arguments.Flag("case-insensitive");
+
     return result;
 }
+
 EbootPackageOptions Options::Eboot(Arguments& arguments) {
     EbootPackageOptions result;
     result.ProgramAuthorityId = Arguments::Number(arguments.Optional("authority", "0x3100000000000002"));
     result.ApplicationVersion = Arguments::Number(arguments.Optional("application-version", "0"));
     result.FirmwareVersion = Arguments::Number(arguments.Optional("self-firmware-version", "0"));
+
     return result;
 }
+
 Ps5ElfOptions Options::Elf(Arguments& arguments) {
     Ps5ElfOptions result;
     result.ModuleName = arguments.Require("module-name");
@@ -123,6 +144,7 @@ Ps5ElfOptions Options::Elf(Arguments& arguments) {
     if (!heapSize.empty()) result.HeapSize = Arguments::Number(heapSize);
     return result;
 }
+
 ImportCatalog Options::Imports(Arguments& arguments, const std::filesystem::path& input) {
     ImportCatalog catalog;
     for (const auto& module : ImportCatalog::Dependencies(Files::Read(input))) catalog.AddModule(module);
@@ -132,6 +154,9 @@ ImportCatalog Options::Imports(Arguments& arguments, const std::filesystem::path
         if (first == std::string::npos || second == std::string::npos || selection.find(',', second + 1) != std::string::npos) throw std::invalid_argument("Expected --select-import symbol,module,library");
         catalog.Select(selection.substr(0, first), selection.substr(first + 1, second - first - 1), selection.substr(second + 1));
     }
+
     return catalog;
 }
+
 }
+

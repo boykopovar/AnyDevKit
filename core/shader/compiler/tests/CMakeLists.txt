@@ -13,3 +13,4 @@ foreach(stage IN ITEMS vertex fragment compute geometry tessellation_control tes
     add_test(NAME shader_compile_${stage} COMMAND shader_compilation_tests "${stage}" "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
     set_tests_properties(shader_compile_${stage} PROPERTIES TIMEOUT 60)
 endforeach()
+

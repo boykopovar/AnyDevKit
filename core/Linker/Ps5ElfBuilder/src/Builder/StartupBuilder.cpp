@@ -24,6 +24,7 @@ StartupImage StartupBuilder::Build(const ElfImage& image, std::uint64_t codeAddr
         if (size % 8 != 0) throw std::invalid_argument("Malformed ELF constructor array");
         const auto address = image.Dynamic(addressTag);
         image.Offset(address, size);
+
         for (std::uint64_t i = 0; i < size; i += 8) indirect(BinaryWriter::Add(address, reverse ? size - 8 - i : i));
     };
     bytes({0x48, 0x83, 0xec, 0x08});
@@ -51,7 +52,9 @@ StartupImage StartupBuilder::Build(const ElfImage& image, std::uint64_t codeAddr
     bytes({0x89, 0xc7});
     indirect(importSlots + 16);
     bytes({0x0f, 0x0b});
+
     return result;
 }
 
 }
+

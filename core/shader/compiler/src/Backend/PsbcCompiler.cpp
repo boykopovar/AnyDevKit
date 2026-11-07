@@ -64,6 +64,7 @@ void PsbcCompiler::ValidateOptions(const PsbcCompileOptions& options) {
     if (options.previous_parameters.enabled || options.next_link_parameters.enabled || options.ps5_global_streamout || options.fragment_distance_layout_valid || options.fragment_clip_distance_count || options.ngg_uses_scratch) throw std::invalid_argument("PSBC: unsupported linked-stage, streamout, distance or scratch options");
     if (options.ngg_device_facts && (!options.ngg_pc_lines || !options.ngg_min_good_cu_per_sa)) throw std::invalid_argument("PSBC: incomplete NGG device facts");
     if (!options.ngg_device_facts && (options.ngg_pc_lines || options.ngg_min_good_cu_per_sa)) throw std::invalid_argument("PSBC: NGG device facts supplied without enabling them");
+
     for (std::uint32_t index = 0; index < options.vertex_attribute_count; ++index) {
         const auto& attribute = options.vertex_attributes[index];
         if (attribute.location >= PSBC_MAX_VERTEX_ATTRIBUTES || attribute.binding >= PSBC_MAX_VERTEX_ATTRIBUTES || attribute.format <= PSBC_VERTEX_FORMAT_NONE || attribute.format > PSBC_VERTEX_FORMAT_R16G16B16A16_FLOAT || !attribute.alignment || (attribute.alignment & (attribute.alignment - 1))) throw std::invalid_argument("PSBC: invalid vertex attribute");
@@ -73,6 +74,7 @@ void PsbcCompiler::ValidateOptions(const PsbcCompileOptions& options) {
             if (attribute.binding == other.binding && (attribute.stride != other.stride || attribute.instance_divisor != other.instance_divisor)) throw std::invalid_argument("PSBC: inconsistent vertex binding layout");
         }
     }
+
     for (std::uint32_t index = 0; index < options.specialization_constant_count; ++index) {
         const auto& entry = options.specialization_constants[index];
         if (entry.size != 1 && entry.size != 2 && entry.size != 4 && entry.size != 8) throw std::invalid_argument("PSBC: invalid specialization constant size");
@@ -132,3 +134,4 @@ std::array<AgcShaderPackage, 2> PsbcCompiler::CompileTessellation(std::span<cons
 }
 
 }
+

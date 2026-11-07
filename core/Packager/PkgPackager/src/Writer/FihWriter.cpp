@@ -19,6 +19,7 @@ std::vector<std::byte> FihWriter::Build(const InnerImageInfo& inner, const Outer
     ImageWriter::Put(data, 0x18, outer.Size, 8);
     ImageWriter::Put(data, 0x20, (std::uint64_t{outer.Superblock} + 1) * 0x10000, 8);
     ImageWriter::Put(data, 0x28, 0x10000, 8);
+
     for (const auto offset : {0x30, 0x70, 0xd0}) std::copy(outer.SuperblockDigest.begin(), outer.SuperblockDigest.end(), data.begin() + offset);
     ImageWriter::Put(data, 0x50, inner.MetadataOffset / 0x10000, 8);
     ImageWriter::Put(data, 0x58, ImageWriter::Add(0x10000, outer.Size), 8);
@@ -34,7 +35,9 @@ std::vector<std::byte> FihWriter::Build(const InnerImageInfo& inner, const Outer
     std::copy(digest.begin(), digest.end(), data.begin() + 0xb0);
     ImageWriter::Put(data, 0xf0, inner.ApplicationFiles, 4);
     ImageWriter::Put(data, 0xf8, 2, 4);
+
     return data;
 }
 
 }
+

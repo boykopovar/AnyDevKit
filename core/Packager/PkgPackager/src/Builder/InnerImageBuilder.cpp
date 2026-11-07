@@ -12,6 +12,7 @@
 #include <stdexcept>
 
 namespace AnyDevKit::Pkg {
+
 namespace {
 
 using Pfs::ImageWriter;
@@ -63,6 +64,7 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
     nodes[4].Entry.Directory = true;
     std::map<std::string, std::uint32_t> directories{{"", 4}};
     std::set<std::string> names;
+
     for (const auto& entry : entries) {
         auto normalized = entry.Path;
         for (auto& c : normalized) if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
@@ -89,17 +91,21 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
                 source.read(reinterpret_cast<char*>(magic.data()), 4);
                 if (!source) throw std::runtime_error("Cannot read inner PFS source magic");
             }
+
             const auto value = std::uint32_t{magic[0]} | (std::uint32_t{magic[1]} << 8) | (std::uint32_t{magic[2]} << 16) | (std::uint32_t{magic[3]} << 24);
             const bool executable = value == 0x1d3d154f || value == 0xeef51454 || value == 0x464c457f;
             node.Flags = 0x10 | (executable ? 0x40 : 0x20) | (SystemPath(entry.Path) ? 0x20000 : 0);
         }
+
         nodes.push_back(std::move(node));
     }
+
     for (const auto& [path, index] : directories) {
         static_cast<void>(path);
         Pfs::DirectoryWriter::Append(nodes[index].Data, index, 4, ".");
         Pfs::DirectoryWriter::Append(nodes[index].Data, index == 4 ? 4 : nodes[index].Parent, 5, "..");
     }
+
     for (std::uint32_t i = 5; i < nodes.size(); ++i) {
         auto& node = nodes[i];
         auto& data = nodes[node.Parent].Data;
@@ -109,6 +115,7 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
         node.Dirent = static_cast<std::uint32_t>(data.size());
         Pfs::DirectoryWriter::Append(data, i, node.Entry.Directory ? 3 : 2, Leaf(node.Entry.Path));
     }
+
     const std::array<std::string, 4> internalNames{"inode_flat_path_table", "apr_flat_path_table", "afid_to_ino_table", "uroot"};
     for (std::uint32_t i = 0; i < internalNames.size(); ++i) Pfs::DirectoryWriter::Append(nodes[0].Data, i + 1, i == 3 ? 3 : 2, internalNames[i]);
     std::vector<std::uint32_t> files;
@@ -119,6 +126,7 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
     std::uint64_t cursor = 0;
     nodes[3].Data.resize((files.size() + 3) * 4);
     ImageWriter::Put(nodes[3].Data, 0, *std::min_element(files.begin(), files.end()), 4);
+
     for (std::size_t i = 0; i < files.size(); ++i) {
         auto& node = nodes[files[i]];
         node.Afid = static_cast<std::uint32_t>(i);
@@ -128,6 +136,7 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
         if (!SystemPath(node.Entry.Path)) ++result.ApplicationFiles;
         ImageWriter::Put(nodes[3].Data, 4 + i * 4, files[i], 4);
     }
+
     ImageWriter::Put(nodes[3].Data, nodes[3].Data.size() - 8, 0xffffffffffffffff, 8);
     std::vector<std::pair<std::uint64_t, std::uint64_t>> inodePaths, applicationPaths;
     for (std::size_t i = 5; i < nodes.size(); ++i) {
@@ -139,12 +148,14 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
         inodePaths.emplace_back(hash, i | flags | (std::uint64_t{afid} << 40));
         if (!directory && !SystemPath(node.Entry.Path)) applicationPaths.emplace_back(hash, node.Size | (std::uint64_t{afid} << 40));
     }
+
     nodes[1].Data = Pfs::FlatPathWriter::Build(inodePaths);
     nodes[2].Data = Pfs::FlatPathWriter::Build(applicationPaths);
     result.MetadataOffset = ImageWriter::Align(ImageWriter::Add(cursor, 61 * blockSize), 0x40000);
     constexpr auto inodesPerBlock = blockSize / inodeSize;
     const auto inodeBlocks = (nodes.size() + inodesPerBlock - 1) / inodesPerBlock;
     cursor = ImageWriter::Add(result.MetadataOffset, (1 + inodeBlocks) * blockSize);
+
     for (std::size_t i = 0; i < nodes.size(); ++i) {
         auto& node = nodes[i];
         if (i >= 5 && !node.Entry.Directory) continue;
@@ -152,12 +163,14 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
         node.Size = node.Entry.Directory ? ImageWriter::Align(node.Data.size(), blockSize) : node.Data.size();
         cursor = ImageWriter::Add(cursor, ImageWriter::Align(node.Data.size(), blockSize));
     }
+
     result.Size = ImageWriter::Add(cursor, blockSize);
     result.InodeCount = static_cast<std::uint32_t>(nodes.size());
     if (result.Size >= (std::uint64_t{1} << 40)) throw std::length_error("Inner PFS exceeds NAPS offset range");
     try {
         ImageWriter writer(output);
         writer.Zero(0, result.Size);
+
         for (const auto index : files) writer.Copy(nodes[index].Offset, nodes[index].Entry.Source, nodes[index].Size);
         for (const auto& node : nodes) if (!node.Data.empty()) writer.Write(node.Offset, node.Data);
         std::array<std::byte, blockSize> superblock{};
@@ -170,6 +183,7 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
         ImageWriter::Put(superblock, 0x30, nodes.size(), 8);
         ImageWriter::Put(superblock, 0x38, result.Size / blockSize, 8);
         ImageWriter::Put(superblock, 0x40, inodeBlocks, 8);
+
         for (const auto offset : {0x50, 0x58, 0x60}) ImageWriter::Put(superblock, offset, blockSize, 4);
         ImageWriter::Put(superblock, 0x54, 0x10, 4);
         for (std::size_t i = 0; i < 4; ++i) ImageWriter::Put(superblock, 0x68 + i * 8, static_cast<std::uint64_t>(timestamp), 8);
@@ -177,6 +191,7 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
         ImageWriter::Put(superblock, 0xd8, result.MetadataOffset / blockSize + 1, 8);
         ImageWriter::Put(superblock, 0x368, 1, 1);
         writer.Write(result.MetadataOffset, superblock);
+
         for (std::size_t i = 0; i < nodes.size(); ++i) {
             const auto& node = nodes[i];
             std::array<std::byte, inodeSize> inode{};
@@ -185,6 +200,7 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
             ImageWriter::Put(inode, 4, node.Flags, 4);
             ImageWriter::Put(inode, 8, node.Size, 8);
             ImageWriter::Put(inode, 0x10, node.Size, 8);
+
             for (std::size_t t = 0; t < 4; ++t) ImageWriter::Put(inode, 0x18 + t * 8, static_cast<std::uint64_t>(timestamp), 8);
             ImageWriter::Put(inode, 0x60, node.Offset, 8);
             ImageWriter::Put(inode, 0x68, node.Afid, 4);
@@ -192,12 +208,15 @@ InnerImageInfo InnerImageBuilder::Build(const std::filesystem::path& input, cons
             ImageWriter::Put(inode, 0x70, node.Dirent, 4);
             writer.Write(result.MetadataOffset + blockSize + i / inodesPerBlock * blockSize + i % inodesPerBlock * inodeSize, inode);
         }
+
         writer.Close();
     } catch (...) {
         if (std::filesystem::exists(output)) std::filesystem::remove(output);
         throw;
     }
+
     return result;
 }
 
 }
+

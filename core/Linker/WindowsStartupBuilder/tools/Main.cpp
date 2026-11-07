@@ -11,6 +11,8 @@ int main(int argc, char** argv) {
         return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
+
         return 1;
     }
 }
+

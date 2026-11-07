@@ -26,13 +26,16 @@ void PfscWriter::Write(ImageWriter& writer, std::uint64_t offset, const std::fil
     ImageWriter::Put(header, 40, paddedSize, 8);
     writer.Zero(offset, headerSize);
     writer.Write(offset, header);
+
     for (std::uint64_t i = 0; i <= blocks; ++i) {
         std::array<std::byte, 8> entry{};
         ImageWriter::Put(entry, 0, ImageWriter::Add(headerSize, i * 0x10000), 8);
         writer.Write(ImageWriter::Add(offset, 0x400 + i * 8), entry);
     }
+
     writer.Copy(ImageWriter::Add(offset, headerSize), source, size);
     writer.Zero(ImageWriter::Add(offset, ImageWriter::Add(headerSize, size)), paddedSize - size);
 }
 
 }
+

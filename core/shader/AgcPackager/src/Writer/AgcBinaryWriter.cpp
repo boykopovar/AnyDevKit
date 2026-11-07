@@ -14,6 +14,7 @@ std::size_t AgcBinaryWriter::Reserve(std::size_t size, std::size_t alignment) {
     if (padding > limit - bytes.size() || size > limit - bytes.size() - padding) throw std::length_error("AGC: header exceeds 32-bit size");
     const auto offset = bytes.size() + padding;
     bytes.resize(offset + size, std::byte{});
+
     return offset;
 }
 
@@ -47,3 +48,4 @@ std::size_t AgcBinaryWriter::GetSize() const { return bytes.size(); }
 std::vector<std::byte> AgcBinaryWriter::Finish() && { return std::move(bytes); }
 
 }
+

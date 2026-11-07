@@ -12,26 +12,33 @@
 #include <iostream>
 #include <map>
 #include <stdexcept>
+
 namespace AnyDevKit::PublicSdk {
+
 void Application::Run(std::span<const std::string> arguments, const std::filesystem::path& sdkRoot) {
     if (arguments.empty() || (arguments.size() == 1 && (arguments.front() == "--help" || arguments.front() == "help"))) {
         Help::Print({});
         return;
     }
+
     if (arguments.size() == 2 && arguments[1] == "--help") { Help::Print(arguments.front()); return; }
+
     if (arguments.front() == "init") {
         if (arguments.size() < 2) throw std::invalid_argument("Expected adk init Name");
         Arguments options(arguments.subspan(2));
         ProjectCommand::Init(arguments[1], options, sdkRoot);
         return;
     }
+
     if (arguments.front() == "setup") { SetupCommand::Run(arguments.subspan(1), sdkRoot); return; }
+
     if (arguments.front() == "package" || arguments.front() == "update") {
         Arguments options(arguments.subspan(1));
         if (arguments.front() == "package") ProjectCommand::Package(options);
         else ProjectCommand::Dependencies(arguments.front(), options);
         return;
     }
+
     using Handler = void (*)(std::string_view, Arguments&);
     const std::map<std::string, Handler> commands{
         {"build", BuildCommand::Run}, {"nid", NidCommand::Run}, {"exports", NidCommand::Run},
@@ -42,7 +49,10 @@ void Application::Run(std::span<const std::string> arguments, const std::filesys
     };
     const auto found = commands.find(arguments.front());
     if (found == commands.end()) throw std::invalid_argument("Unknown command: " + arguments.front());
+
     Arguments options(arguments.subspan(1));
     found->second(arguments.front(), options);
 }
+
 }
+

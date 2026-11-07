@@ -109,3 +109,4 @@ endforeach()
 install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/glslang/LICENSE.txt" DESTINATION share/AnyDevKit/licenses/glslang COMPONENT sdk)
 install(FILES "${PROJECT_SOURCE_DIR}/3rdparty/Vulkan-Headers/LICENSE.md" DESTINATION share/AnyDevKit/licenses/Vulkan-Headers COMPONENT sdk)
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/3rdparty/Vulkan-Headers/LICENSES/" DESTINATION share/AnyDevKit/licenses/Vulkan-Headers COMPONENT sdk)
+

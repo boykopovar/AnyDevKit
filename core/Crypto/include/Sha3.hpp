@@ -15,6 +15,7 @@ public:
     static std::array<std::byte, 32> Compute(std::span<const std::byte> bytes);
     static void Shake128(std::span<const std::byte> bytes, std::span<std::byte> output);
     static std::array<std::byte, 32> Hmac(std::span<const std::byte> key, std::span<const std::byte> bytes);
+
 private:
     void permute();
     std::array<std::uint64_t, 25> state{};
@@ -25,3 +26,4 @@ private:
 }
 
 #endif
+

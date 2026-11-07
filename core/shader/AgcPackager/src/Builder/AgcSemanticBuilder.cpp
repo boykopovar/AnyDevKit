@@ -22,6 +22,7 @@ void writeSemantics(AgcBinaryWriter& writer, std::span<const std::uint32_t> word
             }
         }
     }
+
     const auto offset = writer.Reserve(words.size() * sizeof(ShaderSemantic), alignof(ShaderSemantic));
     for (std::size_t index = 0; index < words.size(); ++index) writer.WriteUInt32(offset + index * sizeof(ShaderSemantic), words[index]);
     writer.WriteRelativePointer(pointerOffset, offset);
@@ -39,3 +40,4 @@ void AgcSemanticBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
 }
 
 }
+

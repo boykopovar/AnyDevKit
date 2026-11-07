@@ -66,3 +66,4 @@ def prepare_elf_import(source, destination):
         for i, section in enumerate(sections):
             struct.pack_into("<IIQQQQIIQQ", data, section_offset + i * 64, *section)
     destination.write_bytes(data)
+

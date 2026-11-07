@@ -13,6 +13,7 @@ std::uint32_t BinaryWriter::hash(std::string_view name) {
         value ^= high >> 24;
         value &= ~high;
     }
+
     return value;
 }
 
@@ -22,16 +23,19 @@ std::vector<std::byte> BinaryWriter::HashTable(std::span<const std::string> name
     const auto count = static_cast<std::uint32_t>(names.size());
     std::vector<std::uint32_t> buckets(count);
     std::vector<std::uint32_t> chains(count);
+
     for (std::uint32_t index = 1; index < count; ++index) {
         if (names[index].find('\0') != std::string::npos) throw std::invalid_argument("Invalid ELF hash symbol name");
         const auto bucket = hash(names[index]) % count;
         chains[index] = buckets[bucket];
         buckets[bucket] = index;
     }
+
     std::vector<std::byte> result;
     Append(result, count, 4);
     Append(result, count, 4);
     for (auto value : buckets) Append(result, value, 4);
+
     for (auto value : chains) Append(result, value, 4);
     return result;
 }
@@ -63,7 +67,9 @@ std::uint32_t BinaryWriter::String(std::vector<std::byte>& output, std::string_v
     const auto offset = static_cast<std::uint32_t>(output.size());
     for (char c : value) output.push_back(static_cast<std::byte>(static_cast<unsigned char>(c)));
     output.push_back(std::byte{0});
+
     return offset;
 }
 
 }
+

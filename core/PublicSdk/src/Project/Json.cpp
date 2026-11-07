@@ -2,7 +2,9 @@
 #include "IO/Files.hpp"
 #include <stdexcept>
 #include <vector>
+
 namespace AnyDevKit::PublicSdk {
+
 nlohmann::json Json::Read(const std::filesystem::path& path) {
     const auto bytes = Files::Read(path);
     const std::string text(reinterpret_cast<const char*>(bytes.data()), bytes.size());
@@ -14,6 +16,7 @@ nlohmann::json Json::Read(const std::filesystem::path& path) {
         return true;
     });
 }
+
 void Json::Fields(const nlohmann::json& value, const std::set<std::string>& allowed) {
     if (!value.is_object()) throw std::invalid_argument("Expected a JSON object");
     for (const auto& [key, field] : value.items()) {
@@ -21,4 +24,6 @@ void Json::Fields(const nlohmann::json& value, const std::set<std::string>& allo
         if (!allowed.contains(key)) throw std::invalid_argument("Unsupported JSON field: " + key);
     }
 }
+
 }
+

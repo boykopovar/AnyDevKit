@@ -7,6 +7,7 @@
 #include <utility>
 
 namespace AnyDevKit::Ps5 {
+
 namespace {
 
 void relative(std::vector<std::byte>& bytes, std::uint64_t value, std::uint64_t base) {
@@ -28,6 +29,7 @@ std::uint64_t encoded(const ElfImage& image, std::uint64_t& cursor, std::uint8_t
         if (magnitude > base) throw std::invalid_argument("Unwind address underflows");
         return base - magnitude;
     }
+
     return BinaryWriter::Add(base, value);
 }
 
@@ -44,6 +46,7 @@ UnwindImage UnwindBuilder::Build(const ElfImage& image, const StartupImage& star
         const auto count = encoded(image, cursor, static_cast<std::uint8_t>(image.Read(segment.Offset + 2, 1)), segment.Address);
         const auto tableEncoding = static_cast<std::uint8_t>(image.Read(segment.Offset + 3, 1));
         if (count > segment.FileSize / 8) throw std::invalid_argument("Unwind table exceeds segment");
+
         for (std::uint64_t i = 0; i < count; ++i) {
             const auto start = encoded(image, cursor, tableEncoding, segment.Address);
             const auto fde = encoded(image, cursor, tableEncoding, segment.Address);
@@ -51,12 +54,15 @@ UnwindImage UnwindBuilder::Build(const ElfImage& image, const StartupImage& star
             image.Offset(fde, 4);
             entries.emplace_back(start, fde);
         }
+
         if (cursor > segment.Address + segment.FileSize) throw std::invalid_argument("Unwind table exceeds segment");
     }
+
     UnwindImage result{{}, 0, 0};
     auto byte = [&](unsigned value) { result.Bytes.push_back(static_cast<std::byte>(value)); };
     BinaryWriter::Append(result.Bytes, 20, 4);
     BinaryWriter::Append(result.Bytes, 0, 4);
+
     for (unsigned value : {1u, 0x7au, 0x52u, 0u, 1u, 0x78u, 16u, 1u, 0x1bu, 0x0cu, 7u, 8u, 0x90u, 1u, 0u, 0u}) byte(value);
     auto fde = [&](std::uint64_t start, std::uint64_t size, std::initializer_list<unsigned> instructions, bool returns) {
         const auto offset = result.Bytes.size();
@@ -66,6 +72,7 @@ UnwindImage UnwindBuilder::Build(const ElfImage& image, const StartupImage& star
         relative(result.Bytes, start, address + result.Bytes.size());
         BinaryWriter::Append(result.Bytes, size, 4);
         byte(0);
+
         for (auto value : instructions) byte(value);
         if (returns) {
             byte(0x04);
@@ -87,12 +94,15 @@ UnwindImage UnwindBuilder::Build(const ElfImage& image, const StartupImage& star
     BinaryWriter::Append(result.Bytes, entries.size(), 4);
     std::ranges::sort(entries);
     if (std::adjacent_find(entries.begin(), entries.end(), [](const auto& left, const auto& right) { return left.first == right.first; }) != entries.end()) throw std::invalid_argument("Duplicate unwind function address");
+
     for (const auto& [start, fdeAddress] : entries) {
         relative(result.Bytes, start, headerAddress);
         relative(result.Bytes, fdeAddress, headerAddress);
     }
+
     result.HeaderSize = result.Bytes.size() - result.HeaderOffset;
     return result;
 }
 
 }
+

@@ -20,6 +20,7 @@ public:
     static std::uint64_t Add(std::uint64_t left, std::uint64_t right);
     static std::uint64_t Align(std::uint64_t value, std::uint64_t alignment);
     static void Put(std::span<std::byte> bytes, std::size_t offset, std::uint64_t value, std::size_t width);
+
 private:
     std::ofstream stream;
 };
@@ -27,3 +28,4 @@ private:
 }
 
 #endif
+

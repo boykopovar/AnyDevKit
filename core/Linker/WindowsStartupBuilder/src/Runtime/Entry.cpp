@@ -48,6 +48,7 @@ int AnyDevKitRegisterDestructor(void (*callback)()) {
         free_nid_postfix(entry);
         throw AnyDevKit::Windows::StartupError{"Cannot register destructor"};
     }
+
     return 0;
 }
 
@@ -58,6 +59,7 @@ void __main() {
     auto count = reinterpret_cast<std::uintptr_t>(__CTOR_LIST__[0]);
     if (count == ~std::uintptr_t{}) {
         count = 0;
+
         while (__CTOR_LIST__[count + 1]) ++count;
     }
     while (count) __CTOR_LIST__[count--]();
@@ -73,3 +75,4 @@ void AnyDevKitEntry() {
     exit_nid_postfix(AnyDevKitInvokeMain(0, arguments));
     throw AnyDevKit::Windows::StartupError{"Process exit returned"};
 }
+

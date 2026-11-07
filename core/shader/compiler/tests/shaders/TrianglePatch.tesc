@@ -12,3 +12,4 @@ void main() {
         gl_TessLevelInner[0] = 2.0;
     }
 }
+

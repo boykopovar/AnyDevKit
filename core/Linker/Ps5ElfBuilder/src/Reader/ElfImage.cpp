@@ -12,6 +12,7 @@ ElfImage::ElfImage(std::span<const std::byte> bytes) : bytes(bytes) {
     const auto count = Read(56, 2);
     if (count == 0 || count == 0xffff || phoff < 64) throw std::invalid_argument("Unsupported ELF program headers");
     Slice(phoff, count * 56);
+
     for (std::uint64_t i = 0; i < count; ++i) {
         const auto offset = phoff + i * 56;
         Segment segment{static_cast<std::uint32_t>(Read(offset, 4)), static_cast<std::uint32_t>(Read(offset + 4, 4)), Read(offset + 8, 8), Read(offset + 16, 8), Read(offset + 32, 8), Read(offset + 40, 8), Read(offset + 48, 8)};
@@ -21,18 +22,21 @@ ElfImage::ElfImage(std::span<const std::byte> bytes) : bytes(bytes) {
         if (segment.Type == 1 && (segment.FileSize > segment.MemorySize || (segment.Alignment > 1 && segment.Offset % segment.Alignment != segment.Address % segment.Alignment))) throw std::invalid_argument("Invalid ELF load segment");
         segments.push_back(segment);
     }
+
     const Segment* dynamic = nullptr;
     for (const auto& segment : segments) {
         if (segment.Type != 2) continue;
         if (dynamic != nullptr) throw std::invalid_argument("Multiple ELF dynamic segments");
         dynamic = &segment;
     }
+
     if (dynamic == nullptr || dynamic->FileSize % 16 != 0) throw std::invalid_argument("Missing or malformed ELF dynamic table");
     for (std::uint64_t offset = 0; offset < dynamic->FileSize; offset += 16) {
         const auto tag = Read(dynamic->Offset + offset, 8);
         if (tag == 0) return;
         dynamicEntries.push_back({tag, Read(dynamic->Offset + offset + 8, 8)});
     }
+
     throw std::invalid_argument("Unterminated ELF dynamic table");
 }
 
@@ -45,6 +49,7 @@ std::uint64_t ElfImage::Read(std::uint64_t offset, std::size_t size) const {
     if (size > 8) throw std::invalid_argument("ELF integer exceeds 64 bits");
     const auto data = Slice(offset, size);
     std::uint64_t value = 0;
+
     for (std::size_t i = 0; i < size; ++i) value |= std::to_integer<std::uint64_t>(data[i]) << (i * 8);
     return value;
 }
@@ -53,6 +58,7 @@ std::uint64_t ElfImage::Offset(std::uint64_t address, std::uint64_t size) const 
     for (const auto& segment : segments) {
         if (segment.Type == 1 && address >= segment.Address && address - segment.Address <= segment.FileSize && size <= segment.FileSize - (address - segment.Address)) return segment.Offset + address - segment.Address;
     }
+
     throw std::invalid_argument("ELF address is not file-backed");
 }
 
@@ -63,6 +69,7 @@ std::uint64_t ElfImage::Dynamic(std::uint64_t tag, bool required) const {
         if (found != nullptr) throw std::invalid_argument("Duplicate ELF dynamic tag");
         found = &entry;
     }
+
     if (found == nullptr && required) throw std::invalid_argument("Missing ELF dynamic tag: " + std::to_string(tag));
     return found == nullptr ? 0 : found->Value;
 }
@@ -72,11 +79,13 @@ std::uint64_t ElfImage::tableOffset(std::uint64_t standardTag, std::uint64_t sce
     if (standard) return Offset(Dynamic(standardTag), size);
     const auto relative = Dynamic(sceTag);
     const Segment* found = nullptr;
+
     for (const auto& segment : segments) {
         if (segment.Type != 0x61000000) continue;
         if (found != nullptr) throw std::invalid_argument("Multiple SCE dynamic data segments");
         found = &segment;
     }
+
     if (found == nullptr || relative > found->FileSize || size > found->FileSize - relative) throw std::invalid_argument("Invalid SCE dynamic data range");
     return found->Offset + relative;
 }
@@ -97,6 +106,7 @@ std::vector<Symbol> ElfImage::Symbols() const {
         const auto hash = tableOffset(4, 0x61000025, 8);
         size = Read(hash + 4, 4) * 24;
     }
+
     if (size < 24 || size % 24 != 0) throw std::invalid_argument("Malformed ELF symbol table");
     const auto offset = tableOffset(6, 0x61000039, size);
     std::vector<Symbol> result;
@@ -110,6 +120,7 @@ std::vector<Relocation> ElfImage::Relocations(std::uint64_t addressTag, std::uin
     if (size % 24 != 0 || (addressTag == 7 && Dynamic(9) != 24) || (addressTag == 23 && Dynamic(20) != 7)) throw std::invalid_argument("Expected ELF RELA relocations");
     const auto offset = Offset(Dynamic(addressTag), size);
     std::vector<Relocation> result;
+
     for (std::uint64_t i = 0; i < size; i += 24) result.push_back({Read(offset + i, 8), Read(offset + i + 8, 8), Read(offset + i + 16, 8)});
     return result;
 }
@@ -118,3 +129,4 @@ const std::vector<Segment>& ElfImage::Segments() const { return segments; }
 const std::vector<DynamicEntry>& ElfImage::DynamicEntries() const { return dynamicEntries; }
 
 }
+

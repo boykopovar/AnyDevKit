@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 namespace AnyDevKit::Self {
+
 namespace {
 
 std::uint64_t read(std::span<const std::byte> bytes, std::size_t offset, std::size_t size) {
@@ -35,6 +36,7 @@ ElfImage ElfReader::Read(std::span<const std::byte> bytes) {
     const auto entry = read(bytes, 24, 8);
     bool entryMapped = false;
     bool versionFound = false;
+
     for (std::uint16_t index = 0; index < count; ++index) {
         const auto header = table.subspan(static_cast<std::size_t>(index) * 56, 56);
         const auto segmentType = read(header, 0, 4);
@@ -53,6 +55,7 @@ ElfImage ElfReader::Read(std::span<const std::byte> bytes) {
             if (fileSize > memorySize || (alignment > 1 && offset % alignment != address % alignment)) throw std::invalid_argument("Invalid ELF load segment");
             if ((flags & 1) != 0 && entry >= address && entry - address < fileSize) entryMapped = true;
         }
+
         if (segmentType == 1 || segmentType == 0x61000000 || segmentType == 0x61000010 || segmentType == 0x6fffff00) image.Segments.push_back({index, data});
         if (segmentType == 0x6fffff01) {
             if (versionFound) throw std::invalid_argument("Duplicate ELF version segment");
@@ -60,8 +63,10 @@ ElfImage ElfReader::Read(std::span<const std::byte> bytes) {
             image.Version = data;
         }
     }
+
     if (!entryMapped || image.Segments.empty()) throw std::invalid_argument("ELF entry point is not backed by an executable load segment");
     return image;
 }
 
 }
+

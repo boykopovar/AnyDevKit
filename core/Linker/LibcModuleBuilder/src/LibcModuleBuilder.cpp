@@ -21,6 +21,7 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
     constexpr std::uint64_t metadataAddress = 0xc000;
     auto code = Libc::Initialization::Build(codeAddress, dataAddress + 80);
     const auto fini = codeAddress + code.size();
+
     for (auto value : {0x31, 0xc0, 0xc3}) code.push_back(static_cast<std::byte>(value));
     std::vector<std::byte> data(0x58);
     BinaryWriter::Set(data, 8, 0x20, 8);
@@ -44,6 +45,7 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
         metadata.resize(static_cast<std::size_t>(BinaryWriter::Align(metadata.size(), 8)));
         const auto address = metadataAddress + metadata.size();
         metadata.insert(metadata.end(), bytes.begin(), bytes.end());
+
         return address;
     };
     const auto stringAddress = append(strings);
@@ -70,6 +72,7 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
     const auto hash = BinaryWriter::HashTable(hashNames);
     const auto hashAddress = append(hash);
     std::vector<std::byte> note;
+
     for (auto value : {4, 20, 3, 0x554e47}) BinaryWriter::Append(note, value, 4);
     const auto digest = Crypto::Sha256::Compute(code);
     note.insert(note.end(), digest.begin(), digest.begin() + 20);
@@ -87,10 +90,12 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
         {0x6100003f, symbols.size()}, {0x6100003d, hash.size()}, {0, 0}
     }};
     std::vector<std::byte> dynamicBytes;
+
     for (const auto& [tag, value] : dynamic) {
         BinaryWriter::Append(dynamicBytes, tag, 8);
         BinaryWriter::Append(dynamicBytes, value, 8);
     }
+
     const auto dynamicAddress = append(dynamicBytes);
     std::vector<std::byte> output(0x4000 + metadataAddress + metadata.size());
     std::ranges::copy(code, output.begin() + 0x4000 + codeAddress);
@@ -112,6 +117,7 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
         BinaryWriter::Set(output, offset, type, 4);
         BinaryWriter::Set(output, offset + 4, flags, 4);
         BinaryWriter::Set(output, offset + 8, 0x4000 + address, 8);
+
         for (auto field : {16, 24}) BinaryWriter::Set(output, offset + field, address, 8);
         BinaryWriter::Set(output, offset + 32, size, 8);
         BinaryWriter::Set(output, offset + 40, size, 8);
@@ -127,7 +133,9 @@ std::vector<std::byte> LibcModuleBuilder::Build(const ImportCatalog& imports, co
     segment(7, 0x6474e552, 4, dataAddress, data.size(), 1);
     BinaryWriter::Set(output, 64 + 56 + 40, 0x4000, 8);
     BinaryWriter::Set(output, 64 + 7 * 56 + 40, 0x4000, 8);
+
     return output;
 }
 
 }
+

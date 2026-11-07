@@ -6,7 +6,9 @@
 #include "PfsBuilder.hpp"
 #include "PkgPackager.hpp"
 #include "Ps5ElfBuilder.hpp"
+
 namespace AnyDevKit::PublicSdk {
+
 class Options final {
 public:
     static PsbcCompileOptions Shader(Arguments& arguments, PsbcStage stage);
@@ -18,5 +20,8 @@ public:
     static ImportCatalog Imports(Arguments& arguments, const std::filesystem::path& input);
     static std::int64_t Timestamp(Arguments& arguments);
 };
+
 }
+
 #endif
+

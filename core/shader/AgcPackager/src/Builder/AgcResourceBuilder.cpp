@@ -40,6 +40,7 @@ void AgcResourceBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
             if (slot) throw std::invalid_argument("AGC: slot supplied for an undeclared resource");
             return;
         }
+
         if (slot >= metadata.user_sgpr_count || occupied[slot]) throw std::invalid_argument("AGC: user-data slot is outside the stage window or overlaps another resource");
         occupied[slot] = true;
     };
@@ -60,6 +61,7 @@ void AgcResourceBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     } else if (metadata.push_constant_size) {
         throw std::invalid_argument("AGC: push constant size without a pointer");
     }
+
     if (!metadata.push_use_valid && (metadata.stage_push_dwords || metadata.previous_stage_push_dwords)) throw std::invalid_argument("AGC: push constant usage without a valid declaration");
     if (metadata.previous_stage_push_dwords && !metadata.merged_geometry && metadata.hardware_stage != PSBC_HW_STAGE_HULL) throw std::invalid_argument("AGC: unexpected previous-stage push constant usage");
     const auto pushDwords = (metadata.push_constant_size + 3u) / 4u;
@@ -67,6 +69,7 @@ void AgcResourceBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     if ((metadata.stage_push_dwords | metadata.previous_stage_push_dwords | metadata.hull_vertex_push_dwords | metadata.hull_control_push_dwords) & ~pushMask) throw std::invalid_argument("AGC: push constant usage exceeds its declared size");
     if (metadata.descriptor_set0_valid != metadata.descriptor_set_valid[0] || metadata.descriptor_set0_user_data_dword != metadata.descriptor_set_user_data_dword[0]) throw std::invalid_argument("AGC: descriptor set zero aliases disagree");
     std::array<std::uint64_t, PSBC_MAX_DESCRIPTOR_SETS> bindings{};
+
     for (std::uint32_t index = 0; index < metadata.descriptor_binding_count; ++index) {
         const auto& binding = metadata.descriptor_bindings[index];
         const auto stride = descriptorStride(binding.type);
@@ -75,18 +78,22 @@ void AgcResourceBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
         if (bindings[binding.set] & mask) throw std::invalid_argument("AGC: duplicate descriptor binding");
         bindings[binding.set] |= mask;
         const auto end = binding.offset + binding.array_size * stride;
+
         for (std::uint32_t previous = 0; previous < index; ++previous) {
             const auto& other = metadata.descriptor_bindings[previous];
             if (other.set == binding.set && binding.offset < other.offset + other.array_size * other.stride && other.offset < end) throw std::invalid_argument("AGC: descriptor arrays overlap");
         }
     }
+
     for (std::size_t set = 0; set < PSBC_MAX_DESCRIPTOR_SETS; ++set) {
         claim(metadata.descriptor_set_valid[set], metadata.descriptor_set_user_data_dword[set]);
         if (metadata.descriptor_set_valid[set] && !bindings[set]) throw std::invalid_argument("AGC: active descriptor set has no bindings");
         if (metadata.descriptor_used_binding_mask[set] & ~bindings[set]) throw std::invalid_argument("AGC: descriptor usage names an undeclared binding");
     }
+
     const auto resources = writer.Reserve(sizeof(ShaderUserData), alignof(ShaderUserData));
     writer.WriteRelativePointer(offsetof(Shader, user_data), resources);
 }
 
 }
+

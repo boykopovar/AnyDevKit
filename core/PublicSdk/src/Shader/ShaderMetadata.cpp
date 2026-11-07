@@ -4,8 +4,11 @@
 #include <map>
 #include <stdexcept>
 #include <type_traits>
+
 namespace AnyDevKit::PublicSdk {
+
 namespace {
+
 static_assert(PSBC_SHADER_METADATA_VERSION == 21);
 template<class TValue, class TVisitor>
 void Visit(const std::string& name, TValue& value, const TVisitor& visitor) {
@@ -25,6 +28,7 @@ void Visit(const std::string& name, TValue& value, const TVisitor& visitor) {
         Visit(name + ".stride", value.stride, visitor);
     } else visitor(name, value);
 }
+
 template<class TValue, class TVisitor>
 void Fields(TValue& metadata, const TVisitor& visitor) {
     Visit("version", metadata.version, visitor);
@@ -120,14 +124,18 @@ void Fields(TValue& metadata, const TVisitor& visitor) {
     Visit("vertex_buffer_usage_mask", metadata.vertex_buffer_usage_mask, visitor);
     Visit("vertex_buffer_per_attribute", metadata.vertex_buffer_per_attribute, visitor);
 }
+
 }
+
 std::string ShaderMetadata::Encode(const PsbcShaderMetadata& metadata) {
     std::string output = "adk-psbc-metadata-v1\n";
     Fields(metadata, [&](const std::string& name, const auto& value) {
         output += name + "=" + std::to_string(static_cast<std::uint64_t>(value)) + "\n";
     });
+
     return output;
 }
+
 PsbcShaderMetadata ShaderMetadata::Decode(std::string_view text) {
     std::string normalized;
     normalized.reserve(text.size());
@@ -136,11 +144,13 @@ PsbcShaderMetadata ShaderMetadata::Decode(std::string_view text) {
             if (i + 1 == text.size() || text[i + 1] != '\n') throw std::invalid_argument("Invalid shader metadata line ending");
         } else normalized.push_back(text[i]);
     }
+
     text = normalized;
     constexpr std::string_view magic = "adk-psbc-metadata-v1\n";
     if (!text.starts_with(magic)) throw std::invalid_argument("Unsupported shader metadata format");
     text.remove_prefix(magic.size());
     std::map<std::string, std::uint64_t> values;
+
     while (!text.empty()) {
         const auto end = text.find('\n');
         if (end == std::string_view::npos) throw std::invalid_argument("Truncated shader metadata");
@@ -149,6 +159,7 @@ PsbcShaderMetadata ShaderMetadata::Decode(std::string_view text) {
         if (split == std::string_view::npos || !values.emplace(line.substr(0, split), Arguments::Number(std::string(line.substr(split + 1)))).second) throw std::invalid_argument("Invalid or duplicate shader metadata field");
         text.remove_prefix(end + 1);
     }
+
     PsbcShaderMetadata metadata{};
     Fields(metadata, [&](const std::string& name, auto& value) {
         auto entry = values.extract(name);
@@ -163,4 +174,6 @@ PsbcShaderMetadata ShaderMetadata::Decode(std::string_view text) {
     if (!values.empty()) throw std::invalid_argument("Unknown shader metadata field: " + values.begin()->first);
     return metadata;
 }
+
 }
+

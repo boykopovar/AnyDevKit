@@ -48,3 +48,4 @@ for name in ["shader.header", "shader.code", "shader.adk"]:
         raise RuntimeError(f"Empty shader output: {name}")
 subprocess.run([sys.executable, Path(__file__).with_name("ProjectCommands.py").resolve(), "--adk", adk, "--templates", sdk / "share/AnyDevKit/templates"], check=True, cwd=root, env=os.environ | {"TMP": str(root), "TEMP": str(root), "TMPDIR": str(root)})
 print("Installed SDK verification passed")
+

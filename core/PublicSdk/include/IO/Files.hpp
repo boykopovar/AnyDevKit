@@ -5,7 +5,9 @@
 #include <span>
 #include <string>
 #include <vector>
+
 namespace AnyDevKit::PublicSdk {
+
 class Files final {
 public:
     static std::filesystem::path Path(const std::string& value);
@@ -15,5 +17,8 @@ public:
     static void RequireNew(const std::filesystem::path& path);
     static void RequireOutside(const std::filesystem::path& path, const std::filesystem::path& directory);
 };
+
 }
+
 #endif
+

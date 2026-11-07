@@ -41,12 +41,14 @@ void ImageWriter::Copy(std::uint64_t offset, const std::filesystem::path& input,
     source.exceptions(std::ios::badbit | std::ios::failbit);
     source.open(input, std::ios::binary);
     std::array<std::byte, 0x10000> buffer{};
+
     for (std::uint64_t position = 0; position < size;) {
         const auto count = static_cast<std::size_t>(std::min<std::uint64_t>(buffer.size(), size - position));
         source.read(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(count));
         Write(Add(offset, position), std::span(buffer).first(count));
         position += count;
     }
+
     if (source.rdbuf()->sgetc() != std::char_traits<char>::eof()) throw std::runtime_error("PFS source grew while reading");
     source.close();
 }
@@ -65,3 +67,4 @@ void ImageWriter::Close() {
 }
 
 }
+

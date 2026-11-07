@@ -3,7 +3,9 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+
 namespace AnyDevKit::PublicSdk {
+
 void Help::Print(std::string_view command) {
     constexpr std::string_view text = R"HELP(adk <command> [options]
 adk --version
@@ -99,8 +101,11 @@ All outputs must be new; parent directories must exist. Unknown options fail.
     if (!commands.contains(command)) throw std::invalid_argument("Unknown command: " + std::string(command));
     const auto start = text.find("\n" + std::string(command) + " ");
     auto end = text.find('\n', start + 1);
+
     while (end != std::string_view::npos && end + 1 < text.size() && text[end + 1] == ' ') end = text.find('\n', end + 1);
     std::cout << "adk " << text.substr(start + 1, end - start - 1) << '\n';
     if (command == "package" || command == "build" || command == "pkg" || command == "param" || command == "ps5-elf" || command == "eboot" || command == "pfs" || command == "ffpfsc" || command == "shader" || command == "spirv") std::cout << text.substr(text.find("\nmetadata:"));
 }
+
 }
+

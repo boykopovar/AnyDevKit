@@ -42,7 +42,9 @@ AgcShaderPackage AgcPackager::Build(const PsbcShaderOutput& source) {
     writer.WriteUInt32(offsetof(Shader, header_size), static_cast<std::uint32_t>(writer.GetSize()));
     std::vector<std::byte> machineCode(compiled.machine_code_size);
     std::memcpy(machineCode.data(), compiled.machine_code, machineCode.size());
+
     return AgcShaderPackage(std::move(writer).Finish(), std::move(machineCode), compiled.metadata);
 }
 
 }
+

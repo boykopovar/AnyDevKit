@@ -10,14 +10,17 @@ MersenneTwister::MersenneTwister(std::span<const std::uint32_t> seed) {
     state[0] = 19650218;
     for (std::size_t i = 1; i < state.size(); ++i) state[i] = 1812433253u * (state[i - 1] ^ (state[i - 1] >> 30)) + static_cast<std::uint32_t>(i);
     std::size_t i = 1, j = 0;
+
     for (std::size_t count = std::max(state.size(), seed.size()); count; --count) {
         state[i] = (state[i] ^ ((state[i - 1] ^ (state[i - 1] >> 30)) * 1664525u)) + seed[j] + static_cast<std::uint32_t>(j);
         if (++i == state.size()) {
             state[0] = state.back();
             i = 1;
         }
+
         if (++j == seed.size()) j = 0;
     }
+
     for (std::size_t count = state.size() - 1; count; --count) {
         state[i] = (state[i] ^ ((state[i - 1] ^ (state[i - 1] >> 30)) * 1566083941u)) - static_cast<std::uint32_t>(i);
         if (++i == state.size()) {
@@ -25,6 +28,7 @@ MersenneTwister::MersenneTwister(std::span<const std::uint32_t> seed) {
             i = 1;
         }
     }
+
     state[0] = 0x80000000;
 }
 
@@ -34,8 +38,10 @@ std::uint32_t MersenneTwister::Next() {
             const auto combined = (state[i] & 0x80000000u) | (state[(i + 1) % state.size()] & 0x7fffffffu);
             state[i] = state[(i + 397) % state.size()] ^ (combined >> 1) ^ ((combined & 1) ? 0x9908b0dfu : 0);
         }
+
         position = 0;
     }
+
     auto value = state[position++];
     value ^= value >> 11;
     value ^= (value << 7) & 0x9d2c5680;
@@ -44,3 +50,4 @@ std::uint32_t MersenneTwister::Next() {
 }
 
 }
+

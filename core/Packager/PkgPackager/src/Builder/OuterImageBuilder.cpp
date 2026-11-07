@@ -20,12 +20,14 @@ OuterImageInfo OuterImageBuilder::Build(const std::filesystem::path& inner, cons
     if (std::filesystem::exists(std::filesystem::symlink_status(output))) throw std::invalid_argument("Outer PFS output already exists");
     const std::array paths{inner, naps};
     std::array<std::uint64_t, 2> sizes{}, counts{}, starts{};
+
     for (std::size_t i = 0; i < paths.size(); ++i) {
         if (!std::filesystem::is_regular_file(std::filesystem::symlink_status(paths[i]))) throw std::invalid_argument("Outer PFS source is not a regular file");
         sizes[i] = std::filesystem::file_size(paths[i]);
         if (!sizes[i]) throw std::invalid_argument("Outer PFS source is empty");
         counts[i] = ImageWriter::Align(sizes[i], blockSize) / blockSize;
     }
+
     starts[1] = counts[0];
     const auto dataBlocks = ImageWriter::Add(counts[0], counts[1]);
     if (dataBlocks > 0x7fffff00) throw std::length_error("Outer PFS exceeds D32 block range");
@@ -40,6 +42,7 @@ OuterImageInfo OuterImageBuilder::Build(const std::filesystem::path& inner, cons
     std::copy_n(combined.begin() + 16, 16, xtsKey.begin());
     std::copy_n(combined.begin(), 16, xtsKey.begin() + 16);
     std::vector<std::array<std::byte, 32>> digests(static_cast<std::size_t>(next));
+
     try {
         ImageWriter writer(output);
         const auto writeBlock = [&](std::uint32_t index, std::span<const std::byte> data, bool signedBlock, bool plaintext) {
@@ -53,21 +56,25 @@ OuterImageInfo OuterImageBuilder::Build(const std::filesystem::path& inner, cons
                 ImageWriter::Put(tweak, 0, index | (signedBlock ? 0x800000000000ull : 0), 8);
                 Crypto::Aes::EncryptXts(block, xtsKey, tweak);
             }
+
             writer.Write(std::uint64_t{index} * blockSize, block);
         };
         for (std::size_t i = 0; i < paths.size(); ++i) {
             std::ifstream stream;
             stream.exceptions(std::ios::badbit | std::ios::failbit);
             stream.open(paths[i], std::ios::binary);
+
             for (std::uint64_t block = 0; block < counts[i]; ++block) {
                 std::array<std::byte, blockSize> bytes{};
                 const auto amount = std::min(blockSize, sizes[i] - block * blockSize);
                 stream.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(amount));
                 writeBlock(static_cast<std::uint32_t>(starts[i] + block), bytes, i != 0, false);
             }
+
             if (stream.rdbuf()->sgetc() != std::char_traits<char>::eof()) throw std::runtime_error("Outer PFS source grew while reading");
             stream.close();
         }
+
         std::vector<std::byte> directory;
         Pfs::DirectoryWriter::Append(directory, 1, 2, "inode_flat_path_table");
         Pfs::DirectoryWriter::Append(directory, 2, 3, "uroot");
@@ -84,6 +91,7 @@ OuterImageInfo OuterImageBuilder::Build(const std::filesystem::path& inner, cons
         indirect = [&](std::uint64_t& first, std::uint64_t& remaining, unsigned depth) {
             if (!depth || !remaining) throw std::logic_error("Invalid outer PFS indirect tree");
             std::vector<std::byte> table(blockSize);
+
             for (std::size_t slot = 0; slot < blockSize / 36 && remaining; ++slot) {
                 std::uint32_t child = 0;
                 if (depth == 1) {
@@ -92,6 +100,7 @@ OuterImageInfo OuterImageBuilder::Build(const std::filesystem::path& inner, cons
                 } else child = indirect(first, remaining, depth - 1);
                 putPointer(table, slot * 36, child);
             }
+
             if (next >= 0x7fffffff) throw std::length_error("Outer PFS indirect tree exceeds D32 range");
             const auto index = next++;
             writeBlock(index, table, true, false);
@@ -105,12 +114,14 @@ OuterImageInfo OuterImageBuilder::Build(const std::filesystem::path& inner, cons
             ImageWriter::Put(bytes, 4, flags, 4);
             ImageWriter::Put(bytes, 8, size, 8);
             ImageWriter::Put(bytes, 16, logicalSize, 8);
+
             for (std::size_t i = 0; i < 4; ++i) ImageWriter::Put(bytes, 0x18 + i * 8, static_cast<std::uint64_t>(timestamp), 8);
             ImageWriter::Put(bytes, 0x60, count, 4);
             for (std::size_t slot = 0; slot < 12 && count; ++slot) {
                 putPointer(bytes, 0x64 + slot * 36, static_cast<std::uint32_t>(first++));
                 --count;
             }
+
             for (unsigned depth = 1; depth <= 5 && count; ++depth) putPointer(bytes, 0x64 + (11 + depth) * 36, indirect(first, count, depth));
             if (count) throw std::length_error("Outer PFS file exceeds inode capacity");
         };
@@ -140,6 +151,7 @@ OuterImageInfo OuterImageBuilder::Build(const std::filesystem::path& inner, cons
         ImageWriter::Put(header, 0x52, 1, 2);
         ImageWriter::Put(header, 0x58, blockSize, 8);
         ImageWriter::Put(header, 0x60, blockSize, 8);
+
         for (std::size_t i = 0; i < 4; ++i) ImageWriter::Put(header, 0x68 + i * 8, static_cast<std::uint64_t>(timestamp), 8);
         ImageWriter::Put(header, 0xb0, 1, 4);
         putPointer(header, 0xb8, superblock + 1);
@@ -154,6 +166,7 @@ OuterImageInfo OuterImageBuilder::Build(const std::filesystem::path& inner, cons
         result.Superblock = superblock;
         result.SuperblockDigest = digests[superblock];
         result.BlockDigests.reserve(digests.size() * 32);
+
         for (const auto& digest : digests) result.BlockDigests.insert(result.BlockDigests.end(), digest.rbegin(), digest.rend());
         return result;
     } catch (...) {
@@ -164,3 +177,4 @@ OuterImageInfo OuterImageBuilder::Build(const std::filesystem::path& inner, cons
 }
 
 }
+

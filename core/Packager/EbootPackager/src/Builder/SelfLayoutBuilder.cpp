@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 namespace AnyDevKit::Self {
+
 namespace {
 
 std::size_t add(std::size_t left, std::size_t right) {
@@ -27,6 +28,7 @@ SelfLayout SelfLayoutBuilder::Build(const ElfImage& image) {
     if (headerSize > 0xffff || metadataSize > 0xffff) throw std::length_error("SELF headers exceed 16-bit size");
     SelfLayout layout{static_cast<std::uint16_t>(headerSize), static_cast<std::uint16_t>(metadataSize), elfOffset, infoOffset, 0, 0, {}};
     auto offset = headerSize + metadataSize;
+
     for (const auto& segment : image.Segments) {
         const auto blocks = segment.Data.size() / 0x4000 + (segment.Data.size() % 0x4000 != 0);
         const auto digestsSize = blocks * 32;
@@ -36,9 +38,11 @@ SelfLayout SelfLayoutBuilder::Build(const ElfImage& image) {
         layout.Entries.push_back({0x2804 | (static_cast<std::uint64_t>(segment.Index) << 20), offset, segment.Data.size()});
         offset = align(add(offset, segment.Data.size()));
     }
+
     layout.FileSize = offset;
     layout.TotalSize = add(offset, image.Version.size());
     return layout;
 }
 
 }
+

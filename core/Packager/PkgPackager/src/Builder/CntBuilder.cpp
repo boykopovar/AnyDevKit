@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 namespace AnyDevKit::Pkg {
+
 namespace {
 
 void Put(std::span<std::byte> target, std::size_t offset, std::uint64_t value, std::size_t size) {
@@ -29,12 +30,14 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
     std::vector<CntEntry> all{{0x10, "", keyData.EntryKeys}, {0x20, "", keyData.ImageKey}, {0x80, "", std::vector<std::byte>(0x1e0)}, {0x100, "", std::vector<std::byte>((entries.size() + 6) * 32)}, {1, "", std::vector<std::byte>((entries.size() + 6) * 32)}, {0x200, "", {std::byte{}}}};
     std::map<std::uint32_t, std::size_t> ids;
     std::map<std::string, std::uint32_t> names{{"", 0}};
+
     for (const auto& entry : entries) {
         if (entry.Id <= 0x200 || entry.Data.empty()) throw std::invalid_argument("Invalid CNT application entry");
         for (const auto c : entry.Name) if (c < 0x20 || c > 0x7e || c == '\\') throw std::invalid_argument("Invalid CNT entry name");
         if (!entry.Name.empty() && !names.emplace(entry.Name, 0).second) throw std::invalid_argument("Duplicate CNT entry name");
         all.push_back(entry);
     }
+
     for (std::size_t i = 0; i < all.size(); ++i) if (!ids.emplace(all[i].Id, i).second) throw std::invalid_argument("Duplicate CNT entry ID");
     for (const auto id : {0x40au, 0x1001u, 0x2000u, 0x2010u, 0x2011u}) if (!ids.contains(id)) throw std::invalid_argument("Missing required CNT entry");
     for (auto& [name, offset] : names) {
@@ -42,9 +45,11 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
         auto& table = all[5].Data;
         if (table.size() > 0xffffffff - name.size() - 1) throw std::length_error("CNT name table exceeds format range");
         offset = static_cast<std::uint32_t>(table.size());
+
         for (const auto c : name) table.push_back(static_cast<std::byte>(c));
         table.push_back(std::byte{});
     }
+
     CntImage result;
     std::uint64_t cursor = 0x2000;
     for (const auto& entry : all) {
@@ -53,10 +58,12 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
         result.Entries.push_back({entry.Id, entry.Name, static_cast<std::uint32_t>(cursor), static_cast<std::uint32_t>(entry.Data.size())});
         cursor = end;
     }
+
     result.Data.resize(static_cast<std::size_t>(ImageWriter::Align(cursor, 0x10000)));
     auto& data = result.Data;
     const auto get = [&](std::uint32_t id) -> const CntEntryInfo& { return result.Entries.at(ids.at(id)); };
     const auto payload = [&](std::uint32_t id) { const auto& e = get(id); return std::span(data).subspan(e.Offset, e.Size); };
+
     for (std::size_t i = 0; i < all.size(); ++i) Copy(data, result.Entries[i].Offset, all[i].Data);
     auto table = payload(0x100);
     std::size_t row = 0;
@@ -70,6 +77,7 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
         Put(table, row + 20, entry.Size, 4);
         row += 32;
     }
+
     Put(data, 0, 0x7f434e54, 4);
     Put(data, 4, 0x20001, 4);
     Put(data, 8, 0x80000000, 4);
@@ -79,11 +87,13 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
     Put(data, 0x16, all.size(), 2);
     Put(data, 0x18, get(0x100).Offset, 4);
     std::uint64_t mainSize = 0;
+
     for (const auto id : {0x10u, 0x20u, 0x80u, 0x100u, 1u}) mainSize += get(id).Size;
     Put(data, 0x1c, mainSize, 4);
     Put(data, 0x20, 0x2000, 8);
     Put(data, 0x28, data.size() - 0x2000, 8);
     Put(data, 0x30, get(0x40a).Offset, 8);
+
     for (std::size_t i = 0; i < contentId.size(); ++i) data[0x40 + i] = data[0x200 + i] = static_cast<std::byte>(contentId[i]);
     Put(data, 0x74, 0x20, 4);
     Put(data, 0x78, 0x02020000, 4);
@@ -128,11 +138,13 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
     set(2, header.Finish());
     Sha3 media;
     bool hasMedia = false;
+
     for (const auto id : {0x1006u, 0x100du, 0x1200u, 0x1220u, 0x1240u, 0x1280u, 0x12a0u, 0x12c0u, 0x2040u, 0x2060u}) {
         if (!ids.contains(id)) continue;
         media.Update(Sha3::Compute(payload(id)));
         hasMedia = true;
     }
+
     if (hasMedia) set(3, media.Finish());
     set(5, Sha3::Compute(payload(0x2000)));
     Sha3 playgo;
@@ -141,11 +153,13 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
     set(11, outer.SuperblockDigest);
     Put(general, 0x1c, mask, 4);
     row = 0;
+
     for (const auto& [id, index] : ids) {
         static_cast<void>(index);
         if (id != 1) Copy(payload(1), row, Sha3::Compute(payload(id)));
         row += 32;
     }
+
     Copy(data, 0x140, Sha3::Compute(payload(1)));
     Copy(data, 0x160, Sha3::Compute(std::span(data).subspan(0x2000)));
     Sha3 sc1, sc2;
@@ -153,6 +167,7 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
         sc1.Update(payload(id));
         if (id != 1) sc2.Update(id == 0x100 ? payload(id).first(6 * 32) : payload(id));
     }
+
     Copy(data, 0x100, sc1.Finish());
     Copy(data, 0x120, sc2.Finish());
     Copy(data, 0xfe0, Sha3::Compute(std::span(data).first(0xfe0)));
@@ -161,3 +176,4 @@ CntImage CntBuilder::Build(std::string_view contentId, const PackageKeys& keys, 
 }
 
 }
+

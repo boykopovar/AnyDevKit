@@ -33,6 +33,7 @@ std::vector<std::byte> DdsWriter::Build(const RgbaImage& image) {
     put(132, 3);
     put(140, 1);
     std::size_t cursor = 148;
+
     for (std::uint64_t y = 0; y < rows; ++y) for (std::uint64_t x = 0; x < columns; ++x) {
         std::array<std::byte, 64> pixels{};
         for (std::uint32_t dy = 0; dy < 4; ++dy) for (std::uint32_t dx = 0; dx < 4; ++dx) {
@@ -41,11 +42,14 @@ std::vector<std::byte> DdsWriter::Build(const RgbaImage& image) {
             const auto offset = static_cast<std::size_t>((sourceY * image.Width + sourceX) * 4);
             std::copy_n(image.Pixels.begin() + static_cast<std::ptrdiff_t>(offset), 4, pixels.begin() + (dy * 4 + dx) * 4);
         }
+
         const auto encoded = Bc7Encoder::Encode(pixels);
         std::copy(encoded.begin(), encoded.end(), result.begin() + static_cast<std::ptrdiff_t>(cursor));
         cursor += encoded.size();
     }
+
     return result;
 }
 
 }
+

@@ -87,3 +87,4 @@ with tempfile.TemporaryDirectory(prefix="runtime-", dir=options.directory) as te
             deploy()
             verify({"libMiddle.prx", "libLeaf.prx", "libPlugin.prx"})
         print(platform + ": runtime deployment checks passed")
+

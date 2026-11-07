@@ -6,10 +6,12 @@
 #include <filesystem>
 #include <stdexcept>
 #include <system_error>
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
 namespace {
+
 std::filesystem::path executable() {
 #ifdef _WIN32
     std::vector<wchar_t> buffer(512);
@@ -24,17 +26,21 @@ std::filesystem::path executable() {
     return std::filesystem::read_symlink("/proc/self/exe");
 #endif
 }
+
 }
 
 int main(int argc, char** argv) {
     try {
         if (argc == 2 && std::string(argv[1]) == "--version") { std::cout << "adk " << ANYDEVKIT_VERSION << '\n'; return 0; }
         std::vector<std::string> arguments;
+
         for (int i = 1; i < argc; ++i) arguments.emplace_back(argv[i]);
         AnyDevKit::PublicSdk::Application::Run(arguments, executable().parent_path().parent_path());
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "adk: " << error.what() << '\n';
+
         return 1;
     }
 }
+

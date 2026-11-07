@@ -10,6 +10,7 @@ void FfpfscPackager::PackDirectory(const std::filesystem::path& input, const std
     const auto workRoot = std::filesystem::weakly_canonical(workspace);
     const auto isWithin = [](const auto& parent, const auto& child) {
         const auto relative = child.lexically_relative(parent);
+
         return !relative.empty() && *relative.begin() != "..";
     };
     if (isWithin(sourceRoot, destination) || isWithin(sourceRoot, workRoot) || isWithin(workRoot, destination)) throw std::invalid_argument("FFPFSC input, workspace and output must be separate");
@@ -24,3 +25,4 @@ void FfpfscPackager::PackDirectory(const std::filesystem::path& input, const std
 }
 
 }
+

@@ -4,7 +4,9 @@
 #include "IconBuilder.hpp"
 #include "WindowsStartupBuilder.hpp"
 #include <stdexcept>
+
 namespace AnyDevKit::PublicSdk {
+
 void MetadataCommand::Run(std::string_view command, Arguments& arguments) {
     if (command != "param" && command != "png" && command != "dds" && command != "windows-startup") throw std::invalid_argument("Unsupported MetadataCommand command");
     const auto output = Files::Path(arguments.Require("output"));
@@ -24,4 +26,6 @@ void MetadataCommand::Run(std::string_view command, Arguments& arguments) {
         else IconBuilder::WritePng(output, image);
     }
 }
+
 }
+

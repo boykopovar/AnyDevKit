@@ -4,19 +4,25 @@
 #include "Shader/ShaderMetadata.hpp"
 #include "IO/Files.hpp"
 #include <stdexcept>
+
 namespace AnyDevKit::PublicSdk {
+
 namespace {
+
 std::string read(const std::filesystem::path& path) {
     const auto bytes = Files::Read(path);
     return {reinterpret_cast<const char*>(bytes.data()), bytes.size()};
 }
+
 void write(const std::filesystem::path& directory, const std::string& stage, const AgcShaderPackage& package) {
     const auto metadata = ShaderMetadata::Encode(package.GetBindingMetadata());
     Files::Write(directory / (stage + ".header"), package.GetHeaderBytes());
     Files::Write(directory / (stage + ".code"), package.GetCodeBytes());
     Files::Write(directory / (stage + ".adk"), std::as_bytes(std::span(metadata)));
 }
+
 }
+
 void ShaderPipelineCommand::Run(std::string_view command, Arguments& arguments) {
     if (command != "shader-pipeline") throw std::invalid_argument("Unknown pipeline command");
     const auto vertexPath = arguments.Require("vertex");
@@ -34,6 +40,7 @@ void ShaderPipelineCommand::Run(std::string_view command, Arguments& arguments) 
     options.primitive_type = Arguments::Number32(arguments.Optional("primitive-type", "4"));
     if (!geometry) options.patch_control_points = Arguments::Number32(arguments.Require("patch-control-points"));
     std::vector<std::filesystem::path> includes;
+
     for (const auto& path : arguments.Many("include")) includes.push_back(Files::Path(path));
     arguments.Finish();
     const auto vertex = read(Files::Path(vertexPath));
@@ -51,4 +58,6 @@ void ShaderPipelineCommand::Run(std::string_view command, Arguments& arguments) 
         write(output, "evaluation", packages[1]);
     }
 }
+
 }
+

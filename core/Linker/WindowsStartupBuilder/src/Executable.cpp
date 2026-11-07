@@ -5,10 +5,12 @@
 #include <string_view>
 
 namespace AnyDevKit {
+
 void WindowsStartupBuilder::PrepareExecutable(std::span<std::byte> image) {
     const auto read = [&](std::size_t offset, std::size_t size) {
         if (offset > image.size() || size > image.size() - offset) throw std::invalid_argument("Truncated PE executable");
         std::uint32_t value = 0;
+
         for (std::size_t i = 0; i < size; ++i) value |= std::to_integer<std::uint32_t>(image[offset + i]) << (8 * i);
         return value;
     };
@@ -21,6 +23,7 @@ void WindowsStartupBuilder::PrepareExecutable(std::span<std::byte> image) {
     const auto sections = pe + 24 + optionalSize;
     if (sections > image.size() || count > (image.size() - sections) / 40) throw std::invalid_argument("Truncated PE section table");
     bool unwind = false;
+
     for (std::size_t i = 0; i < count; ++i) {
         const auto offset = sections + i * 40;
         const std::string_view name(reinterpret_cast<const char*>(image.data() + offset), 8);
@@ -30,11 +33,15 @@ void WindowsStartupBuilder::PrepareExecutable(std::span<std::byte> image) {
             replacement = ".sdkdata";
             image[offset + 39] |= std::byte{0x80};
         }
+
         if (!replacement.empty()) {
             std::fill_n(image.begin() + offset, 8, std::byte{});
             for (std::size_t j = 0; j < replacement.size(); ++j) image[offset + j] = std::byte(replacement[j]);
         }
     }
+
     if (!unwind) throw std::invalid_argument("Missing DWARF exception section");
 }
+
 }
+

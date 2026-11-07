@@ -14,6 +14,7 @@
 #include <string_view>
 
 namespace AnyDevKit::Ps5 {
+
 namespace {
 
 std::string identifier(std::uint16_t value) {
@@ -23,9 +24,9 @@ std::string identifier(std::uint16_t value) {
         result.insert(result.begin(), alphabet[value & 63]);
         value >>= 6;
     } while (value != 0);
+
     return result;
 }
-
 
 void validate(const ElfImage& image) {
     if (image.Read(16, 2) != 3) throw std::invalid_argument("PS5 ELF builder requires a linked position-independent ET_DYN image");
@@ -35,6 +36,7 @@ void validate(const ElfImage& image) {
         if (entry.Tag == 30 && (entry.Value & ~std::uint64_t{10}) != 0) throw std::invalid_argument("Unsupported ELF dynamic flags");
         if (entry.Tag == 0x6ffffffb && (entry.Value & ~std::uint64_t{0x8000001}) != 0) throw std::invalid_argument("Unsupported ELF dynamic flags1");
     }
+
     if (image.Dynamic(11) != 24) throw std::invalid_argument("Unsupported ELF symbol size");
     bool entry = false;
     for (const auto& segment : image.Segments()) {
@@ -46,6 +48,7 @@ void validate(const ElfImage& image) {
         } else if (segment.Type != 0 && segment.Type != 2 && segment.Type != 4 && segment.Type != 6 && segment.Type != 7 && segment.Type != 0x6474e550 && segment.Type != 0x6474e551 && segment.Type != 0x6474e552) throw std::invalid_argument("Unsupported input ELF segment");
         if (segment.Type == 0x6474e551 && (segment.Flags & 1) != 0) throw std::invalid_argument("Executable stack is unsupported");
     }
+
     if (!entry) throw std::invalid_argument("ELF entry must point to the application's main function");
     for (const auto& first : image.Segments()) {
         if (first.Type != 1) continue;
@@ -63,9 +66,11 @@ void validateRelocations(const ElfImage& image, const std::vector<Symbol>& symbo
         if (index >= symbols.size()) throw std::invalid_argument("ELF relocation symbol exceeds table");
         if (type != 1 && type != 6 && type != 7 && type != 8 && type != 16 && type != 17) throw std::invalid_argument("Unsupported PS5 relocation type: " + std::to_string(type));
         bool mapped = false;
+
         for (const auto& segment : image.Segments()) {
             if (segment.Type == 1 && (segment.Flags & 2) != 0 && relocation.Address >= segment.Address && relocation.Address - segment.Address <= segment.MemorySize && 8 <= segment.MemorySize - (relocation.Address - segment.Address)) mapped = true;
         }
+
         if (!mapped) throw std::invalid_argument("ELF relocation target is not writable");
         if (type == 8 && index != 0) throw std::invalid_argument("Relative relocation has a symbol");
         if (index != 0 && symbols[index].Section != 0 && (type == 1 || type == 6 || type == 7)) {
@@ -90,6 +95,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     relocations.insert(relocations.end(), importedEnd, plt.end());
     plt.erase(importedEnd, plt.end());
     std::uint64_t end = 0;
+
     for (const auto& segment : image.Segments()) if (segment.Type == 1) end = std::max(end, BinaryWriter::Add(segment.Address, segment.MemorySize));
     const auto codeAddress = BinaryWriter::Align(end, 0x4000);
     const auto processAddress = BinaryWriter::Add(codeAddress, 0x4000);
@@ -102,6 +108,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     if (startup.Bytes.size() > 0x4000) throw std::length_error("PS5 startup exceeds its segment");
     relocations.insert(relocations.end(), process.Relocations.begin(), process.Relocations.end());
     const std::array<std::string, 3> startupNames{"_init_env", "atexit", "exit"};
+
     for (std::size_t i = 0; i < startupNames.size(); ++i) {
         auto found = std::ranges::find(symbols, startupNames[i], &Symbol::Name);
         std::size_t index;
@@ -112,14 +119,17 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
             index = static_cast<std::size_t>(found - symbols.begin());
             if (found->Section != 0) throw std::invalid_argument("Application overrides a required PS5 startup export");
         }
+
         relocations.push_back({slots + i * 8, (static_cast<std::uint64_t>(index) << 32) | 6, 0});
     }
+
     std::map<std::string, std::uint16_t> moduleIds;
     std::map<std::pair<std::string, std::string>, std::uint16_t> libraryIds;
     std::map<std::string, Ps5Import> modules;
     std::map<std::pair<std::string, std::string>, Ps5Import> libraries;
     const auto dependencies = ImportCatalog::Dependencies(input);
     if (dependencies.size() != imports.Modules().size()) throw std::invalid_argument("Import catalog must match ELF dependencies");
+
     for (const auto& fileName : dependencies) {
         const auto found = std::ranges::find(imports.Modules(), fileName, &Ps5Import::FileName);
         if (found == imports.Modules().end()) throw std::invalid_argument("Missing PS5 dependency: " + fileName);
@@ -127,6 +137,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         moduleIds.emplace(found->Module, static_cast<std::uint16_t>(moduleIds.size() + 1));
         modules.emplace(found->Module, *found);
     }
+
     for (std::size_t i = 1; i < symbols.size(); ++i) {
         auto& symbol = symbols[i];
         if (symbol.Section != 0) continue;
@@ -140,6 +151,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         } else if (modules.at(imported.Module).FileName != imported.FileName || modules.at(imported.Module).ModuleVersion != imported.ModuleVersion) {
             throw std::invalid_argument("Conflicting PS5 module versions or filenames");
         }
+
         const auto key = std::pair{imported.Module, imported.Library};
         if (!libraryIds.contains(key)) {
             if (libraryIds.size() >= 65535) throw std::length_error("Too many PS5 import libraries");
@@ -148,10 +160,12 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         } else if (libraries.at(key).LibraryVersion != imported.LibraryVersion) {
             throw std::invalid_argument("Conflicting PS5 library versions");
         }
+
         symbol.Name = imported.Nid + "#" + identifier(libraryIds.at(key)) + "#" + identifier(moduleIds.at(imported.Module));
         symbol.Info = static_cast<std::uint8_t>(0x10 | type);
         symbol.Visibility = 0;
     }
+
     std::vector<std::byte> strings{std::byte{0}};
     std::vector<std::byte> symbolBytes;
     for (const auto& symbol : symbols) {
@@ -162,6 +176,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         BinaryWriter::Append(symbolBytes, symbol.Value, 8);
         BinaryWriter::Append(symbolBytes, symbol.Size, 8);
     }
+
     std::vector<DynamicEntry> dynamic;
     std::vector<std::string> moduleOrder(moduleIds.size());
     for (const auto& [module, id] : moduleIds) moduleOrder.at(id - 1) = module;
@@ -169,6 +184,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         const auto& imported = modules.at(module);
         dynamic.push_back({1, BinaryWriter::String(strings, imported.FileName)});
         dynamic.push_back({0x61000045, (static_cast<std::uint64_t>(moduleIds.at(module)) << 48) | (static_cast<std::uint64_t>(imported.ModuleVersion) << 32) | BinaryWriter::String(strings, module)});
+
         for (const auto& [key, library] : libraries) {
             if (key.first != module) continue;
             const auto id = static_cast<std::uint64_t>(libraryIds.at(key)) << 48;
@@ -176,6 +192,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
             dynamic.push_back({0x61000019, id | 9});
         }
     }
+
     dynamic.push_back({0x61000043, 0x10100000000ull | BinaryWriter::String(strings, options.ModuleName)});
     dynamic.push_back({0x61000011, 0});
     dynamic.push_back({0x61000041, BinaryWriter::String(strings, options.FileName)});
@@ -187,17 +204,20 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         metadata.resize(static_cast<std::size_t>(BinaryWriter::Align(metadata.size(), 8)));
         const auto address = BinaryWriter::Add(metadataAddress, metadata.size());
         metadata.insert(metadata.end(), data.begin(), data.end());
+
         return address;
     };
     const auto stringAddress = append(strings);
     const auto symbolAddress = append(symbolBytes);
     auto appendRelocations = [&](const std::vector<Relocation>& values) {
         std::vector<std::byte> data;
+
         for (const auto& relocation : values) {
             BinaryWriter::Append(data, relocation.Address, 8);
             BinaryWriter::Append(data, relocation.Info, 8);
             BinaryWriter::Append(data, relocation.Addend, 8);
         }
+
         return append(data);
     };
     const auto pltAddress = appendRelocations(plt);
@@ -206,6 +226,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     const auto relaAddress = appendRelocations(relocations);
     std::vector<std::string> hashNames;
     hashNames.reserve(symbols.size());
+
     for (const auto& symbol : symbols) hashNames.push_back(symbol.Name);
     const auto hashBytes = BinaryWriter::HashTable(hashNames);
     const auto hashAddress = append(hashBytes);
@@ -223,15 +244,18 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     dynamic.insert(dynamic.end(), {{6, symbolAddress}, {11, 24}, {5, stringAddress}, {10, strings.size()}, {4, hashAddress}, {32, 0}, {33, 0}, {25, 0}, {27, 0}, {26, 0}, {28, 0}, {12, emptyFunction}, {13, codeAddress}, {0x6100003f, symbolBytes.size()}, {0x6100003d, hashBytes.size()}});
     metadata.resize(static_cast<std::size_t>(BinaryWriter::Align(metadata.size(), 8)));
     const auto dynamicAddress = BinaryWriter::Add(metadataAddress, metadata.size());
+
     for (const auto& entry : dynamic) {
         BinaryWriter::Append(metadata, entry.Tag, 8);
         BinaryWriter::Append(metadata, entry.Value, 8);
     }
+
     BinaryWriter::Append(metadata, 0, 8);
     BinaryWriter::Append(metadata, 0, 8);
     const auto dynamicSize = (dynamic.size() + 1) * 16;
     std::vector<std::byte> output(0x4000);
     std::vector<Segment> segments;
+
     for (auto segment : image.Segments()) {
         if (segment.Type != 1) continue;
         if ((segment.Flags & 1) != 0) segment.Flags &= ~std::uint32_t{4};
@@ -242,17 +266,20 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         segment.FileSize = segment.FileSize == 0 ? 0 : BinaryWriter::Add(prefix, segment.FileSize);
         segment.Alignment = 0x4000;
         segment.Offset = BinaryWriter::Align(output.size(), 0x4000);
+
         for (const auto& previous : segments) {
             const auto previousEnd = BinaryWriter::Align(BinaryWriter::Add(previous.Address, previous.MemorySize), 0x4000);
             const auto currentEnd = BinaryWriter::Align(BinaryWriter::Add(segment.Address, segment.MemorySize), 0x4000);
             if (segment.Address < previousEnd && previous.Address < currentEnd) throw std::invalid_argument("ELF load segments share a PS5 memory page");
         }
+
         const auto fileEnd = BinaryWriter::Add(segment.Offset, segment.FileSize);
         if (fileEnd > output.max_size()) throw std::length_error("PS5 load segment exceeds output capacity");
         output.resize(static_cast<std::size_t>(fileEnd));
         if (!data.empty()) std::copy(data.begin(), data.end(), output.begin() + static_cast<std::ptrdiff_t>(segment.Offset + prefix));
         segments.push_back(segment);
     }
+
     for (auto segment : image.Segments()) {
         if (segment.Type != 7 && segment.Type != 0x6474e551 && segment.Type != 0x6474e552) continue;
         if (segment.FileSize != 0) {
@@ -272,11 +299,13 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         } else segment.Offset = 0;
         segments.push_back(segment);
     }
+
     auto addSegment = [&](std::uint32_t flags, std::uint64_t address, std::span<const std::byte> data) {
         output.resize(static_cast<std::size_t>(BinaryWriter::Align(output.size(), 0x4000)));
         const auto offset = output.size();
         output.insert(output.end(), data.begin(), data.end());
         segments.push_back({1, flags, offset, address, data.size(), data.size(), 0x4000});
+
         return offset;
     };
     addSegment(1, codeAddress, startup.Bytes);
@@ -298,6 +327,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     BinaryWriter::Set(output, 52, 64, 2);
     BinaryWriter::Set(output, 54, 56, 2);
     BinaryWriter::Set(output, 56, segments.size(), 2);
+
     for (std::size_t i = 0; i < segments.size(); ++i) {
         const auto& segment = segments[i];
         const auto offset = 64 + i * 56;
@@ -310,7 +340,9 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
         BinaryWriter::Set(output, offset + 40, segment.MemorySize, 8);
         BinaryWriter::Set(output, offset + 48, segment.Alignment, 8);
     }
+
     return output;
 }
 
 }
+

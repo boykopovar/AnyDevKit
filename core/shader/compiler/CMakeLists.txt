@@ -14,3 +14,4 @@ target_link_libraries(AnyDevKitShaderCompiler PUBLIC AnyDevKit::AgcPackager PRIV
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
+

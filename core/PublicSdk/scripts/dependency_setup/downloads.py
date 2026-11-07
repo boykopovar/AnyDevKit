@@ -200,3 +200,4 @@ def extract_deb_headers(path, root, required_only=False):
                 extract_tar(archive, root, lambda name: name.startswith("usr/include/") and (not required_only or name.removeprefix("usr/include/") in selected) or name.startswith("usr/share/doc/") and name.endswith("/copyright"))
     if not found:
         raise ValueError("Debian package has no data archive")
+
