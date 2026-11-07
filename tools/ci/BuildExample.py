@@ -92,11 +92,9 @@ for entry in commands:
     if "3rdparty/anyps5" in command:
         raise RuntimeError("Application compilation references the AnyPS5 submodule")
 run("build", ["cmake", "--build", "--preset", options.target, "--parallel", "4"])
-if options.target == "ps5" and options.compiler == "clang":
+if options.target == "ps5":
     run("ffpfsc", [adk, "package", "--target", "ps5"])
     output = project / "dist/ps5" / (options.example + ".ffpfsc")
-elif options.target == "ps5":
-    output = project / "build/ps5" / (options.example + ".elf")
 else:
     suffix = ".exe" if options.target == "windows" else ""
     output = project / "dist" / options.target / (options.example + suffix)
