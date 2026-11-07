@@ -3,6 +3,7 @@
 
 #include "Canvas.hpp"
 #include "Display.hpp"
+#include "Graphics/Renderer.hpp"
 #include <string>
 #include <vector>
 
@@ -22,6 +23,7 @@ private:
     void draw();
     Display display;
     Canvas canvas;
+    Renderer renderer;
     std::vector<Row> rows;
     std::string summary = "STARTING CHECKS";
     std::string detail;

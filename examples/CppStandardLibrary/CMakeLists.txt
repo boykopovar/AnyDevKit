@@ -10,7 +10,24 @@ if(NOT EXISTS "${ANYDEVKIT_LIBCXX_BUILD}/AnyLibcxxConfig.cmake")
 endif()
 include("${ANYDEVKIT_LIBCXX_BUILD}/AnyLibcxxConfig.cmake")
 
+if(NOT TARGET Calculator3DShaderBuilder)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../Calculator3D/ShaderBuilder" "${CMAKE_CURRENT_BINARY_DIR}/shader-builder")
+endif()
+string(TOLOWER "${CMAKE_SYSTEM_NAME}" cppShaderTarget)
+set(ANYDEVKIT_CPP_SHADER_TARGET "${cppShaderTarget}" CACHE STRING "Standard library example shader target")
+set(shaderHeader "${CMAKE_CURRENT_BINARY_DIR}/generated/Calculator3DShaders.hpp")
+set(shaderDirectory "${CMAKE_CURRENT_LIST_DIR}/../Calculator3D/shaders")
+add_custom_command(OUTPUT "${shaderHeader}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
+    COMMAND "$<TARGET_FILE:Calculator3DShaderBuilder>" "${shaderDirectory}/Background.vert" "${shaderDirectory}/Background.frag" "${shaderDirectory}/Interface.vert" "${shaderDirectory}/Interface.frag" "${shaderHeader}" --target "${ANYDEVKIT_CPP_SHADER_TARGET}"
+    DEPENDS Calculator3DShaderBuilder "${shaderDirectory}/Background.vert" "${shaderDirectory}/Background.frag" "${shaderDirectory}/Interface.vert" "${shaderDirectory}/Interface.frag"
+    VERBATIM)
+
 add_executable(CppStandardLibrary
+    "${shaderHeader}"
+    src/Graphics/Memory.cpp
+    src/Graphics/Pipeline.cpp
+    src/Graphics/Renderer.cpp
     src/Main.cpp
     src/Screen.cpp
     ../Calculator3D/src/Canvas.cpp
@@ -36,7 +53,7 @@ option(ANYDEVKIT_CPP_HEADLESS "Run standard library checks without a window" OFF
 target_compile_definitions(CppStandardLibrary PRIVATE ANYDEVKIT_CPP_HEADLESS=$<BOOL:${ANYDEVKIT_CPP_HEADLESS}>)
 target_compile_features(CppStandardLibrary PRIVATE cxx_std_20)
 set_target_properties(CppStandardLibrary PROPERTIES CXX_EXTENSIONS OFF)
-target_include_directories(CppStandardLibrary PRIVATE include ../Calculator3D/include)
+target_include_directories(CppStandardLibrary PRIVATE include ../Calculator3D/include "${CMAKE_CURRENT_BINARY_DIR}/generated")
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/ReleaseHeaders.cmake")
 anydevkit_use_release_headers(CppStandardLibrary)
 target_link_libraries(CppStandardLibrary PRIVATE AnyLibcxx::Runtime)
@@ -48,7 +65,7 @@ if(WIN32)
     anydevkit_configure_windows_executable(CppStandardLibrary ${ANYLIBCXX_WINDOWS_IMPORTS} __cxa_get_globals)
     anydevkit_link_runtime_library(CppStandardLibrary libkernel
         sceKernelMapFlexibleMemory sceKernelMunmap sceKernelAllocateDirectMemory sceKernelGetDirectMemorySize sceKernelMapDirectMemory sceKernelReleaseDirectMemory
-        sceKernelGetProcessTime sceKernelUsleep_nid_postfix sceKernelClockGettime sceKernelNanosleep sceKernelGetAvailableCpumask
+        sceKernelGetProcessTime sceKernelUsleep_nid_postfix sceKernelClockGettime sceKernelNanosleep scePthreadGetaffinity
         scePthreadMutexInit scePthreadMutexDestroy scePthreadMutexLock scePthreadMutexTrylock scePthreadMutexUnlock
         scePthreadMutexattrInit scePthreadMutexattrDestroy scePthreadMutexattrSettype
         scePthreadCondInit scePthreadCondDestroy scePthreadCondSignal scePthreadCondBroadcast scePthreadCondWait scePthreadCondTimedwait
@@ -56,13 +73,15 @@ if(WIN32)
         scePthreadKeyCreate scePthreadKeyDelete scePthreadGetspecific scePthreadSetspecific)
     anydevkit_link_runtime_library(CppStandardLibrary libSceVideoOut sceVideoOutOpen sceVideoOutSetBufferAttribute2 sceVideoOutRegisterBuffers2 sceVideoOutSubmitFlip sceVideoOutWaitVblank sceVideoOutGetFlipStatus sceVideoOutGetBufferLabelAddress sceVideoOutInitializeOutputOptions sceVideoOutIsOutputSupported sceVideoOutConfigureOutput sceVideoOutGetOutputStatus)
     anydevkit_link_runtime_library(CppStandardLibrary libSceSystemService sceSystemServiceHideSplashScreen)
+    anydevkit_link_runtime_library(CppStandardLibrary libSceAgc sceAgcSuspendPoint sceAgcInit sceAgcCreateShader sceAgcGetRegisterDefaults sceAgcLinkShaders sceAgcDcbContextStateOp sceAgcDcbAcquireMem sceAgcDcbSetCxRegistersIndirect sceAgcDcbSetUcRegistersIndirect sceAgcDcbSetShRegistersIndirect sceAgcDcbSetShRegisterDirect sceAgcDcbSetNumInstances sceAgcDcbDrawIndexAuto sceAgcDcbSetFlip sceAgcCbReleaseMem)
+    anydevkit_link_runtime_library(CppStandardLibrary libSceAgcDriver sceAgcDriverSubmitDcb)
 else()
     set_target_properties(CppStandardLibrary PROPERTIES SUFFIX ".elf")
     if(NOT EXISTS "${ANYDEVKIT_CPP_IMPORT_DIRECTORY}/libc.prx")
         message(FATAL_ERROR "Missing ELF libc.prx import library")
     endif()
     target_link_options(CppStandardLibrary PRIVATE -nostdlib -fuse-ld=lld -shared "-Wl,--entry=main,--hash-style=sysv,--eh-frame-hdr,--no-undefined,-z,max-page-size=16384")
-    foreach(library libc libkernel libSceVideoOut libSceSystemService)
+    foreach(library libc libkernel libSceVideoOut libSceSystemService libSceAgc libSceAgcDriver)
         if(NOT EXISTS "${ANYDEVKIT_CPP_IMPORT_DIRECTORY}/${library}.prx")
             message(FATAL_ERROR "Missing ELF ${library}.prx import library")
         endif()
