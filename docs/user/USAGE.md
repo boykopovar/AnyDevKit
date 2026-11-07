@@ -1,8 +1,8 @@
 # Usage
 
-Extract the latest [SDK](https://github.com/boykopovar/AnyDevKit/releases/latest). Add its `bin` directory to `PATH`. Install Python 3.11+ (optional for auto-setup), CMake 3.22+, Ninja, Clang and LLD.
+Extract the latest [SDK](https://github.com/boykopovar/AnyDevKit/releases/latest). Add its `bin` directory to `PATH`. Install Python 3.11+ (optional for auto-setup), CMake 3.22+, Ninja, LLD and Clang 18+ or GCC 14+.
 
-`adk setup` has no native implementation; it runs `tools/setup.py` using system Python. Otherwise, run the script manually with Python 3.11+. `tools/setup.py` downloads [AnyPS5 v0.1.4](https://github.com/boykopovar/AnyPS5/releases/tag/v0.1.4) and [C++ runtime v0.1.7](https://github.com/boykopovar/llvm-cxx-ps/releases/tag/v0.1.7) and prepares C headers and import libraries. To use manually downloaded archives, pass `--cache <directory>`.
+`adk setup` has no native implementation; it runs `tools/setup.py` using system Python. Otherwise, run the script manually with Python 3.11+. `tools/setup.py` downloads [AnyPS5 v0.1.4](https://github.com/boykopovar/AnyPS5/releases/tag/v0.1.4) and [C++ runtime v0.1.8](https://github.com/boykopovar/llvm-cxx-ps/releases/tag/v0.1.8) and prepares C headers and import libraries. To use manually downloaded archives, pass `--cache <directory>`.
 
 ```sh
 adk setup .adk
@@ -16,12 +16,14 @@ Edit `src/Main.cpp` and `app0/sce_sys/param.json`.
 
 ## Build
 
-Replace `<target>` with `windows`, `linux` or `ps5`.
+Replace `<target>` with `windows`, `linux` or `ps5`. Clang is used by default.
 
 ```sh
 cmake --preset <target>
 cmake --build --preset <target>
 ```
+
+For GCC, use `adk setup .adk --compiler gcc` and configure with `cmake --preset <target> -DADK_COMPILER=gcc`.
 
 Desktop executable: `dist/windows/MyApp.exe` or `dist/linux/MyApp`.
 
