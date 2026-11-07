@@ -47,13 +47,18 @@ else:
         includes.append("generated")
         definitions = "ANYDEVKIT_CALCULATOR3D_WIDTH=1920"
     else:
-        libraries = ["libc", "libkernel", "libSceVideoOut", "libSceSystemService"]
+        libraries = ["libc", "libkernel", "libSceVideoOut", "libSceSystemService", "libSceAgc", "libSceAgcDriver"]
         calculator3D = repository / "examples/Calculator3D"
         shutil.copytree(calculator3D / "include", project / "shared/include")
         for name in ["Canvas.cpp", "Display.cpp"]:
             shutil.copy2(calculator3D / "src" / name, project / "src" / name)
             sources.append("src/" + name)
         includes.append("shared/include")
+        (project / "shaders").mkdir()
+        for name in ["Interface.vert", "Interface.frag"]:
+            shutil.copy2(calculator3D / "shaders" / name, project / "shaders" / name)
+        generate(adk, project, options.target, interface_only=True)
+        includes.append("generated")
         definitions = "ANYDEVKIT_CPP_HEADLESS=0"
     cmake = f"cmake_minimum_required(VERSION 3.22.1)\nproject({options.example} LANGUAGES C CXX)\nfind_package(AnyDevKit CONFIG REQUIRED)\n"
     cmake += f"adk_add_executable({options.example}\n" + "\n".join("    " + source for source in sources) + ")\n"

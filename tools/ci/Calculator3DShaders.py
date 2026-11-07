@@ -2,11 +2,13 @@ from pathlib import Path
 import subprocess
 
 
-def generate(adk, project, target):
+def generate(adk, project, target, interface_only=False):
     directory = project / "build/shader-assets" / target
     directory.mkdir(parents=True, exist_ok=False)
     output = ['#ifndef ANYDEVKIT_CALCULATOR3D_GENERATED_SHADERS_HPP', '#define ANYDEVKIT_CALCULATOR3D_GENERATED_SHADERS_HPP', '#include "Graphics/ShaderAsset.hpp"', 'namespace Calculator3DShaders {']
     shaders = [("Background.vert", "vertex", "Vertex", 0), ("Background.frag", "fragment", "Fragment", 208), ("Interface.vert", "vertex", "InterfaceVertex", 64), ("Interface.frag", "fragment", "InterfaceFragment", 64)]
+    if interface_only:
+        shaders = [shader for shader in shaders if shader[2].startswith("Interface")]
     for source, stage, name, constant_size in shaders:
         header = directory / (name + ".header")
         code = directory / (name + ".code")
