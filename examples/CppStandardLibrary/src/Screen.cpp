@@ -1,4 +1,6 @@
 #include "Screen.hpp"
+#include "Graphics/Error.hpp"
+#include "prx/libSceAgc/Misc/include/Suspend.hpp"
 #include <algorithm>
 #include <stdexcept>
 
@@ -75,7 +77,13 @@ void Screen::draw() {
     canvas.Text(120, 908, detail, 3, Red);
     canvas.Text(120, 994, "CLOSE THIS APPLICATION FROM THE SYSTEM MENU", 3, 0xff9caec2);
     renderer.Draw(display, canvas.Commands());
+    Check(sceAgcSuspendPoint(), "sceAgcSuspendPoint");
 }
 
-void Screen::KeepOpen() { for (;;) display.Wait(); }
+void Screen::KeepOpen() {
+    for (;;) {
+        Check(sceAgcSuspendPoint(), "sceAgcSuspendPoint");
+        display.Wait();
+    }
+}
 
