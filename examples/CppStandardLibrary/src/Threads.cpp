@@ -27,8 +27,9 @@ void CheckThreads() {
         for (unsigned worker = 0; worker < Workers; ++worker) {
             auto moved = std::move(threads[worker]);
             Require(!threads[worker].joinable(), "Moving a thread retained ownership");
-            moved.join();
-            Require(moved.get_id() == std::thread::id{}, "Joining a thread retained its identity");
+            if (worker == 0 && batch % 2 == 0) moved.detach();
+            else moved.join();
+            Require(moved.get_id() == std::thread::id{}, "Completing a thread retained its identity");
             Require(results[worker].get() == static_cast<std::uint64_t>(batch) * Workers + worker, "Thread exit future lost its value");
         }
     }
@@ -52,6 +53,20 @@ void CheckThreads() {
     });
     for (auto& thread : threads) thread.join();
     Require(completed == Workers * 512 && token == 0, "Atomic wait ring lost a wakeup");
+
+    std::once_flag once;
+    std::atomic<unsigned> initialized{0};
+    std::atomic<bool> ready{false};
+    std::atomic<bool> observed{true};
+    threads.clear();
+    for (unsigned worker = 0; worker < Workers; ++worker) threads.emplace_back([&] {
+        for (unsigned attempt = 0; attempt < 1024; ++attempt) {
+            std::call_once(once, [&] { ++initialized; std::this_thread::yield(); ready.store(true, std::memory_order_relaxed); });
+            if (!ready.load(std::memory_order_relaxed)) observed.store(false);
+        }
+    });
+    for (auto& thread : threads) thread.join();
+    Require(initialized == 1 && observed, "call_once published partial initialization");
 
     std::mutex mutex;
     std::condition_variable_any condition;

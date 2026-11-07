@@ -30,15 +30,18 @@ void CheckMutexes() {
     for (auto& thread : threads) thread.join();
     Require(counters[0] == Workers * Iterations && counters[0] == counters[1], "Concurrent scoped_lock lost updates");
 
-    std::recursive_timed_mutex recursive;
-    {
-        std::lock_guard outer(recursive);
+    const auto checkRecursive = [](auto& mutex) {
+        std::lock_guard outer(mutex);
         for (unsigned depth = 0; depth < 1024; ++depth) {
-            std::lock_guard nested(recursive);
-            std::unique_lock extra(recursive, std::try_to_lock);
+            std::lock_guard nested(mutex);
+            std::unique_lock extra(mutex, std::try_to_lock);
             Require(extra.owns_lock(), "Recursive ownership was lost");
         }
-    }
+    };
+    std::recursive_mutex recursive;
+    std::recursive_timed_mutex recursiveTimed;
+    checkRecursive(recursive);
+    checkRecursive(recursiveTimed);
 
     std::timed_mutex timed;
     timed.lock();
@@ -53,6 +56,13 @@ void CheckMutexes() {
     for (auto& timeout : timeouts) excluded = timeout.get() && excluded;
     timed.unlock();
     Require(excluded, "Timed mutex admitted a competing owner");
+
+    std::shared_timed_mutex sharedTimed;
+    sharedTimed.lock();
+    auto blockedReader = std::async(std::launch::async, [&] { return sharedTimed.try_lock_shared_for(2ms); });
+    const auto admittedReader = blockedReader.get();
+    sharedTimed.unlock();
+    Require(!admittedReader, "Shared timed mutex ignored exclusive ownership");
 
     std::shared_mutex shared;
     std::array<unsigned, 32> values{};
