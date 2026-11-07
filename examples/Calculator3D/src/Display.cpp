@@ -91,20 +91,24 @@ Display::Flip Display::PrepareFlip() {
 void Display::Present() {
     const auto flip = PrepareFlip();
     check(sceVideoOutSubmitFlip(flip.Handle, flip.BufferIndex, 1, flip.Argument), "sceVideoOutSubmitFlip");
+    if (flip.Argument != 1) waitForFlip(flip.Argument);
     CompleteFlip();
 }
 
 void Display::CompleteFlip() {
     if (sequence != 1) return;
+    waitForFlip(sequence);
+    check(sceSystemServiceHideSplashScreen(), "sceSystemServiceHideSplashScreen");
+}
+
+void Display::waitForFlip(std::int64_t argument) {
     const auto start = sceKernelGetProcessTime();
     for (;;) {
         VideoOutFlipStatus status{};
         check(sceVideoOutGetFlipStatus(handle, &status), "sceVideoOutGetFlipStatus");
-        if (status.flipArg == sequence) break;
-        if (sceKernelGetProcessTime() - start > 5000000) throw Calculator3DError{"First display flip timed out"};
+        if (status.flipArg == argument) break;
+        if (sceKernelGetProcessTime() - start > 5000000) throw Calculator3DError{"Display flip timed out"};
         check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
     }
-
-    check(sceSystemServiceHideSplashScreen(), "sceSystemServiceHideSplashScreen");
 }
 

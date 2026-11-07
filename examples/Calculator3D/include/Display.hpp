@@ -22,6 +22,8 @@ public:
     void Wait();
 
 private:
+    void waitForFlip(std::int64_t argument);
+
     static constexpr std::size_t maximumBufferCount = 4;
     std::size_t bufferCount;
     int handle;
