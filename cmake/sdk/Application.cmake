@@ -1,6 +1,9 @@
 include("${CMAKE_CURRENT_LIST_DIR}/DesktopRuntime.cmake")
 
 function(adk_add_executable target)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14)
+        message(FATAL_ERROR "AnyDevKit applications require GCC 14 or newer")
+    endif()
     add_executable(${target} ${ARGN})
     target_compile_features(${target} PRIVATE cxx_std_20)
     set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
