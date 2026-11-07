@@ -15,6 +15,25 @@ concurrency:
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
+  cancel-main-checks:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel main checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          run_ids=$(gh api --method GET "repos/$GH_REPO/actions/workflows/sdk.yml/runs" -f branch=main -f event=push --paginate --jq '.workflow_runs[] | select(.status != "completed") | .id')
+          while IFS= read -r run_id; do
+            if [ -n "$run_id" ]; then
+              gh api --method POST "repos/$GH_REPO/actions/runs/$run_id/cancel"
+            fi
+          done <<< "$run_ids"
   build:
     uses: ./.github/workflows/sdk-build.yml
   examples:
@@ -22,7 +41,7 @@ jobs:
     uses: ./.github/workflows/sdk-examples.yml
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, examples]
+    needs: [cancel-main-checks, build, examples]
     permissions:
       contents: write
     uses: ./.github/workflows/sdk-release.yml
