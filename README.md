@@ -14,7 +14,7 @@ Zero overhead and abstraction on PS5. On Windows and Linux, performance is limit
 
 [Calculator3D](examples/Calculator3D) (compiled from source) with buttons, vibration feedback, save data and **[AGC shaders](examples/Calculator3D/shaders)** installs via ffpfsc and works (include two images when building). All rendering runs on GPU.
 
-C++20 [standard library support](https://github.com/boykopovar/llvm-cxx-ps/releases/latest) is available; functionality provided by PS5 libraries other than libc is disabled.
+C++20 [standard library support](https://github.com/boykopovar/llvm-cxx-ps/releases/latest) is available. Threads, synchronization and clocks use libkernel; other features requiring non-libc PS5 libraries are disabled.
 
 Documentation is not yet available. [Usage instructions](docs/user/USAGE.md) are available.
 
