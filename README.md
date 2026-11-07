@@ -10,7 +10,7 @@ Zero overhead and abstraction on PS5. On Windows and Linux, performance is limit
 
 ## Status
 
-![anydevkit_3dcalc](https://gist.github.com/user-attachments/assets/64808b84-7edf-4598-a253-20efb1e1992e)
+![anydevkit_3dcalc](https://github.com/user-attachments/assets/959de922-8fe7-430f-ae4a-7c57c3da12d3)
 
 [Calculator3D](examples/Calculator3D) (compiled from source) with buttons, vibration feedback, save data and **[AGC shaders](examples/Calculator3D/shaders)** installs via ffpfsc and works (include two images when building). All rendering runs on GPU.
 
