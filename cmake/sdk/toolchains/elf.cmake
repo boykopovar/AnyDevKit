@@ -14,3 +14,4 @@ endif()
 set(CMAKE_C_FLAGS_INIT "-fPIC -fno-stack-protector -isystem \"${ADK_SYSROOT}/usr/include/x86_64-linux-gnu\"")
 set(CMAKE_CXX_FLAGS_INIT "-fPIC -fno-stack-protector -isystem \"${ADK_SYSROOT}/usr/include/x86_64-linux-gnu\"")
 list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES ADK_SYSROOT)
+

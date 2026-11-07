@@ -82,3 +82,4 @@ string(APPEND text "inline constexpr std::array<std::uint32_t, 16> UserData{${va
 get_filename_component(parent "${HEADER}" DIRECTORY)
 file(MAKE_DIRECTORY "${parent}")
 file(WRITE "${HEADER}" "${text}")
+

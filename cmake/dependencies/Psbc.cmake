@@ -120,3 +120,4 @@ else()
     target_compile_definitions(AnyDevKitPsbc PRIVATE _GNU_SOURCE HAVE_PTHREAD=1 HAVE_SYSCONF=1)
     target_link_libraries(AnyDevKitPsbc PRIVATE m ${CMAKE_DL_LIBS})
 endif()
+

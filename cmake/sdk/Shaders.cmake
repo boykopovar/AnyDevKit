@@ -98,3 +98,4 @@ function(adk_add_shader_pipeline target name)
     add_dependencies(${target} ${target}Pipeline_${name})
     set_property(TARGET ${target} APPEND PROPERTY ADK_SHADER_DIRECTORIES "${directory}")
 endfunction()
+

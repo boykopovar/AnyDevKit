@@ -12,3 +12,4 @@ else()
     message(FATAL_ERROR "ADK_COMPILER must be clang or gcc")
 endif()
 list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES ADK_COMPILER)
+

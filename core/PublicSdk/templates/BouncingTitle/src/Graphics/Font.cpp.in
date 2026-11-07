@@ -1,6 +1,8 @@
 #include "Graphics/Font.hpp"
 #include "Error.hpp"
+
 namespace {
+
 std::array<unsigned, 7> glyph(char character) {
     switch (character) {
     case '0': return {14, 17, 19, 21, 25, 17, 14};
@@ -69,10 +71,13 @@ std::array<unsigned, 7> glyph(char character) {
     default: throw Error{"Unsupported glyph"};
     }
 }
+
 }
+
 std::array<std::uint32_t, 4> EncodeGlyph(char character) {
     const auto rows = glyph(character);
     std::array<std::uint32_t, 4> result{};
     for (std::size_t row = 0; row < rows.size(); ++row) result[row / 4] |= rows[row] << ((row % 4) * 5);
     return result;
 }
+

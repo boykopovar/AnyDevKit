@@ -57,3 +57,4 @@ add_custom_target(run_calculator3D
     DEPENDS Calculator3D
     USES_TERMINAL
     VERBATIM)
+

@@ -28,3 +28,4 @@ if(ADK_TARGET STREQUAL "linux")
 endif()
 include("${CMAKE_CURRENT_LIST_DIR}/Application.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/Shaders.cmake")
+

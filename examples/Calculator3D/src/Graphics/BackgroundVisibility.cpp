@@ -12,11 +12,13 @@ void BackgroundVisibility::subtract(const std::array<float, 4>& rectangle) {
             scratch.push_back(region);
             continue;
         }
+
         if (region[1] < top) scratch.push_back({region[0], region[1], region[2], top});
         if (bottom < region[3]) scratch.push_back({region[0], bottom, region[2], region[3]});
         if (region[0] < left) scratch.push_back({region[0], top, left, bottom});
         if (right < region[2]) scratch.push_back({right, top, region[2], bottom});
     }
+
     regions.swap(scratch);
 }
 
@@ -30,12 +32,15 @@ std::span<const std::array<float, 4>> BackgroundVisibility::Update(int width, in
         subtract({rectangle[0] + radius, rectangle[1], rectangle[0] + rectangle[2] - radius, rectangle[1] + rectangle[3]});
         if (radius > 0.0f) subtract({rectangle[0], rectangle[1] + radius, rectangle[0] + rectangle[2], rectangle[1] + rectangle[3] - radius});
     }
+
     scratch.clear();
     for (const auto& region : regions) {
         for (float top = region[1]; top < region[3]; top += 64) {
             for (float left = region[0]; left < region[2]; left += 64) scratch.push_back({left, top, std::min(left + 64, region[2]), std::min(top + 64, region[3])});
         }
     }
+
     regions.swap(scratch);
     return regions;
 }
+

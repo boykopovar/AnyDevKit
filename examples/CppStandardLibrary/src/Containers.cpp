@@ -29,6 +29,7 @@ void CheckContainers() {
     std::forward_list<int> forward{3, 1, 2}; forward.sort(); forward.reverse();
     Require(forward.front() == 3, "Forward list");
     std::map<int, int> map; std::unordered_map<int, int> unordered;
+
     for (int i = 0; i < 1024; ++i) { map.emplace(i, i * 2); unordered.emplace(i, i * 2); }
     unordered.rehash(4096);
     for (const auto& [key, value] : map) Require(unordered.at(key) == value, "Map rehash");
@@ -40,6 +41,7 @@ void CheckContainers() {
     std::unordered_set<int> hashSet{1, 1, 2}; std::unordered_multiset<int> hashMultiset{1, 1, 2};
     Require(multi.count(1) == 2 && hashMulti.count(1) == 2 && set.size() == 2 && multiset.count(1) == 2 && hashSet.size() == 2 && hashMultiset.count(1) == 2, "Associative multiplicity");
     std::stack<int> stack; std::queue<int> queue; std::priority_queue<int> priority;
+
     for (int value : {2, 1, 3}) { stack.push(value); queue.push(value); priority.push(value); }
     Require(stack.top() == 3 && queue.front() == 2 && priority.top() == 3, "Container adaptors");
     std::array<int, 3> array{1, 2, 3}; std::span<int> span(array); span[1] = 7;
@@ -47,3 +49,4 @@ void CheckContainers() {
     std::vector<bool> bits(100, false); bits[65] = true;
     Require(bits[65] && !bits[64], "Vector bool");
 }
+

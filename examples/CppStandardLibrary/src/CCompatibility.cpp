@@ -33,3 +33,4 @@ void CheckCCompatibility() {
     const auto rounding = std::fegetround();
     Require(rounding != -1, "Floating environment");
 }
+

@@ -34,3 +34,4 @@ option(ANYDEVKIT_BUILD_CPP_STANDARD_LIBRARY "Build the PS5 standard library exam
 if(ANYDEVKIT_BUILD_CPP_STANDARD_LIBRARY)
     add_subdirectory(examples/CppStandardLibrary)
 endif()
+

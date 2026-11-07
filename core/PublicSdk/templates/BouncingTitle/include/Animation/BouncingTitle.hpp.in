@@ -2,12 +2,14 @@
 #define @NAME@_Animation_BouncingTitle_hpp
 #include <array>
 #include <string_view>
+
 class BouncingTitle final {
 public:
     BouncingTitle(std::string_view text, int width, int height);
     void Update(double seconds);
     std::array<float, 2> Position() const;
     float Scale() const;
+
 private:
     std::array<double, 2> position{48, 48};
     std::array<double, 2> velocity{135, 97};
@@ -15,3 +17,4 @@ private:
     float scale;
 };
 #endif
+

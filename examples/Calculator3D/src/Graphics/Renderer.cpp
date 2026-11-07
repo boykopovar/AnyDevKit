@@ -45,6 +45,7 @@ Renderer::Renderer(int width, int height) : width(width), height(height) {
         check(sceKernelReleaseDirectMemory(physicalAddress, MemorySize), "sceKernelReleaseDirectMemory");
         check(result, "sceKernelMapDirectMemory");
     }
+
     memory = static_cast<std::byte*>(address);
     try {
         if ((reinterpret_cast<std::uintptr_t>(memory) >> 32) != 2 || ((reinterpret_cast<std::uintptr_t>(memory) + MemorySize - 1) >> 32) != 2) throw Calculator3DError{"AGC requires memory in the shader address aperture"};
@@ -81,6 +82,7 @@ Renderer::Renderer(int width, int height) : width(width), height(height) {
         createPipeline(interfaceContext, interfaceContextCount, interfacePrimitive, interfaceVertex, interfaceFragment);
         slots[0] = {commands, fence, constants, context, interfaceContext, interfaceDescriptor, interfaceCommands, backgroundRegions, backgroundDescriptor, used, false};
         std::construct_at(fence, 0);
+
         for (std::size_t index = 1; index < slots.size(); ++index) {
             auto& slot = slots[index];
             slot.Commands = static_cast<std::uint32_t*>(allocate(CommandWords * sizeof(std::uint32_t), Alignment));
@@ -143,17 +145,20 @@ void Renderer::createPipeline(ShaderRegister* context, std::uint32_t& contextCou
     const auto count = read<std::uint32_t>(defaults, 56);
     if (!table || !types || count == 0 || count > 1024) throw Calculator3DError{"Invalid AGC register defaults"};
     const ShaderRegister* target = nullptr;
+
     for (std::uint32_t i = 0; i < count; ++i) {
         if (types[i * 2] != 0x38e92c91u) continue;
         if (target || (types[i * 2 + 1] & 3u) != 0 || (types[i * 2 + 1] >> 2) >= count) throw Calculator3DError{"Invalid AGC color target defaults"};
         target = table[types[i * 2 + 1] >> 2];
     }
+
     if (!target) throw Calculator3DError{"AGC color target defaults are missing"};
     constexpr std::array<std::uint32_t, 16> offsets{0x318, 0x31b, 0x31c, 0x31d, 0x31e, 0x31f, 0x321, 0x323, 0x324, 0x325, 0x390, 0x398, 0x3a0, 0x3a8, 0x3b0, 0x3b8};
     for (std::size_t i = 0; i < offsets.size(); ++i) {
         if (target[i].offset != offsets[i]) throw Calculator3DError{"Unexpected AGC color register layout"};
         context[contextCount++] = target[i];
     }
+
     context[0].value = 0;
     context[1].value &= 0xfc001fffu;
     context[2].value = (context[2].value & ~0x1005df7cu) | 0x8828u;
@@ -169,9 +174,11 @@ void Renderer::createPipeline(ShaderRegister* context, std::uint32_t& contextCou
     check(sceAgcLinkShaders(context + contextCount, primitive, nullptr, vertex, fragment, 4), "sceAgcLinkShaders");
     contextCount += 34;
     if (contextCount + vertex->num_cx_registers + fragment->num_cx_registers > RegisterCapacity) throw Calculator3DError{"AGC shader register storage exhausted"};
+
     for (const auto* shader : {vertex, fragment}) {
         for (std::uint32_t i = 0; i < shader->num_cx_registers; ++i) context[contextCount++] = shader->cx_registers[i];
     }
+
     const auto extent = static_cast<std::uint32_t>(width) | (static_cast<std::uint32_t>(height) << 16);
     const auto halfWidth = std::bit_cast<std::uint32_t>(static_cast<float>(width) * 0.5f);
     const auto halfHeight = std::bit_cast<std::uint32_t>(static_cast<float>(height) * 0.5f);
@@ -192,6 +199,7 @@ void Renderer::createPipeline(ShaderRegister* context, std::uint32_t& contextCou
         ShaderRegister{0x2fc, 0x3f800000}, ShaderRegister{0x2fd, 0x3f800000}
     };
     if (contextCount + state.size() > RegisterCapacity) throw Calculator3DError{"AGC register storage exhausted"};
+
     for (const auto value : state) context[contextCount++] = value;
 }
 
@@ -199,10 +207,12 @@ void Renderer::waitSlot(DrawSlot& slot) {
     if (!slot.Pending) return;
     const auto start = sceKernelGetProcessTime();
     std::atomic_ref completion(*slot.Fence);
+
     while (completion.load(std::memory_order_acquire) != 1) {
         if (sceKernelGetProcessTime() - start > 5000000) throw Calculator3DError{"AGC rendering timed out"};
         check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
     }
+
     slot.Pending = false;
 }
 
@@ -225,10 +235,12 @@ void Renderer::Draw(Display& display, float seconds, const Canvas& canvas) {
     const auto pixels = display.Acquire();
     const auto address = reinterpret_cast<std::uintptr_t>(pixels.data());
     if (pixels.size_bytes() != Canvas::StorageSize(width, height) || address % Alignment != 0 || address >> 48 != 0) throw Calculator3DError{"Invalid AGC display target"};
+
     for (auto* registers : {context, interfaceContext}) {
         registers[0].value = static_cast<std::uint32_t>(address >> 8);
         registers[10].value = (registers[10].value & ~0xffu) | static_cast<std::uint32_t>(address >> 40);
     }
+
     const auto draws = canvas.Commands();
     if (draws.size() > Canvas::Capacity) throw Calculator3DError{"Too many interface draws"};
     const auto regions = visibility.Update(width, height, draws);
@@ -249,6 +261,7 @@ void Renderer::Draw(Display& display, float seconds, const Canvas& canvas) {
     sceAgcDcbAcquireMem(&buffer, 1, 0, 0x4381, shaderMemoryPending ? memory : reinterpret_cast<std::byte*>(commands), shaderMemoryPending ? MemorySize : slots[slotIndex].Bytes, 40);
     sceAgcDcbSetCxRegistersIndirect(&buffer, context, contextCount);
     sceAgcDcbSetUcRegistersIndirect(&buffer, primitive, 3);
+
     for (const auto* shader : {vertex, fragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
     const auto bind = [&](const ShaderAsset& asset, std::uint32_t base, const void* pushConstants, const void* descriptors) {
         for (std::uint32_t i = 0; i < asset.UserDataCount; ++i) {
@@ -263,6 +276,7 @@ void Renderer::Draw(Display& display, float seconds, const Canvas& canvas) {
     if (!regions.empty()) sceAgcDcbDrawIndexAuto(&buffer, static_cast<std::uint32_t>(regions.size() * 6), 0);
     sceAgcDcbSetCxRegistersIndirect(&buffer, interfaceContext, interfaceContextCount);
     sceAgcDcbSetUcRegistersIndirect(&buffer, interfacePrimitive, 3);
+
     for (const auto* shader : {interfaceVertex, interfaceFragment}) sceAgcDcbSetShRegistersIndirect(&buffer, shader->sh_registers, shader->num_sh_registers);
     bind(Calculator3DShaders::InterfaceVertex, 0x8c, interfaceCommands, interfaceDescriptor);
     bind(Calculator3DShaders::InterfaceFragment, 0xc, interfaceCommands, interfaceDescriptor);
@@ -278,3 +292,4 @@ void Renderer::Draw(Display& display, float seconds, const Canvas& canvas) {
     slotIndex = (slotIndex + 1) % slots.size();
     display.CompleteFlip();
 }
+

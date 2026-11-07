@@ -106,3 +106,4 @@ if options.target != "ps5":
     if options.target == "windows" and not (libraries / "libs.manifest").is_file():
         raise RuntimeError("Missing Windows runtime manifest")
 print(f"Built {options.example} for {options.target}: {output}", flush=True)
+

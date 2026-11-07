@@ -4,6 +4,7 @@
 #include <utility>
 
 namespace {
+
 class Sequence {
 public:
     struct promise_type {
@@ -21,6 +22,7 @@ public:
     ~Sequence() { handle.destroy(); }
     bool Next() { handle.resume(); return !handle.done(); }
     int Value() const { return handle.promise().Value; }
+
 private:
     std::coroutine_handle<promise_type> handle;
 };
@@ -32,3 +34,4 @@ void CheckCoroutines() {
     while (values.Next()) { sum += values.Value(); ++count; }
     Require(count == 10 && sum == 45, "Coroutine suspension and frame lifetime");
 }
+

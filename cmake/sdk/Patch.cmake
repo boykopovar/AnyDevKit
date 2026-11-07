@@ -8,3 +8,4 @@ if(TARGET_PLATFORM STREQUAL "windows")
 endif()
 execute_process(COMMAND "${ADK}" nid --input "${INPUT}" --output "${output}" ${options} COMMAND_ERROR_IS_FATAL ANY)
 file(RENAME "${output}" "${INPUT}")
+

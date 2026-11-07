@@ -13,3 +13,4 @@ void CheckAtomics() {
     std::atomic_flag flag{};
     Require(!flag.test_and_set() && flag.test(), "Atomic flag"); flag.clear();
 }
+

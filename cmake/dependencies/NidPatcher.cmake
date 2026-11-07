@@ -21,3 +21,4 @@ if(MINGW)
         target_link_options(AnyDevKitNidPatcher PRIVATE -fuse-ld=lld)
     endif()
 endif()
+

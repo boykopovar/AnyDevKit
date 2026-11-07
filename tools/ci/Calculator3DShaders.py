@@ -49,3 +49,4 @@ def generate(adk, project, target):
     destination = project / "generated"
     destination.mkdir(exist_ok=False)
     (destination / "Calculator3DShaders.hpp").write_text("\n".join(output) + "\n")
+

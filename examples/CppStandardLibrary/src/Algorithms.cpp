@@ -21,6 +21,8 @@ void CheckAlgorithms() {
     std::sort_heap(copied.begin(), copied.end()); Require(copied == values, "Heap sort");
     Require(std::inner_product(values.begin(), values.end(), values.begin(), 0) == 55, "Inner product");
     std::array<int, 3> permutation{1, 2, 3}; unsigned count = 1;
+
     while (std::next_permutation(permutation.begin(), permutation.end())) ++count;
     Require(count == 6, "Permutations");
 }
+

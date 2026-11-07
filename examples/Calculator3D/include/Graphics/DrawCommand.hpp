@@ -14,3 +14,4 @@ struct alignas(16) DrawCommand {
 static_assert(sizeof(DrawCommand) == 64);
 
 #endif
+

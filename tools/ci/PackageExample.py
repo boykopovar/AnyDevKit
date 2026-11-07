@@ -56,3 +56,4 @@ else:
 if package.stat().st_size == 0:
     raise RuntimeError("Empty example package")
 print(package)
+

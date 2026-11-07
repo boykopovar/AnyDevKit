@@ -10,3 +10,4 @@ function(adk_windows_runtime_manifest target)
     set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
     target_sources(${target} PRIVATE "${object}")
 endfunction()
+

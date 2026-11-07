@@ -8,3 +8,4 @@ if(MINGW)
         target_link_options(Calculator3DShaderBuilder PRIVATE -fuse-ld=lld)
     endif()
 endif()
+

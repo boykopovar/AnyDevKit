@@ -2,6 +2,7 @@
 #define @NAME@_Graphics_Display_hpp
 #include "Graphics/Memory.hpp"
 #include <array>
+
 class Display final {
 public:
     struct Flip {
@@ -16,6 +17,7 @@ public:
     void* Acquire();
     Flip PrepareFlip();
     void CompleteFlip();
+
 private:
     static constexpr std::size_t bufferCount = 3;
     Memory memory;
@@ -27,3 +29,4 @@ private:
     std::array<void*, bufferCount> buffers{};
 };
 #endif
+

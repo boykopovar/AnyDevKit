@@ -24,3 +24,4 @@ void CheckStrings() {
     Require(bad.ec == std::errc::invalid_argument, "Invalid charconv");
     Require(std::stoi("42") == 42 && std::to_string(-12) == "-12", "String conversions");
 }
+

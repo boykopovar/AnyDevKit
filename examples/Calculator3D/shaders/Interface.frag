@@ -22,5 +22,7 @@ void main() {
         vec2 corner = max(abs(position - rectangle.zw * 0.5) - (rectangle.zw * 0.5 - radius), vec2(0.0));
         if (dot(corner, corner) > radius * radius) discard;
     }
+
     outputColor = tint;
 }
+

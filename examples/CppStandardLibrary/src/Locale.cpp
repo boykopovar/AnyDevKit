@@ -1,5 +1,6 @@
 #include "Checks.hpp"
 #include <version>
+
 #if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION
 #include <locale>
 #include <string>
@@ -25,3 +26,4 @@ void CheckLocale() {
     const auto copy = locale; Require(copy == locale && copy.name() == "C", "Locale ownership");
 #endif
 }
+

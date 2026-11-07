@@ -7,3 +7,4 @@ struct Calculator3DError final {
 };
 
 #endif
+

@@ -25,10 +25,12 @@ void validate(const Settings::Data& values) {
     if (vibration[0] < 0 || vibration[0] > 200 || vibration[0] % 5 != 0 || vibration[1] < 0 || vibration[1] > 255 || vibration[2] < 0 || vibration[2] > 255) throw Calculator3DError{"Invalid vibration settings"};
     if (values.History.Count > values.History.Entries.size()) throw Calculator3DError{"Invalid saved history count"};
     constexpr std::string_view allowed = "0123456789 .+-*/=E";
+
     for (std::size_t i = 0; i < values.History.Count; ++i) {
         const auto& entry = values.History.Entries[i];
         const auto end = std::find(entry.begin(), entry.end(), 0);
         if (end == entry.begin() || end == entry.end()) throw Calculator3DError{"Invalid saved history text"};
+
         for (auto it = entry.begin(); it != end; ++it) if (allowed.find(*it) == std::string_view::npos) throw Calculator3DError{"Invalid saved history character"};
     }
 }
@@ -60,6 +62,7 @@ Settings::Data readFile(const char* path) {
         check(sceKernelClose(file), "Close calculator3D settings");
         throw;
     }
+
     check(sceKernelClose(file), "Close calculator3D settings");
     return values;
 }
@@ -71,9 +74,11 @@ void readHistory(const char* path, Settings::Data& values) {
         readExact(file, bytes);
         if (bytes[0] != 'A' || bytes[1] != 'D' || bytes[2] != 'K' || bytes[3] != 'H' || bytes[4] != 1) throw Calculator3DError{"Unsupported calculator3D history format"};
         values.History.Count = bytes[5];
+
         for (std::size_t i = 0; i < values.History.Entries.size(); ++i) {
             for (std::size_t j = 0; j < values.History.Entries[i].size(); ++j) values.History.Entries[i][j] = static_cast<char>(bytes[6 + i * 80 + j]);
         }
+
         std::uint8_t extra = 0;
         const auto count = sceKernelRead(file, &extra, 1);
         if (count < 0) throw Calculator3DError{"Read calculator3D history", static_cast<int>(count)};
@@ -83,6 +88,7 @@ void readHistory(const char* path, Settings::Data& values) {
         check(sceKernelClose(file), "Close calculator3D history");
         throw;
     }
+
     check(sceKernelClose(file), "Close calculator3D history");
 }
 
@@ -90,17 +96,20 @@ void writeFile(const char* path, const char* temporaryPath, std::span<const std:
     const int file = check(sceKernelOpen(temporaryPath, writeCreateTruncate, 0666), "Create calculator3D settings");
     try {
         std::size_t offset = 0;
+
         while (offset < bytes.size()) {
             const auto count = sceKernelWrite(file, bytes.data() + offset, bytes.size() - offset);
             if (count < 0) throw Calculator3DError{"Write calculator3D settings", static_cast<int>(count)};
             if (count == 0) throw Calculator3DError{"Calculator3D settings write made no progress"};
             offset += static_cast<std::size_t>(count);
         }
+
         check(sceKernelFsync(file), "Flush calculator3D settings");
     } catch (...) {
         check(sceKernelClose(file), "Close calculator3D settings");
         throw;
     }
+
     check(sceKernelClose(file), "Close calculator3D settings");
     check(sceKernelRename(temporaryPath, path), "Replace calculator3D settings");
 }
@@ -115,6 +124,7 @@ SaveDataMountResult mountSave(int userId, int resource) {
     request.resource = resource;
     SaveDataMountResult result{};
     check(sceSaveDataMount3(&request, &result), "sceSaveDataMount3");
+
     return result;
 }
 
@@ -133,9 +143,11 @@ void writeSave(const SaveDataMountResult& mount, int resource, const Settings::D
     if ((mount.mount_status & 1u) != 0) {
         SaveDataParam param{};
         const char title[] = "AnyDevKit Calculator3D";
+
         for (std::size_t i = 0; i < sizeof(title); ++i) param.title[i] = title[i];
         check(sceSaveDataSetParam(&mount.mount_point, 0, &param, sizeof(param)), "sceSaveDataSetParam");
     }
+
     char path[64];
     char temporaryPath[64];
     makePath(path, mount.mount_point, "vibration.bin");
@@ -143,10 +155,12 @@ void writeSave(const SaveDataMountResult& mount, int resource, const Settings::D
     const std::array<std::uint8_t, 8> vibration{'A', 'D', 'K', 'V', 3, static_cast<std::uint8_t>(values.Vibration[0]), static_cast<std::uint8_t>(values.Vibration[1]), static_cast<std::uint8_t>(values.Vibration[2])};
     writeFile(path, temporaryPath, vibration);
     std::array<std::uint8_t, 166> history{'A', 'D', 'K', 'H', 1, static_cast<std::uint8_t>(values.History.Count)};
+
     for (std::size_t i = 0; i < values.History.Count; ++i) {
         const auto& entry = values.History.Entries[i];
         for (std::size_t j = 0; j < entry.size() && entry[j] != 0; ++j) history[6 + i * 80 + j] = static_cast<std::uint8_t>(entry[j]);
     }
+
     makePath(path, mount.mount_point, "history.bin");
     makePath(temporaryPath, mount.mount_point, "history.tmp");
     writeFile(path, temporaryPath, history);
@@ -190,6 +204,7 @@ Settings::Data Settings::Load() {
         check(sceSaveDataUmount2(0, &mount.mount_point), "sceSaveDataUmount2");
         throw;
     }
+
     check(sceSaveDataUmount2(0, &mount.mount_point), "sceSaveDataUmount2");
     return values;
 }
@@ -203,5 +218,7 @@ void Settings::Save(const Settings::Data& values) {
         check(sceSaveDataUmount2(0, &mount.mount_point), "sceSaveDataUmount2");
         throw;
     }
+
     check(sceSaveDataUmount2(0, &mount.mount_point), "sceSaveDataUmount2");
 }
+

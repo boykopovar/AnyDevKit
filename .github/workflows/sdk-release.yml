@@ -40,3 +40,4 @@ jobs:
           gh release create "$RELEASE_TAG" artifacts/*.zip artifacts/*.tar.gz artifacts/*.ffpfsc --draft --verify-tag --title "$RELEASE_TAG" --generate-notes
           python tools/ci/VerifyRelease.py --repository "$GH_REPO" --tag "$RELEASE_TAG" --directory artifacts
           gh release edit "$RELEASE_TAG" --draft=false
+

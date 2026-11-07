@@ -29,6 +29,7 @@ bool overlaps(vec4 rectangle, vec3 center, float radius) {
     vec2 extent = 2.3 * radius * (vec2(1.0) + abs(slope)) / (center.z - radius);
     vec2 pixelCenter = (projected * 0.5 + 0.5) * frame.resolution;
     vec2 pixelExtent = vec2(extent.x / aspect, extent.y) * 0.5 * frame.resolution + 2.0;
+
     return all(lessThan(rectangle.xy, pixelCenter + pixelExtent)) && all(greaterThan(rectangle.zw, pixelCenter - pixelExtent));
 }
 
@@ -39,6 +40,7 @@ void main() {
     gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0);
     resolution = frame.resolution;
     visibility = 0u;
+
     for (int index = 0; index < 8; ++index) {
         if (overlaps(rectangle, frame.positions[index].xyz, (index & 1) == 1 ? sqrt(0.42) : sqrt(0.91))) visibility |= 1u << index;
         float radius = sqrt(frame.formulaPositions[index].w * frame.formulaPositions[index].w + (7.0 / 45.0) * (7.0 / 45.0) + 0.001);
@@ -47,5 +49,7 @@ void main() {
         textCenters[index] = frame.formulaPositions[index];
         textRotations[index] = frame.formulaOrientations[index];
     }
+
     for (int index = 0; index < 4; ++index) orientations[index] = frame.orientations[index];
 }
+

@@ -74,3 +74,4 @@ generate("src/amd/common/gfx10_format_table.py", "src/amd/common/gfx10_format_ta
 generate("src/util/process_shader_stats.py", "src/util/shader_stats.h", (source / "src/util/shader_stats.rnc", source / "src/util/shader_stats.xml"))
 destination = output / "src/vulkan/util/vk_struct_type_cast.h"
 generate("src/vulkan/util/vk_struct_type_cast_gen.py", destination, ("--xml", vulkan / "registry/vk.xml", "--out", destination, "--beta", "false"), False)
+

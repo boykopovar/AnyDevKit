@@ -19,3 +19,4 @@ if(ARCHIVE_FORMAT STREQUAL "gnutar")
 endif()
 execute_process(COMMAND "${CMAKE_COMMAND}" -E tar ${tarFlags} "${PACKAGE_DIRECTORY}/${PACKAGE_NAME}" "--format=${ARCHIVE_FORMAT}" -- ${entries} WORKING_DIRECTORY "${stage}" COMMAND_ERROR_IS_FATAL ANY)
 message(STATUS "SDK archive: ${PACKAGE_DIRECTORY}/${PACKAGE_NAME}")
+

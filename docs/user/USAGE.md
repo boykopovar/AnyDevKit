@@ -58,3 +58,4 @@ adk package --target ps5
 ```
 
 PS5 image: `dist/ps5/MyApp.ffpfsc`.
+

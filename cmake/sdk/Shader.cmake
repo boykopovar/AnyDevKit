@@ -7,3 +7,4 @@ execute_process(COMMAND "${ADK}" shader --input "${INPUT}" --stage "${STAGE}" --
 if(HEADER)
     include("${CMAKE_CURRENT_LIST_DIR}/EmbedShader.cmake")
 endif()
+

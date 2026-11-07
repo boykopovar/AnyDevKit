@@ -35,3 +35,4 @@ void CheckUtilities() {
     Require(std::type_index(typeid(int)) != std::type_index(typeid(double)), "Type index");
     Require(std::source_location::current().line() != 0 && (3 <=> 4) < 0, "Language utilities");
 }
+

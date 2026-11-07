@@ -22,11 +22,13 @@ int run(std::FILE* report, const char* reportPath, Screen* screen) {
         {"formatting", CheckFormatting}, {"c compatibility", CheckCCompatibility}
     });
     unsigned failures = 0;
+
     for (std::size_t index = 0; index < checks.size(); ++index) {
         const auto& check = checks[index];
         if (screen) screen->Begin(index, check.Name);
         std::fprintf(report, "RUN %s\n", check.Name);
         if (std::fflush(report) != 0) throw std::runtime_error("Cannot flush report");
+
         try {
             check.Run();
             if (screen) screen->Finish(index, true, {});
@@ -41,6 +43,7 @@ int run(std::FILE* report, const char* reportPath, Screen* screen) {
             std::fprintf(report, "FAIL %s: nonstandard exception\n", check.Name);
         }
     }
+
     std::fprintf(report, "CppStandardLibrary: %zu groups, %u failures\n", checks.size(), failures);
     if (std::fflush(report) != 0) throw std::runtime_error("Cannot flush report");
 
@@ -62,6 +65,7 @@ int main(int argc, char** argv) {
         else if (std::strcmp(argv[index], "--report") == 0 && index + 1 < argc) reportPath = argv[++index];
         else return 2;
     }
+
     std::unique_ptr<Screen> screen;
     std::FILE* report = nullptr;
     try {
@@ -84,3 +88,4 @@ int main(int argc, char** argv) {
         return 2;
     }
 }
+

@@ -33,6 +33,7 @@ Interface::Bounds Interface::button(int index) const {
     const int left = width * 51 / 100;
     const int cellWidth = (width * 44 / 100 - gap * 3) / 4;
     const int cellHeight = (height * 72 / 100 - gap * 4) / 5;
+
     return {left + index % 4 * (cellWidth + gap), height * 16 / 100 + index / 4 * (cellHeight + gap), cellWidth, cellHeight};
 }
 
@@ -68,6 +69,7 @@ void Interface::Press(Calculator3DKey key) {
         settings.Save(updated);
         state = updated;
     }
+
     pressed = static_cast<int>(key);
     pressedFrames = 7;
 }
@@ -98,9 +100,11 @@ void Interface::Draw(Canvas& canvas) {
     fitted(canvas, margin + 30, height * 23 / 100, panelWidth - 60, calculator3D.Expression(), 3, Muted);
     fitted(canvas, margin + 30, height * 34 / 100, panelWidth - 60, calculator3D.Display(), calculator3D.HasError() ? 4 : 14, calculator3D.HasError() ? 0xffffa99b : Ink);
     if (calculator3D.HistoryCount() == 0) canvas.Text(margin + 30, height * 49 / 100, "STANDARD / 12 DIGITS", 2, Muted);
+
     for (std::size_t index = 0; index < calculator3D.HistoryCount(); ++index) {
         fitted(canvas, margin + 30, height * (46 + static_cast<int>(index) * 5) / 100, panelWidth - 60, calculator3D.History(index), 2, index == 0 ? Ink : Muted);
     }
+
     constexpr std::array<std::string_view, 3> sliderLabels{"VIBRATION DURATION", "LOW FREQUENCY", "HIGH FREQUENCY"};
     for (int index = 0; index < 3; ++index) {
         const int top = height * (60 + index * 10) / 100;
@@ -120,6 +124,7 @@ void Interface::Draw(Canvas& canvas) {
         canvas.Rectangle(trackX, trackY, fill, 6, Mint);
         canvas.RoundedRectangle(trackX + fill - 6, trackY - 7, 12, 20, 6, focused ? Mint : Ink);
     }
+
     for (int index = 0; index < 20; ++index) {
         const auto bounds = button(index);
         const bool accent = index == 19;
@@ -131,6 +136,8 @@ void Interface::Draw(Canvas& canvas) {
         const int scale = Labels[index].size() > 1 ? 4 : 6;
         canvas.Text(bounds.x + (bounds.width - static_cast<int>(Labels[index].size()) * 6 * scale + scale) / 2, bounds.y + (bounds.height - 7 * scale) / 2, Labels[index], scale, accent || index == pressed ? 0xff102b27 : Ink);
     }
+
     canvas.Text(margin, height * 92 / 100, selected >= 20 ? (editingSlider ? "LEFT / RIGHT: ADJUST   X / ENTER: DONE   UP / DOWN: NEXT SLIDER" : "UP / DOWN: SLIDER   X / ENTER: EDIT   RIGHT: BACK TO KEYPAD") : "DPAD / ARROWS: MOVE   LEFT EDGE: SLIDERS   X / ENTER: SELECT", 2, Muted);
     canvas.Text(margin, height * 96 / 100, "TRIANGLE / I: CLEAR   SQUARE: EQUALS   F11: FULLSCREEN ON WINDOWS", 2, Muted);
 }
+

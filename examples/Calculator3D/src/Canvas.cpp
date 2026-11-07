@@ -79,6 +79,7 @@ DrawCommand& Canvas::append(int x, int y, int rectangleWidth, int rectangleHeigh
     command.Rectangle = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(rectangleWidth), static_cast<float>(rectangleHeight)};
     command.Color = {static_cast<float>((color >> 16) & 255) / 255.0f, static_cast<float>((color >> 8) & 255) / 255.0f, static_cast<float>(color & 255) / 255.0f, static_cast<float>(color >> 24) / 255.0f};
     command.Parameters = {0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f};
+
     return command;
 }
 
@@ -93,8 +94,10 @@ void Canvas::Text(int x, int y, std::string_view text, int scale, std::uint32_t 
         if (character != ' ') {
             auto& command = append(x, y, 5 * scale, 7 * scale, color);
             command.Parameters[3] = static_cast<float>(scale);
+
             for (std::size_t row = 0; row < rows.size(); ++row) command.Glyph[row / 4] |= rows[row] << ((row % 4) * 5);
         }
+
         x += 6 * scale;
     }
 }
@@ -103,3 +106,4 @@ void Canvas::RoundedRectangle(int x, int y, int rectangleWidth, int rectangleHei
     if (radius < 0 || radius > rectangleWidth / 2 || radius > rectangleHeight / 2) throw Calculator3DError{"Invalid corner radius"};
     append(x, y, rectangleWidth, rectangleHeight, color).Parameters[0] = static_cast<float>(radius);
 }
+

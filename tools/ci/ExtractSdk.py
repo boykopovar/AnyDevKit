@@ -12,3 +12,4 @@ if len(archives) != 1:
 archive = archives[0]
 options.directory.mkdir(parents=True, exist_ok=False)
 shutil.unpack_archive(archive, options.directory)
+

@@ -6,3 +6,4 @@ struct Error final {
 };
 int Check(int result, const char* operation);
 #endif
+

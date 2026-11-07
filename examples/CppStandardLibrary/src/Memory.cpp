@@ -26,6 +26,7 @@ void CheckMemory() {
         Require(copied && *copied == 7 && copied.use_count() == 2, "Shared ownership");
         shared.reset(); Require(!weak.expired(), "Weak lifetime");
     }
+
     Require(deleted == 1 && weak.expired() && !weak.lock(), "Shared deletion");
     ExpectException<std::bad_weak_ptr>([&] { std::shared_ptr<int> invalid(weak); });
     struct Owner : std::enable_shared_from_this<Owner> {};
@@ -43,3 +44,4 @@ void CheckMemory() {
     std::construct_at(raw, 13); Require(*raw == 13, "Construct at");
     std::destroy_at(raw); allocator.deallocate(raw, 1);
 }
+

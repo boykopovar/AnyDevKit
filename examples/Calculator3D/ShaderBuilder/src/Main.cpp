@@ -15,6 +15,7 @@ void writeBytes(std::ostream& output, std::string_view name, std::span<const std
         output << std::to_integer<unsigned>(bytes[i]) << ',';
         output << (i % 24 == 23 ? '\n' : ' ');
     }
+
     output << "\n};\n";
 }
 
@@ -25,10 +26,12 @@ void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage 
         options.descriptor_binding_count = 1;
         options.descriptor_bindings[0] = {0, 0, PSBC_DESCRIPTOR_STORAGE_BUFFER, 1, 0, 16};
     }
+
     if (name == "Vertex") {
         options.descriptor_binding_count = 2;
         options.descriptor_bindings[1] = {0, 1, PSBC_DESCRIPTOR_STORAGE_BUFFER, 1, 16, 16};
     }
+
     const auto shader = AnyDevKit::ShaderCompiler::CompileFile(path, options);
     const auto& metadata = shader.GetBindingMetadata();
     if (metadata.vertex_buffer_table_valid || metadata.view_index_valid || metadata.draw_id_valid || metadata.start_instance_valid) throw std::runtime_error("Unexpected calculator3D shader resource layout");
@@ -39,6 +42,7 @@ void compile(std::ostream& output, const std::filesystem::path& path, PsbcStage 
     writeBytes(output, name + "Header", shader.GetHeaderBytes());
     writeBytes(output, name + "Code", shader.GetCodeBytes());
     output << "inline constexpr ShaderAsset " << name << '{' << name << "Header, " << name << "Code, {";
+
     for (const auto value : data) output << value << ", ";
     output << "}, " << metadata.user_sgpr_count << ", " << (metadata.push_constants_valid ? static_cast<int>(metadata.push_constants_user_data_dword) : -1) << ", " << (metadata.descriptor_set0_valid ? static_cast<int>(metadata.descriptor_set0_user_data_dword) : -1) << "};\n";
 }
@@ -59,9 +63,11 @@ int main(int count, char** arguments) {
         compile(output, arguments[4], PSBC_STAGE_FRAGMENT, "InterfaceFragment", 64, target);
         output << "}\n#endif\n";
         output.close();
+
         return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
         return 1;
     }
 }
+

@@ -16,3 +16,4 @@ if(EXISTS "${DIRECTORY}")
     file(REMOVE_RECURSE "${DIRECTORY}")
 endif()
 execute_process(COMMAND "${ADK}" shader-pipeline --output "${DIRECTORY}" ${OPTIONS} COMMAND_ERROR_IS_FATAL ANY)
+

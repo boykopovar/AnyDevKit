@@ -48,6 +48,7 @@ bool Calculator3D::HasError() const { return error; }
 Calculator3DHistory Calculator3D::GetHistory() const {
     Calculator3DHistory saved{};
     saved.Count = history.size();
+
     for (std::size_t i = 0; i < history.size(); ++i) std::ranges::copy(history[i], saved.Entries[i].begin());
     return saved;
 }
@@ -56,12 +57,14 @@ void Calculator3D::RestoreHistory(const Calculator3DHistory& saved) {
     if (saved.Count > saved.Entries.size()) throw Calculator3DError{"Invalid saved history count"};
     std::vector<std::string> restored;
     restored.reserve(HistoryCapacity);
+
     for (std::size_t i = 0; i < saved.Count; ++i) {
         const auto& text = saved.Entries[i];
         const auto end = std::ranges::find(text, 0);
         if (end == text.begin() || end == text.end()) throw Calculator3DError{"Invalid saved history text"};
         restored.emplace_back(text.begin(), end);
     }
+
     history.swap(restored);
 }
 
@@ -100,6 +103,7 @@ void Calculator3D::digit(char character) {
         entry = "0";
         awaitingOperand = false;
     }
+
     const auto text = Display();
     if (std::ranges::count_if(text, [](char c) { return c >= '0' && c <= '9'; }) >= 12) throw Calculator3DError{"LIMIT 12 DIGITS"};
     if (text == "0") entry[0] = character;
@@ -134,6 +138,7 @@ void Calculator3D::calculate(double right, char operation) {
         break;
     default: throw Calculator3DError{"Invalid operation"};
     }
+
     setValue(result);
     accumulator = value();
     addHistory(left, operation, right);
@@ -191,6 +196,7 @@ void Calculator3D::command(Calculator3DKey key) {
                 if (length + 1 >= EntryCapacity) throw Calculator3DError{"NUMBER TOO LARGE"};
                 entry.push_back('.');
             }
+
             break;
         case Calculator3DKey::Backspace:
             if (completed || awaitingOperand) { entry = "0"; completed = false; awaitingOperand = false; }
@@ -199,6 +205,7 @@ void Calculator3D::command(Calculator3DKey key) {
                 entry.pop_back();
                 if (Display().empty() || Display() == "-") { entry = "0"; }
             }
+
             break;
         case Calculator3DKey::Sign:
             if (Display().front() == '-') entry.erase(0, 1);
@@ -207,6 +214,7 @@ void Calculator3D::command(Calculator3DKey key) {
                 if (length + 1 >= EntryCapacity) throw Calculator3DError{"NUMBER TOO LARGE"};
                 entry.insert(entry.begin(), '-');
             }
+
             awaitingOperand = false;
             if (completed) accumulator = value();
             break;
@@ -218,3 +226,4 @@ void Calculator3D::command(Calculator3DKey key) {
         default: throw Calculator3DError{"Invalid calculator3D command"};
     }
 }
+

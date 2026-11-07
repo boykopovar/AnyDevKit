@@ -57,3 +57,4 @@ function(anydevkit_configure_windows_executable target)
         COMMAND "${CMAKE_COMMAND}" "-DREADOBJ=${ANYDEVKIT_READOBJ}" "-DEXECUTABLE=$<TARGET_FILE:${target}>" "-DRUNTIME_DIRECTORY=${ANYDEVKIT_RUNTIME_DIRECTORY}" "-DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}" "-DNID_PATCHER=$<TARGET_FILE:AnyDevKitNidPatcher>" -P "${sdkRoot}/cmake/VerifyRuntimeImports.cmake"
         VERBATIM)
 endfunction()
+

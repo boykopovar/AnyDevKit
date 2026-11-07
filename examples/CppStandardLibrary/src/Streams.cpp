@@ -1,5 +1,6 @@
 #include "Checks.hpp"
 #include <version>
+
 #if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION
 #include <sstream>
 #include <iostream>
@@ -40,12 +41,14 @@ void CheckFileStreams(const char* path) {
         std::ifstream existing(fileName);
         Require(!existing.is_open(), "File stream test path already exists");
     }
+
     {
         std::ofstream output(fileName, std::ios::binary);
         output.exceptions(std::ios::badbit | std::ios::failbit);
         output << "value " << 123 << '\n';
         output.close();
     }
+
     {
         std::ifstream input(fileName, std::ios::binary);
         input.exceptions(std::ios::badbit | std::ios::failbit);
@@ -54,6 +57,8 @@ void CheckFileStreams(const char* path) {
         input.seekg(0); Require(input.peek() == 'v', "File stream positioning");
         input.close();
     }
+
     Require(std::remove(fileName.c_str()) == 0, "File stream cleanup");
 #endif
 }
+

@@ -18,3 +18,4 @@ else()
     set(CMAKE_CXX_FLAGS_INIT "-fno-stack-protector -fno-stack-check -mstack-arg-probe")
 endif()
 list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES ADK_SYSROOT)
+

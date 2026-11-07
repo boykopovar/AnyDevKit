@@ -1,5 +1,6 @@
 #include "Checks.hpp"
 #include <version>
+
 #if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION
 #include <regex>
 #include <string>
@@ -16,3 +17,4 @@ void CheckRegex() {
     ExpectException<std::regex_error>([] { std::regex invalid("["); });
 #endif
 }
+

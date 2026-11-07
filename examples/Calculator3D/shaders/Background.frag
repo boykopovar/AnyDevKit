@@ -24,6 +24,7 @@ float cube(vec3 origin, vec3 direction, out vec3 normal) {
     float nearDistance = max(max(nearPlane.x, nearPlane.y), nearPlane.z);
     float farDistance = min(min(farPlane.x, farPlane.y), farPlane.z);
     normal = -sign(direction) * step(nearPlane.yzx, nearPlane) * step(nearPlane.zxy, nearPlane);
+
     return nearDistance > 0.0 && farDistance >= nearDistance ? nearDistance : 1000.0;
 }
 
@@ -68,6 +69,7 @@ void main() {
         color = vec4(background, 1.0);
         return;
     }
+
     float closest = 1000.0;
     vec3 surface = background;
     for (int index = 0; index < 8; ++index) {
@@ -89,6 +91,7 @@ void main() {
                     normal = basis * normal;
                 }
             }
+
             if (distance > 0.0 && distance < closest) {
                 closest = distance;
                 float light = 0.25 + 0.75 * max(0.0, dot(normal, normalize(vec3(-0.4, 0.8, -1.0))));
@@ -96,6 +99,7 @@ void main() {
                 surface = tint * light + vec3(0.018, 0.025, 0.035);
             }
         }
+
         if ((visibility & (1u << (index + 8))) != 0u) {
             vec3 formulaCenter = textCenters[index].xyz;
             float formulaProjection = dot(formulaCenter, direction);
@@ -117,5 +121,7 @@ void main() {
             }
         }
     }
+
     color = vec4(surface, 1.0);
 }
+

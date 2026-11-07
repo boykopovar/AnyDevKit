@@ -15,6 +15,7 @@ void CheckNumeric() {
     std::valarray<int> values{1, 2, 3}; values *= 2; Require(values.sum() == 12, "Valarray");
     std::mt19937 generator(5489); Require(generator() == 3499211612u, "Deterministic generator");
     std::uniform_int_distribution<int> distribution(10, 20);
+
     for (int i = 0; i < 1000; ++i) { auto value = distribution(generator); Require(value >= 10 && value <= 20, "Random distribution"); }
     using namespace std::chrono;
     Require(duration_cast<milliseconds>(seconds(3)).count() == 3000, "Duration arithmetic");
@@ -23,3 +24,4 @@ void CheckNumeric() {
     Require(year_month_day{sys_days{date}} == date, "Calendar arithmetic");
     static_assert(std::ratio_equal_v<std::ratio<2, 4>, std::ratio<1, 2>>);
 }
+

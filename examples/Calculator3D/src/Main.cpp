@@ -30,6 +30,7 @@ int main() {
         Renderer renderer(Width, Height);
         Canvas canvas(Width, Height);
         const auto start = sceKernelGetProcessTime();
+
         for (;;) {
             interface.Tick();
             input.Poll(interface);
@@ -44,6 +45,8 @@ int main() {
         const auto length = std::snprintf(message, sizeof(message), "Calculator3D: %s (0x%08x)\n", error.Message, static_cast<unsigned>(error.Code));
         if (length < 0 || static_cast<std::size_t>(length) >= sizeof(message)) throw Calculator3DError{"Error message formatting failed"};
         check(sceKernelDebugOutText(0, message), "sceKernelDebugOutText");
+
         return error.Code;
     }
 }
+

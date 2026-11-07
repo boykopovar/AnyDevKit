@@ -5,6 +5,7 @@
 #include <limits>
 
 namespace BackgroundPhysics {
+
 namespace {
 
 constexpr float Radius = 0.64807407f;
@@ -33,6 +34,7 @@ Vector inverseInertia(const Body& body, Vector torque) {
     const auto size = body.HalfExtents;
     const std::array diagonal{3.0f * mass / (size.Y * size.Y + size.Z * size.Z), 3.0f * mass / (size.X * size.X + size.Z * size.Z), 3.0f * mass / (size.X * size.X + size.Y * size.Y)};
     Vector result;
+
     for (std::size_t index = 0; index < 3; ++index) result = result + body.Axes[index] * (dot(torque, body.Axes[index]) * diagonal[index]);
     return result;
 }
@@ -46,11 +48,13 @@ Vector support(const Body& body, Vector direction) {
     if (body.Sphere) return body.Position + direction * Radius;
     auto point = body.Position;
     const std::array sizes{body.HalfExtents.X, body.HalfExtents.Y, body.HalfExtents.Z};
+
     for (std::size_t index = 0; index < 3; ++index) {
         const auto axis = body.Axes[index];
         const auto projection = dot(axis, direction);
         if (std::abs(projection) > 0.00001f) point = point + axis * std::copysign(sizes[index], projection);
     }
+
     return point;
 }
 
@@ -68,6 +72,7 @@ bool spheres(const Body& a, const Body& b, Contact& contact) {
     contact.Normal = distance > 0 ? delta * (1.0f / distance) : Vector{1, 0, 0};
     contact.Depth = 2 * Radius - distance;
     contact.Point = (a.Position + b.Position) * 0.5f;
+
     return true;
 }
 
@@ -77,6 +82,7 @@ bool boxSphere(const Body& box, const Body& sphere, Contact& contact) {
     float nearestFace = std::numeric_limits<float>::max();
     Vector faceNormal;
     const std::array sizes{box.HalfExtents.X, box.HalfExtents.Y, box.HalfExtents.Z};
+
     for (std::size_t index = 0; index < 3; ++index) {
         const auto axis = box.Axes[index];
         const auto coordinate = dot(delta, axis);
@@ -87,6 +93,7 @@ bool boxSphere(const Body& box, const Body& sphere, Contact& contact) {
             faceNormal = axis * (coordinate < 0 ? -1.0f : 1.0f);
         }
     }
+
     const auto offset = sphere.Position - closest;
     const auto squared = dot(offset, offset);
     if (squared >= Radius * Radius) return false;
@@ -100,6 +107,7 @@ bool boxSphere(const Body& box, const Body& sphere, Contact& contact) {
         contact.Depth = Radius - distance;
         contact.Point = closest;
     }
+
     return true;
 }
 
@@ -117,10 +125,12 @@ bool boxes(const Body& a, const Body& b, Contact& contact) {
             contact.Depth = depth;
             contact.Normal = axis * (distance < 0 ? -1.0f : 1.0f);
         }
+
         return false;
     };
     for (const auto axis : a.Axes) if (separates(axis)) return false;
     for (const auto axis : b.Axes) if (separates(axis)) return false;
+
     for (const auto first : a.Axes) for (const auto second : b.Axes) if (separates(cross(first, second))) return false;
     contact.Point = (support(a, contact.Normal) + support(b, contact.Normal * -1)) * 0.5f;
     return true;
@@ -136,6 +146,7 @@ bool collide(const Body& a, const Body& b, Contact& contact) {
     if (!a.Sphere) return boxSphere(a, b, contact);
     if (!boxSphere(b, a, contact)) return false;
     contact.Normal = contact.Normal * -1;
+
     return true;
 }
 
@@ -173,6 +184,7 @@ void resolve(Body& a, Body& b, const Contact& contact) {
             impulse(b, armB, direction * -friction);
         }
     }
+
     const auto correction = contact.Normal * (std::max(0.0f, contact.Depth - 0.0001f) * 0.8f / (inverseMass(a) + inverseMass(b)));
     a.Position = a.Position - correction * inverseMass(a);
     b.Position = b.Position + correction * inverseMass(b);
@@ -192,6 +204,7 @@ void rotate(Body& body) {
     if (squared == 0) return;
     const auto halfRotation = body.AngularVelocity * (Step * 0.5f);
     const auto scale = 2.0f / (1 + dot(halfRotation, halfRotation));
+
     for (auto& basis : body.Axes) basis = basis + (cross(halfRotation, basis) + cross(halfRotation, cross(halfRotation, basis))) * scale;
     body.Axes[0] = normalized(body.Axes[0]);
     body.Axes[2] = normalized(cross(body.Axes[0], body.Axes[1]));
@@ -210,6 +223,7 @@ Scene::Scene() {
         body.AngularVelocity = {0.12f + column * 0.04f, 0.2f - row * 0.08f, 0.08f};
         body.Sphere = (index & 1) != 0;
     }
+
     for (std::size_t index = 0; index < FormulaCount; ++index) {
         auto& body = bodies[ShapeCount + index];
         const auto column = static_cast<float>(index % 4);
@@ -226,6 +240,7 @@ void Scene::Update(float seconds) {
     const auto elapsed = seconds - previousSeconds;
     previousSeconds = seconds;
     accumulator += std::min(elapsed, 0.1f);
+
     while (accumulator >= Step) {
         step();
         accumulator -= Step;
@@ -237,6 +252,7 @@ void Scene::step() {
         body.Position = body.Position + body.Velocity * Step;
         rotate(body);
     }
+
     for (int iteration = 0; iteration < 6; ++iteration) {
         for (std::size_t first = 0; first < Count; ++first) {
             for (std::size_t second = first + 1; second < Count; ++second) {
@@ -244,6 +260,7 @@ void Scene::step() {
                 if (collide(bodies[first], bodies[second], contact)) resolve(bodies[first], bodies[second], contact);
             }
         }
+
         for (auto& body : bodies) {
             wall(body, {1, 0, 0}, -4.5f);
             wall(body, {-1, 0, 0}, -4.5f);
@@ -282,9 +299,11 @@ void Scene::WriteTransforms(std::span<float, TransformFloats> output) const {
             const auto scale = 2 * std::sqrt(1 + z.Z - x.X - y.Y);
             quaternion = {(z.X + x.Z) / scale, (z.Y + y.Z) / scale, scale * 0.25f, (x.Y - y.X) / scale};
         }
+
         const auto orientationOffset = index < ShapeCount ? ShapeCount * 4 + index / 2 * 4 : ShapeCount * 6 + FormulaCount * 4 + (index - ShapeCount) * 4;
         for (std::size_t component = 0; component < 4; ++component) output[orientationOffset + component] = quaternion[component];
     }
 }
 
 }
+

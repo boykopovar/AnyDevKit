@@ -3,3 +3,4 @@ target_include_directories(AnyDevKitLodePng SYSTEM PUBLIC "${PROJECT_SOURCE_DIR}
 target_compile_definitions(AnyDevKitLodePng PUBLIC LODEPNG_NO_COMPILE_DISK)
 target_compile_features(AnyDevKitLodePng PUBLIC cxx_std_20)
 set_target_properties(AnyDevKitLodePng PROPERTIES CXX_EXTENSIONS OFF)
+

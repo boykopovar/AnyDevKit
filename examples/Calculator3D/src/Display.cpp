@@ -29,12 +29,14 @@ Display::Display(int width, int height, std::size_t bufferCount) : bufferCount(b
         check(sceKernelReleaseDirectMemory(physicalAddress, stride * bufferCount), "sceKernelReleaseDirectMemory");
         check(result, "sceKernelMapDirectMemory");
     }
+
     std::array<VideoOutBuffers, maximumBufferCount> registered{};
     for (std::size_t index = 0; index < bufferCount; ++index) {
         auto* pixels = reinterpret_cast<std::uint32_t*>(static_cast<std::byte*>(address) + index * stride);
         buffers[index] = std::span(pixels, capacity / sizeof(std::uint32_t));
         registered[index].data = pixels;
     }
+
     handle = check(sceVideoOutOpen(255, 0, 0, nullptr), "sceVideoOutOpen");
     constexpr std::uint64_t HighRefreshMode = 15;
     VideoOutOutputOptions options{};
@@ -47,6 +49,7 @@ Display::Display(int width, int height, std::size_t bufferCount) : bufferCount(b
         check(sceVideoOutGetOutputStatus(handle, &status), "sceVideoOutGetOutputStatus");
         if (status.refreshRate != 13) throw Calculator3DError{"High refresh output mode was not applied"};
     }
+
     VideoOutBufferAttribute2 attribute{};
     sceVideoOutSetBufferAttribute2(&attribute, 0x8000000000000000ull, 0, width, height, 0, 0, 0);
     check(sceVideoOutRegisterBuffers2(handle, 0, 0, registered.data(), static_cast<int>(bufferCount), &attribute, 0, nullptr), "sceVideoOutRegisterBuffers2");
@@ -63,10 +66,12 @@ std::span<std::uint32_t> Display::Acquire() {
     const auto releaseStart = sceKernelGetProcessTime();
     std::atomic_ref label(labels[back]);
     static_assert(decltype(label)::is_always_lock_free);
+
     while (label.load(std::memory_order_acquire) != 0) {
         if (sceKernelGetProcessTime() - releaseStart > 5000000) throw Calculator3DError{"Display buffer release timed out"};
         check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
     }
+
     acquired = true;
     return buffers[back];
 }
@@ -79,6 +84,7 @@ Display::Flip Display::PrepareFlip() {
     const Flip flip{handle, back, ++sequence};
     back = (back + 1) % static_cast<int>(bufferCount);
     acquired = false;
+
     return flip;
 }
 
@@ -98,5 +104,7 @@ void Display::CompleteFlip() {
         if (sceKernelGetProcessTime() - start > 5000000) throw Calculator3DError{"First display flip timed out"};
         check(sceKernelUsleep_nid_postfix(100), "sceKernelUsleep");
     }
+
     check(sceSystemServiceHideSplashScreen(), "sceSystemServiceHideSplashScreen");
 }
+

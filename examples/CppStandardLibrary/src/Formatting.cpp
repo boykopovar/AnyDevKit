@@ -8,3 +8,4 @@ void CheckFormatting() {
     Require(output == "12 34" && std::formatted_size("{}", 12345) == 5, "Format iterators");
     ExpectException<std::format_error>([] { static_cast<void>(std::vformat("{", std::make_format_args())); });
 }
+

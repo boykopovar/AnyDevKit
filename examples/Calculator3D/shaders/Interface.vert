@@ -28,3 +28,4 @@ void main() {
     vec2 position = drawing.rectangle.xy + localPosition;
     gl_Position = vec4(position / drawing.parameters.yz * 2.0 - 1.0, 0.0, 1.0);
 }
+
