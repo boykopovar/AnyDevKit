@@ -28,7 +28,10 @@ add_executable(CppStandardLibrary
     src/Streams.cpp
     src/Regex.cpp
     src/Formatting.cpp
-    src/CCompatibility.cpp)
+    src/CCompatibility.cpp
+    src/Mutexes.cpp
+    src/Threads.cpp
+    src/Clocks.cpp)
 option(ANYDEVKIT_CPP_HEADLESS "Run standard library checks without a window" OFF)
 target_compile_definitions(CppStandardLibrary PRIVATE ANYDEVKIT_CPP_HEADLESS=$<BOOL:${ANYDEVKIT_CPP_HEADLESS}>)
 target_compile_features(CppStandardLibrary PRIVATE cxx_std_20)
@@ -43,7 +46,14 @@ if(WIN32)
         message(FATAL_ERROR "Configure the SDK root for a Windows executable")
     endif()
     anydevkit_configure_windows_executable(CppStandardLibrary ${ANYLIBCXX_WINDOWS_IMPORTS} __cxa_get_globals)
-    anydevkit_link_runtime_library(CppStandardLibrary libkernel sceKernelMapFlexibleMemory sceKernelMunmap sceKernelAllocateDirectMemory sceKernelGetDirectMemorySize sceKernelMapDirectMemory sceKernelReleaseDirectMemory sceKernelGetProcessTime sceKernelUsleep_nid_postfix)
+    anydevkit_link_runtime_library(CppStandardLibrary libkernel
+        sceKernelMapFlexibleMemory sceKernelMunmap sceKernelAllocateDirectMemory sceKernelGetDirectMemorySize sceKernelMapDirectMemory sceKernelReleaseDirectMemory
+        sceKernelGetProcessTime sceKernelUsleep_nid_postfix sceKernelClockGettime sceKernelNanosleep sceKernelGetAvailableCpumask
+        scePthreadMutexInit scePthreadMutexDestroy scePthreadMutexLock scePthreadMutexTrylock scePthreadMutexUnlock
+        scePthreadMutexattrInit scePthreadMutexattrDestroy scePthreadMutexattrSettype
+        scePthreadCondInit scePthreadCondDestroy scePthreadCondSignal scePthreadCondBroadcast scePthreadCondWait scePthreadCondTimedwait
+        scePthreadCreate scePthreadJoin scePthreadDetach scePthreadSelf scePthreadYield
+        scePthreadKeyCreate scePthreadKeyDelete scePthreadGetspecific scePthreadSetspecific)
     anydevkit_link_runtime_library(CppStandardLibrary libSceVideoOut sceVideoOutOpen sceVideoOutSetBufferAttribute2 sceVideoOutRegisterBuffers2 sceVideoOutSubmitFlip sceVideoOutWaitVblank sceVideoOutGetFlipStatus sceVideoOutGetBufferLabelAddress sceVideoOutInitializeOutputOptions sceVideoOutIsOutputSupported sceVideoOutConfigureOutput sceVideoOutGetOutputStatus)
     anydevkit_link_runtime_library(CppStandardLibrary libSceSystemService sceSystemServiceHideSplashScreen)
 else()

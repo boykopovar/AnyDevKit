@@ -19,7 +19,8 @@ int run(std::FILE* report, const char* reportPath, Screen* screen) {
         {"exceptions", CheckExceptions}, {"coroutines", CheckCoroutines},
         {"atomics", CheckAtomics}, {"locale", CheckLocale},
         {"streams", CheckStreams}, {"file streams", [&] { CheckFileStreams(reportPath); }}, {"regex", CheckRegex},
-        {"formatting", CheckFormatting}, {"c compatibility", CheckCCompatibility}
+        {"formatting", CheckFormatting}, {"c compatibility", CheckCCompatibility},
+        {"mutex stress", CheckMutexes}, {"thread stress", CheckThreads}, {"clock stress", CheckClocks}
     });
     unsigned failures = 0;
 

@@ -1,5 +1,6 @@
 #include "Screen.hpp"
 #include <algorithm>
+#include <array>
 #include <stdexcept>
 
 namespace {
@@ -75,7 +76,8 @@ void render(std::span<std::uint32_t> pixels, std::span<const DrawCommand> comman
 Screen::Screen() : display(Width, Height, 2), canvas(Width, Height) {}
 
 void Screen::Begin(std::size_t index, std::string_view name) {
-    rows.at(index) = {visible(name), "RUNNING"};
+    if (index != rows.size()) throw std::out_of_range("Test groups must begin in order");
+    rows.push_back({visible(name), "RUNNING"});
     summary = "RUNNING CHECKS";
     draw();
 }
@@ -105,9 +107,12 @@ void Screen::draw() {
     canvas.Text(120, 112, "ANYDEVKIT C++ STANDARD LIBRARY", 5, Ink);
     canvas.Text(120, 176, summary, 3, failed ? Red : Mint);
 
+    const auto rowStep = rows.empty() ? 42 : std::min(42, 630 / static_cast<int>(rows.size()));
+    if (rowStep < 29) throw std::length_error("Too many test groups for the results screen");
+
     for (std::size_t index = 0; index < rows.size(); ++index) {
-        const auto top = 245 + static_cast<int>(index) * 42;
-        canvas.Rectangle(120, top - 7, 1680, 34, index % 2 == 0 ? 0xff1b2a3b : 0xff172333);
+        const auto top = 245 + static_cast<int>(index) * rowStep;
+        canvas.Rectangle(120, top - 7, 1680, rowStep - 8, index % 2 == 0 ? 0xff1b2a3b : 0xff172333);
         canvas.Text(144, top, rows[index].Name, 3, Ink);
         canvas.Text(1510, top, rows[index].Status, 3, rows[index].Status == "FAIL" ? Red : Mint);
     }

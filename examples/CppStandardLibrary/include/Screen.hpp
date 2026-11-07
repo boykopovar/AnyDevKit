@@ -3,8 +3,8 @@
 
 #include "Canvas.hpp"
 #include "Display.hpp"
-#include <array>
 #include <string>
+#include <vector>
 
 class Screen final {
 public:
@@ -22,7 +22,7 @@ private:
     void draw();
     Display display;
     Canvas canvas;
-    std::array<Row, 15> rows;
+    std::vector<Row> rows;
     std::string summary = "STARTING CHECKS";
     std::string detail;
     bool failed = false;

@@ -30,6 +30,9 @@ void CheckFileStreams(const char* path);
 void CheckRegex();
 void CheckFormatting();
 void CheckCCompatibility();
+void CheckMutexes();
+void CheckThreads();
+void CheckClocks();
 
 #endif
 
