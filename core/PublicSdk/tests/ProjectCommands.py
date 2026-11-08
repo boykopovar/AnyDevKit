@@ -115,6 +115,7 @@ with tempfile.TemporaryDirectory(prefix="adk-project-", dir=Path(adk).parent) as
     assert not (project / "dist").exists()
     for command in ["init", "setup", "update", "package", "shader", "shader-pipeline", "nid", "build"]:
         assert "adk " + command in run(command, "--help").stdout
+    assert "shader options" in run("shader-pipeline", "--help").stdout
     run("unknown", "--help", success=False)
 print("Project configuration checks passed")
 

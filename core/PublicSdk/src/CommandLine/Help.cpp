@@ -104,7 +104,7 @@ All outputs must be new; parent directories must exist. Unknown options fail.
 
     while (end != std::string_view::npos && end + 1 < text.size() && text[end + 1] == ' ') end = text.find('\n', end + 1);
     std::cout << "adk " << text.substr(start + 1, end - start - 1) << '\n';
-    if (command == "package" || command == "build" || command == "pkg" || command == "param" || command == "ps5-elf" || command == "eboot" || command == "pfs" || command == "ffpfsc" || command == "shader" || command == "spirv") std::cout << text.substr(text.find("\nmetadata:"));
+    if (command == "package" || command == "build" || command == "pkg" || command == "param" || command == "ps5-elf" || command == "eboot" || command == "pfs" || command == "ffpfsc" || command == "shader" || command == "shader-pipeline" || command == "spirv") std::cout << text.substr(text.find("\nmetadata:"));
 }
 
 }
