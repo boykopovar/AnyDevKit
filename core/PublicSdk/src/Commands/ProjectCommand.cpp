@@ -5,6 +5,7 @@
 #include "ParamBuilder.hpp"
 #include <algorithm>
 #include <array>
+#include <random>
 #include <stdexcept>
 
 namespace AnyDevKit::PublicSdk {
@@ -41,7 +42,11 @@ void ProjectCommand::Init(const std::string& name, Arguments& arguments, const s
     ApplicationParameters parameters;
     parameters.TitleId = arguments.Optional("title-id", "FAKE" + suffix);
     parameters.ContentId = "IV0000-" + parameters.TitleId + "_00-ANYDEVKIT0000001";
-    parameters.ConceptId = "10000001";
+    if (parameters.TitleId.size() != 9 || !std::ranges::all_of(std::string_view(parameters.TitleId).substr(4), [](char c) { return c >= '0' && c <= '9'; })) throw std::invalid_argument("Title ID must end with five digits");
+    std::random_device random;
+    auto conceptSuffix = std::to_string(std::uniform_int_distribution<unsigned>(0, 999)(random));
+    conceptSuffix.insert(0, 3 - conceptSuffix.size(), '0');
+    parameters.ConceptId = parameters.TitleId.substr(4) + conceptSuffix;
     parameters.ContentVersion = "01.000.000";
     parameters.MasterVersion = "01.00";
     parameters.DefaultLanguage = "en-US";
