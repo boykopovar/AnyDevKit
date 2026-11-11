@@ -89,6 +89,7 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     if (vertex || compute || hull) {
         const auto specials = writer.Reserve(sizeof(ShaderSpecialRegs), alignof(ShaderSpecialRegs));
         if (compute) writer.WriteUInt32(specials + offsetof(ShaderSpecialRegs, dispatch_modifier), 0x8000u);
+        if (metadata.merged_geometry) writeRegister(writer, specials + offsetof(ShaderSpecialRegs, vgt_gs_out_prim_type), requireRegister(context, ShaderRegs::VGT_GS_OUT_PRIM_TYPE));
         writeRegister(writer, specials + offsetof(ShaderSpecialRegs, ge_cntl), metadata.linkage_ge_cntl);
         writeRegister(writer, specials + offsetof(ShaderSpecialRegs, vgt_shader_stages_en), metadata.linkage_stages_en);
         writeRegister(writer, specials + offsetof(ShaderSpecialRegs, ge_user_vgpr_en), metadata.linkage_user_vgpr_en);

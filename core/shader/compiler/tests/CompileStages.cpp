@@ -48,6 +48,23 @@ void validate(const AnyDevKit::AgcShaderPackage& package, PsbcStage stage, Shade
     }
 
     require(found, "Missing program address register");
+    if (package.GetBindingMetadata().merged_geometry) {
+        std::uint64_t specialDisplacement;
+        std::memcpy(&specialDisplacement, bytes.data() + offsetof(Shader, specials), sizeof(specialDisplacement));
+        require(specialDisplacement <= bytes.size() - offsetof(Shader, specials), "Invalid special register displacement");
+        const auto specialOffset = offsetof(Shader, specials) + specialDisplacement;
+        require(sizeof(ShaderSpecialRegs) <= bytes.size() - specialOffset, "Special registers exceed header");
+        ShaderSpecialRegs specials;
+        std::memcpy(&specials, bytes.data() + specialOffset, sizeof(specials));
+        require(specials.vgt_gs_out_prim_type.offset == ShaderRegs::VGT_GS_OUT_PRIM_TYPE, "Missing geometry output primitive register");
+        const auto& metadata = package.GetBindingMetadata();
+        bool matched = false;
+        for (std::size_t index = 0; index < metadata.context_register_count; ++index) {
+            const auto& entry = metadata.context_registers[index];
+            if (entry.offset == ShaderRegs::VGT_GS_OUT_PRIM_TYPE) matched = entry.value == specials.vgt_gs_out_prim_type.value;
+        }
+        require(matched, "Geometry output primitive register disagrees with compiler metadata");
+    }
     std::cout << "header=" << bytes.size() << " code=" << package.GetCodeBytes().size() << '\n';
 }
 
