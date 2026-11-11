@@ -91,6 +91,7 @@ shader options (also shader-pipeline):
   [--entry name (default main)] [--address32-hi uint32 (default 2)]
   [--primitive-type uint32 (default 4)] [--samples uint32 (default 1)]
   [--color-format uint32 (default 9 for fragment, 0 for vertex)]
+  [--dynamic-vertex-input true|false (default false; excludes --vertex-attribute)]
   [--vertex-attribute location,binding,format,offset,stride,alignment,divisor ...]
   Vertex formats use lowercase PSBC names without the prefix, e.g. r32g32b32_float.
 

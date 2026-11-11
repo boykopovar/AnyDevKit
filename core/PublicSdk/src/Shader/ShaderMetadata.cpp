@@ -9,7 +9,7 @@ namespace AnyDevKit::PublicSdk {
 
 namespace {
 
-static_assert(PSBC_SHADER_METADATA_VERSION == 21);
+static_assert(PSBC_SHADER_METADATA_VERSION == 22);
 template<class TValue, class TVisitor>
 void Visit(const std::string& name, TValue& value, const TVisitor& visitor) {
     using Value = std::remove_cv_t<TValue>;
@@ -123,6 +123,8 @@ void Fields(TValue& metadata, const TVisitor& visitor) {
     Visit("ngg_lds_layout", metadata.ngg_lds_layout, visitor);
     Visit("vertex_buffer_usage_mask", metadata.vertex_buffer_usage_mask, visitor);
     Visit("vertex_buffer_per_attribute", metadata.vertex_buffer_per_attribute, visitor);
+    Visit("dynamic_vertex_input", metadata.dynamic_vertex_input, visitor);
+    Visit("vertex_buffer_descriptor_stride", metadata.vertex_buffer_descriptor_stride, visitor);
 }
 
 }

@@ -12,7 +12,7 @@
 
 namespace AnyDevKit {
 
-static_assert(PSBC_SHADER_METADATA_VERSION == 21);
+static_assert(PSBC_SHADER_METADATA_VERSION == 22);
 static_assert(sizeof(void*) == 8);
 static_assert(std::endian::native == std::endian::little);
 static_assert(std::is_standard_layout_v<Shader> && sizeof(Shader) == 96);

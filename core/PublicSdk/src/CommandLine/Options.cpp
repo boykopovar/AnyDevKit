@@ -16,6 +16,7 @@ PsbcCompileOptions Options::Shader(Arguments& arguments, PsbcStage stage) {
     const auto omit = arguments.Optional("omit-implicit-primitive-id", options.omit_implicit_primitive_id ? "true" : "false");
     if (omit != "true" && omit != "false") throw std::invalid_argument("Invalid --omit-implicit-primitive-id value");
     options.omit_implicit_primitive_id = omit == "true";
+    options.dynamic_vertex_input = arguments.Flag("dynamic-vertex-input");
 
     for (const auto& value : arguments.Many("vertex-attribute")) {
         if (options.vertex_attribute_count >= PSBC_MAX_VERTEX_ATTRIBUTES) throw std::out_of_range("Vertex attribute table exceeds capacity");

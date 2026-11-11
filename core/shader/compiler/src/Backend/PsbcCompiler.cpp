@@ -50,6 +50,7 @@ void PsbcCompiler::ValidateOptions(const PsbcCompileOptions& options) {
     if (options.stage != PSBC_STAGE_VERTEX && options.stage != PSBC_STAGE_FRAGMENT && options.stage != PSBC_STAGE_GEOMETRY && options.stage != PSBC_STAGE_COMPUTE && options.stage != PSBC_STAGE_TESS_CTRL && options.stage != PSBC_STAGE_TESS_EVAL) throw std::invalid_argument("PSBC: unsupported AGC stage");
     if ((options.stage == PSBC_STAGE_VERTEX || options.stage == PSBC_STAGE_GEOMETRY || options.stage == PSBC_STAGE_TESS_EVAL) && !options.ngg) throw std::invalid_argument("PSBC: vertex AGC shaders require NGG");
     if ((options.stage == PSBC_STAGE_FRAGMENT || options.stage == PSBC_STAGE_COMPUTE) && (options.ngg || options.vertex_attribute_count)) throw std::invalid_argument("PSBC: vertex-only options on a fragment shader");
+    if (options.dynamic_vertex_input && (options.stage != PSBC_STAGE_VERTEX || options.vertex_attribute_count)) throw std::invalid_argument("PSBC: dynamic vertex input requires a vertex stage without static attributes");
     const bool tessellation = options.stage == PSBC_STAGE_TESS_CTRL || options.stage == PSBC_STAGE_TESS_EVAL;
     if (tessellation && (!options.patch_control_points || options.patch_control_points > 32)) throw std::invalid_argument("PSBC: tessellation requires 1 to 32 patch control points");
     if (!tessellation && options.patch_control_points) throw std::invalid_argument("PSBC: patch control points on a non-tessellation stage");

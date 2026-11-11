@@ -9,7 +9,7 @@
 namespace AnyDevKit::PublicSdk {
 
 Arguments::Arguments(std::span<const std::string> arguments) {
-    const std::set<std::string> flags{"exec", "only-sce", "windows-startup", "case-insensitive", "omit-implicit-primitive-id"};
+    const std::set<std::string> flags{"exec", "only-sce", "windows-startup", "case-insensitive", "omit-implicit-primitive-id", "dynamic-vertex-input"};
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         const auto& argument = arguments[i];
         if (!argument.starts_with("--") || argument.size() == 2) throw std::invalid_argument("Expected --option: " + argument);

@@ -55,6 +55,9 @@ void AgcResourceBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     if (metadata.ps5_ring_table_valid) claim(true, metadata.ps5_ring_table_user_data_dword + 1);
     if (metadata.vertex_buffer_table_valid != (metadata.vertex_buffer_usage_mask != 0)) throw std::invalid_argument("AGC: inconsistent vertex buffer usage mask");
     if (!metadata.vertex_buffer_table_valid && metadata.vertex_buffer_per_attribute) throw std::invalid_argument("AGC: vertex attribute layout without a vertex buffer table");
+    if (metadata.dynamic_vertex_input && (!metadata.vertex_buffer_per_attribute || metadata.source_stage != PSBC_STAGE_VERTEX)) throw std::invalid_argument("AGC: invalid dynamic vertex input layout");
+    const auto vertexStride = metadata.vertex_buffer_table_valid ? (metadata.dynamic_vertex_input ? sizeof(PsbcDynamicVertexInput) : 16u) : 0u;
+    if (metadata.vertex_buffer_descriptor_stride != vertexStride) throw std::invalid_argument("AGC: inconsistent vertex descriptor stride");
     if ((metadata.start_instance_valid || metadata.draw_id_valid) && !metadata.base_vertex_valid) throw std::invalid_argument("AGC: incomplete draw-parameter block");
     if (metadata.push_constants_valid) {
         if (!metadata.push_constant_size || metadata.push_constant_size > 256) throw std::invalid_argument("AGC: unsupported push constant size");
