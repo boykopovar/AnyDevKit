@@ -1,4 +1,7 @@
 add_executable(shader_compilation_tests CompileStages.cpp)
+add_executable(spirv_compilation_check CompileSpirv.cpp)
+target_link_libraries(spirv_compilation_check PRIVATE AnyDevKit::SpirvCompiler)
+set_target_properties(spirv_compilation_check PROPERTIES CXX_EXTENSIONS OFF)
 target_include_directories(shader_compilation_tests PRIVATE "${PROJECT_SOURCE_DIR}/3rdparty/AnyPS5/core/libs")
 target_link_libraries(shader_compilation_tests PRIVATE AnyDevKit::ShaderCompiler)
 target_compile_features(shader_compilation_tests PRIVATE cxx_std_20)
