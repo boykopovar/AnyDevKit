@@ -1,5 +1,6 @@
 #include "CommandLine/Options.hpp"
 #include "ShaderCompiler.hpp"
+#include "Shader/VertexAttribute.hpp"
 #include "IO/Files.hpp"
 #include "Project/Metadata.hpp"
 #include <algorithm>
@@ -15,6 +16,11 @@ PsbcCompileOptions Options::Shader(Arguments& arguments, PsbcStage stage) {
     const auto omit = arguments.Optional("omit-implicit-primitive-id", options.omit_implicit_primitive_id ? "true" : "false");
     if (omit != "true" && omit != "false") throw std::invalid_argument("Invalid --omit-implicit-primitive-id value");
     options.omit_implicit_primitive_id = omit == "true";
+
+    for (const auto& value : arguments.Many("vertex-attribute")) {
+        if (options.vertex_attribute_count >= PSBC_MAX_VERTEX_ATTRIBUTES) throw std::out_of_range("Vertex attribute table exceeds capacity");
+        options.vertex_attributes[options.vertex_attribute_count++] = VertexAttribute::Parse(value);
+    }
 
     for (const auto& value : arguments.Many("descriptor")) {
         std::array<std::string, 6> fields;
