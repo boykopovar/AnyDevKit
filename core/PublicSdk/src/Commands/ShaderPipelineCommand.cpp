@@ -1,5 +1,7 @@
 #include "Commands/ShaderPipelineCommand.hpp"
 #include "ShaderCompiler.hpp"
+#include "Backend/PsbcCompiler.hpp"
+#include "Shader/SpirvInput.hpp"
 #include "CommandLine/Options.hpp"
 #include "Shader/ShaderMetadata.hpp"
 #include "IO/Files.hpp"
@@ -25,6 +27,8 @@ void write(const std::filesystem::path& directory, const std::string& stage, con
 
 void ShaderPipelineCommand::Run(std::string_view command, Arguments& arguments) {
     if (command != "shader-pipeline") throw std::invalid_argument("Unknown pipeline command");
+    const auto inputFormat = arguments.Optional("input-format", "glsl");
+    if (inputFormat != "glsl" && inputFormat != "spirv") throw std::invalid_argument("Pipeline input format must be glsl or spirv");
     const auto vertexPath = arguments.Require("vertex");
     const auto geometryPath = arguments.Optional("geometry");
     const auto controlPath = arguments.Optional("control");
@@ -43,16 +47,26 @@ void ShaderPipelineCommand::Run(std::string_view command, Arguments& arguments) 
 
     for (const auto& path : arguments.Many("include")) includes.push_back(Files::Path(path));
     arguments.Finish();
-    const auto vertex = read(Files::Path(vertexPath));
+    if (inputFormat == "spirv" && !includes.empty()) throw std::invalid_argument("SPIR-V pipeline input cannot use source include directories");
     if (geometry) {
-        const auto source = read(Files::Path(geometryPath));
-        const auto package = ShaderCompiler::CompileGeometry({vertex, vertexPath}, {source, geometryPath}, options, includes);
+        const auto compile = [&]() {
+            if (inputFormat == "spirv") return PsbcCompiler::CompileGeometry(ReadSpirv(Files::Path(vertexPath)), ReadSpirv(Files::Path(geometryPath)), options);
+            const auto vertex = read(Files::Path(vertexPath));
+            const auto source = read(Files::Path(geometryPath));
+            return ShaderCompiler::CompileGeometry({vertex, vertexPath}, {source, geometryPath}, options, includes);
+        };
+        const auto package = compile();
         std::filesystem::create_directory(output);
         write(output, "geometry", package);
     } else {
-        const auto control = read(Files::Path(controlPath));
-        const auto evaluation = read(Files::Path(evaluationPath));
-        const auto packages = ShaderCompiler::CompileTessellation({vertex, vertexPath}, {control, controlPath}, {evaluation, evaluationPath}, options, includes);
+        const auto compile = [&]() {
+            if (inputFormat == "spirv") return PsbcCompiler::CompileTessellation(ReadSpirv(Files::Path(vertexPath)), ReadSpirv(Files::Path(controlPath)), ReadSpirv(Files::Path(evaluationPath)), options);
+            const auto vertex = read(Files::Path(vertexPath));
+            const auto control = read(Files::Path(controlPath));
+            const auto evaluation = read(Files::Path(evaluationPath));
+            return ShaderCompiler::CompileTessellation({vertex, vertexPath}, {control, controlPath}, {evaluation, evaluationPath}, options, includes);
+        };
+        const auto packages = compile();
         std::filesystem::create_directory(output);
         write(output, "control", packages[0]);
         write(output, "evaluation", packages[1]);

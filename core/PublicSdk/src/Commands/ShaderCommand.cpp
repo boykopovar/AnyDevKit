@@ -3,6 +3,7 @@
 #include "ShaderCompiler.hpp"
 #include "CommandLine/Options.hpp"
 #include "Shader/ShaderMetadata.hpp"
+#include "Shader/SpirvInput.hpp"
 #include "Backend/PsbcCompiler.hpp"
 #include <stdexcept>
 
@@ -53,12 +54,7 @@ void ShaderCommand::Run(std::string_view command, Arguments& arguments) {
     arguments.Finish();
     const auto compile = [&]() {
         if (command == "shader") return ShaderCompiler::CompileFile(input, options, includes);
-        const auto bytes = Files::Read(input);
-        if (bytes.empty() || bytes.size() % 4 != 0) throw std::invalid_argument("SPIR-V size must be a nonzero multiple of four");
-        std::vector<std::uint32_t> words(bytes.size() / 4);
-
-        for (std::size_t i = 0; i < words.size(); ++i) for (unsigned j = 0; j < 4; ++j) words[i] |= std::to_integer<std::uint32_t>(bytes[4 * i + j]) << (8 * j);
-        return PsbcCompiler::Compile(words, options);
+        return PsbcCompiler::Compile(ReadSpirv(input), options);
     };
 
     const auto package = compile();

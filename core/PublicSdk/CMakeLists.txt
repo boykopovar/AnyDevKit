@@ -13,6 +13,7 @@ add_library(AnyDevKitPublicSdk STATIC
     src/Commands/PackagingCommand.cpp
     src/Commands/ShaderPipelineCommand.cpp
     src/Commands/ShaderCommand.cpp
+    src/Shader/SpirvInput.cpp
     src/Shader/ShaderMetadata.cpp
     src/Shader/VertexAttribute.cpp
     src/IO/Files.cpp

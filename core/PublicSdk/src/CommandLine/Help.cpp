@@ -49,7 +49,7 @@ shader --input source.glsl --stage vertex|fragment|compute --header header.bin -
        --metadata bindings.adk [--include directory]... [shader options]
 spirv --input shader.spv --stage vertex|fragment|compute --header header.bin --code code.bin
       --metadata bindings.adk [shader options]
-shader-pipeline --vertex source.vert (--geometry source.geom or --control source.tesc --evaluation source.tese) --output new-directory
+shader-pipeline [--input-format glsl|spirv] --vertex source.vert (--geometry source.geom or --control source.tesc --evaluation source.tese) --output new-directory
     [--entry name] [--address32-hi uint32] [--primitive-type uint32] [--include directory]...
     Tessellation requires --patch-control-points uint32.
 
