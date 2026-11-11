@@ -43,19 +43,26 @@ int main(int count, char** arguments) {
         const std::filesystem::path directory(arguments[1]);
         const auto vertex = readSpirv(directory / "Triangle.vert.hlsl.spv");
         const auto geometry = readSpirv(directory / "EmitTriangle.geom.hlsl.spv");
+        const auto streamVertex = readSpirv(directory / "VertexStreams.vert.hlsl.spv");
+        const auto streamGeometry = readSpirv(directory / "VertexStreams.geom.hlsl.spv");
         const auto control = readSpirv(directory / "Triangle.tesc.hlsl.spv");
         const auto evaluation = readSpirv(directory / "Triangle.tese.hlsl.spv");
         using AnyDevKit::PsbcCompiler;
         for (const auto* target : {"windows", "linux", "ps5"}) {
             const auto package = PsbcCompiler::CompileGeometry(vertex, geometry, PsbcCompiler::CreateOptions(PSBC_STAGE_GEOMETRY, target));
             compare(package, directory / (std::string(target) + "-geometry"), "geometry");
+            auto dynamicOptions = PsbcCompiler::CreateOptions(PSBC_STAGE_GEOMETRY, target);
+            dynamicOptions.dynamic_vertex_input = true;
+            const auto dynamicPackage = PsbcCompiler::CompileGeometry(streamVertex, streamGeometry, dynamicOptions);
+            const auto& dynamicMetadata = dynamicPackage.GetBindingMetadata();
+            if (!dynamicMetadata.dynamic_vertex_input || !dynamicMetadata.vertex_buffer_per_attribute || dynamicMetadata.vertex_buffer_descriptor_stride != 32 || dynamicMetadata.vertex_buffer_usage_mask != 3) throw std::runtime_error("Dynamic geometry input layout was lost");
             auto options = PsbcCompiler::CreateOptions(PSBC_STAGE_TESS_CTRL, target);
             options.patch_control_points = 3;
             const auto tessellation = PsbcCompiler::CompileTessellation(vertex, control, evaluation, options);
             compare(tessellation[0], directory / (std::string(target) + "-tessellation"), "control");
             compare(tessellation[1], directory / (std::string(target) + "-tessellation"), "evaluation");
         }
-        std::cout << "Embedded SPIR-V compiler matches all pipeline outputs\n";
+        std::cout << "Offline SPIR-V compiler matches all pipeline outputs\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
