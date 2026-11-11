@@ -6,7 +6,7 @@
 	url = https://github.com/KhronosGroup/glslang.git
 [submodule "3rdparty/opengnm-psbc"]
 	path = 3rdparty/opengnm-psbc
-	url = https://github.com/mpereiraesaa/opengnm-psbc.git
+	url = https://github.com/boykopovar/opengnm-psbc.git
 [submodule "3rdparty/opengnm"]
 	path = 3rdparty/opengnm
 	url = https://github.com/PS4-OpenGNM/opengnm.git
