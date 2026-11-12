@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <span>
 #include <set>
 #include <string>
@@ -28,6 +29,7 @@ public:
     void ValidateDependencies(std::span<const std::string> dependencies) const;
     void AddModule(const std::string& fileName);
     void Select(const std::string& symbol, const std::string& module, const std::string& library);
+    std::optional<Ps5Import> Find(const std::string& symbol) const;
     Ps5Import Resolve(const std::string& symbol) const;
 
 private:

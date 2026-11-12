@@ -5,6 +5,7 @@ add_library(AnyDevKitPs5ElfBuilder STATIC
     src/Builder/ProcessBuilder.cpp
     src/Builder/StartupBuilder.cpp
     src/Builder/UnwindBuilder.cpp
+    src/Builder/WeakSymbolBuilder.cpp
     src/Writer/ElfWriter.cpp
     src/Writer/BinaryWriter.cpp
 )

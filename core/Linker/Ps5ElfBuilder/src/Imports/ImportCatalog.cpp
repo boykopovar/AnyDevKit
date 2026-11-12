@@ -70,14 +70,20 @@ std::vector<Ps5Import> ImportCatalog::findCandidates(const std::string& nid) con
     return result;
 }
 
-Ps5Import ImportCatalog::Resolve(const std::string& symbol) const {
+std::optional<Ps5Import> ImportCatalog::Find(const std::string& symbol) const {
     const auto nid = Nid::ResolveOneName(symbol);
     const auto selected = selections.find(nid);
     if (selected != selections.end()) return selected->second;
     const auto candidates = findCandidates(nid);
-    if (candidates.empty()) throw std::invalid_argument("No PS5 export for " + symbol + " (" + nid + ")");
+    if (candidates.empty()) return std::nullopt;
     if (candidates.size() != 1) throw std::invalid_argument("Select a module and library for ambiguous PS5 import: " + symbol);
     return candidates.front();
+}
+
+Ps5Import ImportCatalog::Resolve(const std::string& symbol) const {
+    const auto imported = Find(symbol);
+    if (!imported) throw std::invalid_argument("No PS5 export for " + symbol + " (" + Nid::ResolveOneName(symbol) + ")");
+    return *imported;
 }
 
 void ImportCatalog::Select(const std::string& symbol, const std::string& module, const std::string& library) {

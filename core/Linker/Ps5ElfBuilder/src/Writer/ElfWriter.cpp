@@ -3,6 +3,7 @@
 #include "Builder/ProcessBuilder.hpp"
 #include "Builder/StartupBuilder.hpp"
 #include "Builder/UnwindBuilder.hpp"
+#include "Builder/WeakSymbolBuilder.hpp"
 #include "Sha256.hpp"
 
 #include <algorithm>
@@ -91,6 +92,7 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     auto plt = image.Relocations(23, 2);
     validateRelocations(image, symbols, relocations);
     validateRelocations(image, symbols, plt);
+    const auto weakWrites = WeakSymbolBuilder::Resolve(imports, symbols, relocations, plt);
     const auto importedEnd = std::stable_partition(plt.begin(), plt.end(), [](const auto& relocation) { return static_cast<std::uint32_t>(relocation.Info) == 7; });
     relocations.insert(relocations.end(), importedEnd, plt.end());
     plt.erase(importedEnd, plt.end());
@@ -271,10 +273,18 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
             if (segment.Address < previousEnd && previous.Address < currentEnd) throw std::invalid_argument("ELF load segments share a PS5 memory page");
         }
 
+        for (const auto& [address, value] : weakWrites) {
+            if (address < segment.Address || address - segment.Address >= segment.MemorySize) continue;
+            if (8 > segment.MemorySize - (address - segment.Address)) throw std::invalid_argument("Weak relocation exceeds load segment");
+            segment.FileSize = std::max(segment.FileSize, BinaryWriter::Add(address - segment.Address, 8));
+        }
         const auto fileEnd = BinaryWriter::Add(segment.Offset, segment.FileSize);
         if (fileEnd > output.max_size()) throw std::length_error("PS5 load segment exceeds output capacity");
         output.resize(static_cast<std::size_t>(fileEnd));
         if (!data.empty()) std::copy(data.begin(), data.end(), output.begin() + static_cast<std::ptrdiff_t>(segment.Offset + prefix));
+        for (const auto& [address, value] : weakWrites) {
+            if (address >= segment.Address && address - segment.Address < segment.MemorySize) BinaryWriter::Set(output, segment.Offset + address - segment.Address, value, 8);
+        }
         segments.push_back(segment);
     }
 
