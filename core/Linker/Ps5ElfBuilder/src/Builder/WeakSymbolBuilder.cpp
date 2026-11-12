@@ -12,7 +12,7 @@ std::map<std::uint64_t, std::uint64_t> WeakSymbolBuilder::Resolve(const ImportCa
     std::vector<Symbol> retained;
     for (std::size_t i = 0; i < symbols.size(); ++i) {
         const auto& symbol = symbols[i];
-        if (i != 0 && symbol.Section == 0 && (symbol.Info >> 4) == 2 && !imports.Find(symbol.Name)) {
+        if (i != 0 && symbol.Section == 0 && (symbol.Info >> 4) == 2 && ((symbol.Visibility & 3) != 0 || !imports.Find(symbol.Name))) {
             if ((symbol.Info & 15) > 2 || symbol.Value != 0) throw std::invalid_argument("Unsupported unresolved weak symbol: " + symbol.Name);
             unresolved[i] = true;
         } else {

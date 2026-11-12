@@ -85,5 +85,10 @@ int main() {
     require(symbols.size() == originalSymbols.size());
     requireError<std::invalid_argument>([&] { selected.Resolve(symbols[1].Name); });
 
+    symbols = {{}, {"sceKernelGetOpenPsId", 0x22, 2, 0, 0, 0}};
+    relocations = {{0x100, (1ull << 32) | 6, 0}};
+    const auto hiddenWrites = WeakSymbolBuilder::Resolve(selected, symbols, relocations, plt);
+    require(hiddenWrites.at(0x100) == 0 && symbols.size() == 1 && relocations.empty());
+
 }
 
