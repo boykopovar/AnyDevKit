@@ -29,10 +29,28 @@ std::vector<std::string> ImportCatalog::Dependencies(std::span<const std::byte> 
 
 const std::vector<Ps5Import>& ImportCatalog::Modules() const { return modules; }
 
+void ImportCatalog::SelectModule(const std::string& module, const std::string& fileName) {
+    if (!modules.empty()) throw std::logic_error("Select module files before adding dependencies");
+    if (Ps5NidMap::GetModuleName(fileName) != module) throw std::invalid_argument("Selected file does not provide PS5 module: " + module);
+    if (!moduleFiles.emplace(module, fileName).second) throw std::invalid_argument("Duplicate PS5 module selection: " + module);
+}
+
+void ImportCatalog::ValidateDependencies(std::span<const std::string> expected) const {
+    if (expected.size() != dependencies.size()) throw std::invalid_argument("Import catalog must match ELF dependencies");
+    for (const auto& fileName : expected) if (!dependencies.contains(fileName)) throw std::invalid_argument("Missing PS5 dependency: " + fileName);
+    for (const auto& [module, fileName] : moduleFiles) {
+        if (std::ranges::none_of(modules, [&](const auto& imported) { return imported.Module == module && imported.FileName == fileName; })) throw std::invalid_argument("Selected PS5 module is not imported: " + module);
+    }
+}
+
 void ImportCatalog::AddModule(const std::string& fileName) {
     const auto& module = Ps5NidMap::GetModuleName(fileName);
-    if (std::ranges::any_of(modules, [&](const auto& existing) { return existing.Module == module || existing.FileName == fileName; })) throw std::invalid_argument("Duplicate PS5 module: " + fileName);
-    modules.push_back({{}, module, fileName, {}, 0, 0});
+    if (dependencies.contains(fileName)) throw std::invalid_argument("Duplicate PS5 dependency: " + fileName);
+    const auto selected = moduleFiles.find(module);
+    const auto existing = std::ranges::find(modules, module, &Ps5Import::Module);
+    if (existing != modules.end() && selected == moduleFiles.end()) throw std::invalid_argument("Select a file for duplicate PS5 module: " + module);
+    if (existing == modules.end()) modules.push_back({{}, module, selected == moduleFiles.end() ? fileName : selected->second, {}, 0, 0});
+    dependencies.insert(fileName);
 }
 
 std::vector<Ps5Import> ImportCatalog::findCandidates(const std::string& nid) const {

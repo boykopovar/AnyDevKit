@@ -1,5 +1,6 @@
 #include "Imports/ImportCatalog.hpp"
 #include <stdexcept>
+#include <array>
 
 namespace {
 
@@ -42,5 +43,22 @@ int main() {
     require(allocator.Module == "libSceLibcInternal");
     require(allocator.FileName == "libSceLibcInternal.sprx");
     require(allocator.ModuleVersion == 0 && allocator.LibraryVersion == 0);
+    requireError<std::invalid_argument>([&] { catalog.AddModule("libkernel_sys.sprx"); });
+    requireError<std::logic_error>([&] { catalog.SelectModule("libkernel", "libkernel_sys.sprx"); });
+    AnyDevKit::ImportCatalog selected;
+    requireError<std::invalid_argument>([&] { selected.SelectModule("libkernel", "libSceLibcInternal.sprx"); });
+    selected.SelectModule("libkernel", "libkernel_sys.sprx");
+    requireError<std::invalid_argument>([&] { selected.SelectModule("libkernel", "libkernel.sprx"); });
+    requireError<std::invalid_argument>([&] { selected.ValidateDependencies({}); });
+    selected.AddModule("libkernel.sprx");
+    selected.AddModule("libkernel_sys.sprx");
+    const std::array<std::string, 2> dependencies{"libkernel.sprx", "libkernel_sys.sprx"};
+    selected.ValidateDependencies(dependencies);
+    require(selected.Modules().size() == 1);
+    require(selected.Resolve("sceKernelGetOpenPsId").FileName == "libkernel_sys.sprx");
+    requireError<std::invalid_argument>([&] { selected.AddModule("libkernel.sprx"); });
+    const std::array<std::string, 2> mismatch{"libkernel.sprx", "libkernel_web.sprx"};
+    requireError<std::invalid_argument>([&] { selected.ValidateDependencies(mismatch); });
+
 }
 

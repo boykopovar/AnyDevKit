@@ -109,15 +109,15 @@ void ProjectCommand::Package(Arguments& arguments) {
     const std::set<std::string> paths{"input", "app0", "param", "output", "workspace", "passcode-moduli", "mount-modulus"};
     std::set<std::string> allowed = paths;
 
-    for (const auto& name : {"format", "module-name", "file-name", "elf-sdk-version", "companion-sdk-version", "heap-size", "select-import", "authority", "application-version", "self-firmware-version", "block-size", "timestamp", "case-insensitive", "passcode", "image-seed"}) allowed.insert(name);
+    for (const auto& name : {"format", "module-name", "file-name", "elf-sdk-version", "companion-sdk-version", "heap-size", "select-import", "select-module", "authority", "application-version", "self-firmware-version", "block-size", "timestamp", "case-insensitive", "passcode", "image-seed"}) allowed.insert(name);
     Json::Fields(options, allowed);
     std::map<std::string, std::vector<std::string>> defaults;
     for (const auto& [name, value] : options.items()) {
         if (name == "case-insensitive") {
             if (!value.is_boolean()) throw std::invalid_argument("case-insensitive must be boolean");
             defaults[name] = {value.get<bool>() ? "true" : "false"};
-        } else if (name == "select-import") {
-            if (!value.is_array()) throw std::invalid_argument("select-import must be an array");
+        } else if (name == "select-import" || name == "select-module") {
+            if (!value.is_array()) throw std::invalid_argument(name + " must be an array");
 
             for (const auto& item : value) defaults[name].push_back(item.get<std::string>());
         } else {

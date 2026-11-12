@@ -154,6 +154,11 @@ Ps5ElfOptions Options::Elf(Arguments& arguments) {
 
 ImportCatalog Options::Imports(Arguments& arguments, const std::filesystem::path& input) {
     ImportCatalog catalog;
+    for (const auto& selection : arguments.Many("select-module")) {
+        const auto separator = selection.find(',');
+        if (separator == std::string::npos || selection.find(',', separator + 1) != std::string::npos) throw std::invalid_argument("Expected --select-module module,file.sprx");
+        catalog.SelectModule(selection.substr(0, separator), selection.substr(separator + 1));
+    }
     for (const auto& module : ImportCatalog::Dependencies(Files::Read(input))) catalog.AddModule(module);
     for (const auto& selection : arguments.Many("select-import")) {
         const auto first = selection.find(',');

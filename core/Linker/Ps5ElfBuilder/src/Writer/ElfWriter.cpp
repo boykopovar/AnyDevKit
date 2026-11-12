@@ -128,14 +128,12 @@ std::vector<std::byte> ElfWriter::Write(std::span<const std::byte> input, const 
     std::map<std::string, Ps5Import> modules;
     std::map<std::pair<std::string, std::string>, Ps5Import> libraries;
     const auto dependencies = ImportCatalog::Dependencies(input);
-    if (dependencies.size() != imports.Modules().size()) throw std::invalid_argument("Import catalog must match ELF dependencies");
+    imports.ValidateDependencies(dependencies);
 
-    for (const auto& fileName : dependencies) {
-        const auto found = std::ranges::find(imports.Modules(), fileName, &Ps5Import::FileName);
-        if (found == imports.Modules().end()) throw std::invalid_argument("Missing PS5 dependency: " + fileName);
+    for (const auto& imported : imports.Modules()) {
         if (moduleIds.size() >= 65535) throw std::length_error("Too many PS5 import modules");
-        moduleIds.emplace(found->Module, static_cast<std::uint16_t>(moduleIds.size() + 1));
-        modules.emplace(found->Module, *found);
+        moduleIds.emplace(imported.Module, static_cast<std::uint16_t>(moduleIds.size() + 1));
+        modules.emplace(imported.Module, imported);
     }
 
     for (std::size_t i = 1; i < symbols.size(); ++i) {

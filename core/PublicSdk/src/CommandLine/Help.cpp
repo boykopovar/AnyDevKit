@@ -74,6 +74,8 @@ elf:
   [--heap-size bytes (positive multiple of 64 KiB, enables heap growth)]
   Dependencies come from ELF DT_NEEDED: libc.prx -> libSceLibcInternal.sprx; .prx -> .sprx.
   [--select-import symbol,module,library]...
+  [--select-module module,file.sprx]...
+  Explicitly selects one file for dependencies sharing a PS5 module name.
 self:
   [--authority uint64 (default 0x3100000000000002)]
   [--application-version uint64 (default 0)] [--self-firmware-version uint64 (default 0)]
