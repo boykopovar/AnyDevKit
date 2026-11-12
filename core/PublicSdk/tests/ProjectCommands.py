@@ -63,6 +63,23 @@ with tempfile.TemporaryDirectory(prefix="adk-project-", dir=Path(adk).parent) as
         result = subprocess.run([installed, 'setup', *forwarded], env=launcherEnvironment, capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
         assert json.loads(result.stdout) == forwarded
+    else:
+        decoys = root / "python decoys"
+        decoys.mkdir()
+        (decoys / "python3").write_text("not a program\n")
+        (decoys / "python3").chmod(0o644)
+        locked = root / "locked path"
+        locked.mkdir()
+        locked.chmod(0)
+        versioned = root / "versioned python"
+        versioned.mkdir()
+        (versioned / "python3.11").symlink_to(sys.executable)
+        paths = [f"{decoys}{os.pathsep}{environment['PATH']}", f"{locked}{os.pathsep}{environment['PATH']}", str(versioned)]
+        for path in paths:
+            result = subprocess.run([installed, 'setup', *forwarded], env=dict(os.environ, PATH=path), capture_output=True, text=True)
+            assert result.returncode == 0, path + ": " + result.stderr
+            assert json.loads(result.stdout) == forwarded
+        locked.chmod(0o755)
     script.unlink()
     result = subprocess.run([installed, 'setup', 'deps'], env=environment, capture_output=True, text=True)
     assert result.returncode != 0 and 'Missing SDK tools/setup.py' in result.stderr
