@@ -70,6 +70,11 @@ int run(const std::filesystem::path& executable, const std::vector<std::string>&
 #endif
 }
 
+bool succeeds(const std::filesystem::path& executable, const std::vector<std::string>& arguments) {
+    try { return run(executable, arguments) == 0; }
+    catch (const std::system_error&) { return false; }
+}
+
 }
 
 void SetupCommand::Run(std::span<const std::string> arguments, const std::filesystem::path& sdkRoot) {
@@ -82,7 +87,7 @@ void SetupCommand::Run(std::span<const std::string> arguments, const std::filesy
     const std::vector<std::string> names{"python.exe", "python3.exe", "py.exe"};
 #else
     constexpr char Separator = ':';
-    const std::vector<std::string> names{"python3", "python"};
+    const std::vector<std::string> names{"python3", "python", "python3.15", "python3.14", "python3.13", "python3.12", "python3.11"};
 #endif
     const std::string paths(environment);
 
@@ -91,11 +96,12 @@ void SetupCommand::Run(std::span<const std::string> arguments, const std::filesy
         while (start <= paths.size()) {
             const auto end = paths.find(Separator, start);
             const auto executable = std::filesystem::absolute(std::filesystem::path(paths.substr(start, end - start)) / name);
-            if (std::filesystem::is_regular_file(executable)) {
+            std::error_code error;
+            if (std::filesystem::is_regular_file(executable, error)) {
                 std::vector<std::string> prefix;
                 auto probe = prefix;
                 probe.insert(probe.end(), {"-c", "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)"});
-                if (run(executable, probe) == 0) {
+                if (succeeds(executable, probe)) {
                     prefix.push_back(script.string());
                     prefix.insert(prefix.end(), arguments.begin(), arguments.end());
                     const auto status = run(executable, prefix);
