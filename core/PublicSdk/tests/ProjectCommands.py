@@ -71,6 +71,10 @@ with tempfile.TemporaryDirectory(prefix="adk-project-", dir=Path(adk).parent) as
     project = root / "Demo"
     run("init", "Demo", "--directory", project, "--sdk", sdk, success=False)
     assert not project.exists()
+    for name in ["all", "ALL_BUILD", "help", "install", "INSTALL", "preinstall", "clean", "edit_cache", "rebuild_cache", "ZERO_CHECK"]:
+        assert "reserved" in run("init", name, "--directory", root / name, "--sdk", sdk, "--deps", dependencies, success=False).stderr
+        assert not (root / name).exists()
+    run("init", "test", "--directory", root / "test", "--sdk", sdk, "--deps", dependencies)
     run("init", "Demo", "--directory", project, "--sdk", sdk, "--deps", dependencies, "--title-id", "FAKE26109")
     expected = ["CMakeLists.txt", "CMakePresets.json", "adk.json", "src/Main.cpp", "app0/sce_sys/param.json"]
     assert all((project / name).is_file() for name in expected)

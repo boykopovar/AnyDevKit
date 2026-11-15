@@ -12,6 +12,8 @@ namespace AnyDevKit::PublicSdk {
 
 namespace {
 
+constexpr std::array<std::string_view, 10> ReservedTargets{"all", "ALL_BUILD", "help", "install", "INSTALL", "preinstall", "clean", "edit_cache", "rebuild_cache", "ZERO_CHECK"};
+
 void write(const std::filesystem::path& path, const std::string& text) {
     Files::Write(path, std::as_bytes(std::span(text)));
 }
@@ -30,6 +32,7 @@ void replace(std::string& text, std::string_view token, const std::string& value
 
 void ProjectCommand::Init(const std::string& name, Arguments& arguments, const std::filesystem::path& sdkRoot) {
     if (name.empty() || name.size() > 64 || !std::ranges::all_of(name, [](char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'; }) || (name.front() >= '0' && name.front() <= '9')) throw std::invalid_argument("Project name must be a C++ identifier of at most 64 characters");
+    if (std::ranges::find(ReservedTargets, name) != ReservedTargets.end()) throw std::invalid_argument("Project name is reserved by CMake: " + name);
     const auto directory = Files::Path(arguments.Optional("directory", name));
     const auto sdk = std::filesystem::canonical(Files::Path(arguments.Optional("sdk", Files::Text(sdkRoot))));
     const auto dependencyRoot = std::filesystem::canonical(Files::Path(arguments.Require("deps")));
