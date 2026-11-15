@@ -9,6 +9,9 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
+#include <cstdint>
 #endif
 namespace {
 
@@ -22,6 +25,12 @@ std::filesystem::path executable() {
         if (buffer.size() >= 32768) throw std::runtime_error("Executable path exceeds Windows path limit");
         buffer.resize(buffer.size() * 2);
     }
+#elif defined(__APPLE__)
+    std::uint32_t size = 0;
+    static_cast<void>(_NSGetExecutablePath(nullptr, &size));
+    std::vector<char> buffer(size);
+    if (_NSGetExecutablePath(buffer.data(), &size) != 0) throw std::runtime_error("Cannot get executable path");
+    return std::filesystem::canonical(buffer.data());
 #else
     return std::filesystem::read_symlink("/proc/self/exe");
 #endif
