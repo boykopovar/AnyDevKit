@@ -15,7 +15,7 @@ void writeSemantics(AgcBinaryWriter& writer, std::span<const std::uint32_t> word
         const auto word = words[index];
         const auto semantic = word & 0xffu;
         const auto mask = output ? 0x1fffu : 0x4000ffu;
-        if ((word & ~mask) || !((semantic >= 15 && semantic <= PSBC_SEMANTIC_PRIMITIVE_ID) || semantic == PSBC_SEMANTIC_VIEWPORT_INDEX)) throw std::invalid_argument("AGC: unsupported semantic encoding");
+        if ((word & ~mask) || !((semantic >= 15 && semantic <= PSBC_SEMANTIC_PRIMITIVE_ID) || semantic == PSBC_SEMANTIC_VIEWPORT_INDEX || semantic == PSBC_SEMANTIC_RENDER_TARGET_LAYER)) throw std::invalid_argument("AGC: unsupported semantic encoding");
         if (output) {
             for (std::size_t previous = 0; previous < index; ++previous) {
                 if ((words[previous] & 0xffu) == semantic) throw std::invalid_argument("AGC: duplicate output semantic");
