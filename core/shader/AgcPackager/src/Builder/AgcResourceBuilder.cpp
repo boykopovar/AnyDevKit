@@ -53,6 +53,8 @@ void AgcResourceBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     claim(metadata.ngg_lds_layout_valid, metadata.ngg_lds_layout_user_data_dword);
     claim(metadata.ps5_ring_table_valid, metadata.ps5_ring_table_user_data_dword);
     if (metadata.ps5_ring_table_valid) claim(true, metadata.ps5_ring_table_user_data_dword + 1);
+    claim(metadata.scratch_valid, metadata.scratch_buffer_table_user_data_dword);
+    if (metadata.scratch_valid) claim(true, metadata.scratch_buffer_table_user_data_dword + 1);
     if (metadata.vertex_buffer_table_valid != (metadata.vertex_buffer_usage_mask != 0)) throw std::invalid_argument("AGC: inconsistent vertex buffer usage mask");
     if (!metadata.vertex_buffer_table_valid && metadata.vertex_buffer_per_attribute) throw std::invalid_argument("AGC: vertex attribute layout without a vertex buffer table");
     const bool dynamicVertexStage = metadata.source_stage == PSBC_STAGE_VERTEX || (metadata.source_stage == PSBC_STAGE_GEOMETRY && metadata.merged_geometry && metadata.merged_es_source_stage == PSBC_STAGE_VERTEX);

@@ -51,7 +51,7 @@ void AgcRegisterBuilder::Build(const PsbcShaderMetadata& metadata, AgcBinaryWrit
     const std::uint32_t resourceOffset = hull ? 0x10au : compute ? 0x212u : vertex ? 0x8au : 0xau;
     requireRegister(shader, resourceOffset);
     const auto& resources = requireRegister(shader, resourceOffset + 1);
-    if (resources.value & 1u) throw std::invalid_argument("AGC: scratch-enabled shader registers are unsupported");
+    if (static_cast<bool>(resources.value & 1u) != metadata.scratch_valid) throw std::invalid_argument("AGC: scratch enable does not match the metadata");
     if (((resources.value >> 1) & 31u) != metadata.user_sgpr_count) throw std::invalid_argument("AGC: register and metadata user SGPR counts disagree");
     if (vertex) {
         for (const auto offset : std::array<std::uint32_t, 10>{0x1b1u, 0x1c2u, 0x1c3u, 0x207u, 0x2d3u, 0x2e4u, 0x291u, 0x1ffu, 0x2abu, 0x2ceu}) requireRegister(context, offset);

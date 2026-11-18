@@ -4,9 +4,23 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 
 namespace AnyDevKit {
+
+std::uint16_t AgcComputeBuilder::ScratchDwordsPerThread(const PsbcShaderMetadata& metadata) {
+    if (!metadata.scratch_valid) {
+        if (metadata.scratch_bytes_per_wave || metadata.scratch_size_per_thread || metadata.scratch_buffer_table_user_data_dword) throw std::invalid_argument("AGC: undeclared scratch storage");
+        return 0;
+    }
+    if (metadata.source_stage != PSBC_STAGE_COMPUTE) throw std::invalid_argument("AGC: scratch storage is supported only for compute shaders");
+    constexpr auto waveSize = 32u;
+    constexpr auto bytesPerWaveDword = waveSize * sizeof(std::uint32_t);
+    const auto bytesPerWave = metadata.scratch_bytes_per_wave;
+    if (bytesPerWave == 0 || bytesPerWave % bytesPerWaveDword || metadata.scratch_size_per_thread > bytesPerWave / waveSize || bytesPerWave / bytesPerWaveDword > std::numeric_limits<std::uint16_t>::max()) throw std::invalid_argument("AGC: invalid compute scratch extent");
+    return static_cast<std::uint16_t>(bytesPerWave / bytesPerWaveDword);
+}
 
 PsbcShaderMetadata AgcComputeBuilder::ReadMetadata(const PsbcShaderOutput& compiled) {
     if (compiled.metadata.source_stage != PSBC_STAGE_COMPUTE || !compiled.data || compiled.size < 0x58) throw std::invalid_argument("AGC: incomplete compute container");

@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
-#include <string>
 #include <type_traits>
 #include <SceShaders.hpp>
 #include <prx/libSceAgc/Shader/include/ShaderConstants.hpp>
@@ -34,7 +33,6 @@ void AgcMetadataValidator::Validate(const PsbcShaderOutput& compiled) {
     if (!vertex && !fragment && !compute && !hull) throw std::invalid_argument("AGC: invalid hardware stage for the source stage");
     const std::uint32_t permitted = PSBC_UNRESOLVED_PROGRAM_CHECKSUM | (vertex ? static_cast<std::uint32_t>(PSBC_UNRESOLVED_NGG_ESGS_RING_ITEMSIZE) : 0u);
     if (metadata.unresolved_fields & ~permitted) throw std::invalid_argument("AGC: unresolved compiler metadata");
-    if (metadata.scratch_valid || metadata.scratch_bytes_per_wave || metadata.scratch_size_per_thread || metadata.scratch_buffer_table_user_data_dword) throw std::invalid_argument("AGC: scratch storage is unsupported (" + std::to_string(metadata.scratch_bytes_per_wave) + " bytes per wave, " + std::to_string(metadata.scratch_size_per_thread) + " bytes of private memory per thread, ring table SGPR " + std::to_string(metadata.scratch_buffer_table_user_data_dword) + ")");
     if (metadata.source_stage == PSBC_STAGE_GEOMETRY) {
         if (!metadata.merged_geometry || metadata.merged_es_source_stage != PSBC_STAGE_VERTEX || !metadata.merged_es_itemsize || !metadata.merged_esgs_ring_itemsize || !metadata.esgs_system_sgprs_valid) throw std::invalid_argument("AGC: incomplete merged geometry metadata");
     } else if (metadata.merged_geometry || metadata.merged_es_source_stage != PSBC_STAGE_NONE || metadata.merged_es_itemsize || metadata.merged_esgs_ring_itemsize) throw std::invalid_argument("AGC: unexpected merged geometry metadata");
